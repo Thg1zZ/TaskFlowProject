@@ -1,210 +1,70 @@
-# 🚀 TaskFlow — Task Manager Full Stack
+# ⬡ TaskFlow — Sistema de Gerenciamento de Tarefas
 
-Sistema de Gerenciamento de Tarefas com autenticação JWT.
+O **TaskFlow** é uma aplicação Full-Stack moderna projetada para oferecer uma experiência de organização de tarefas intuitiva, sofisticada e segura. Desenvolvido com foco em UX/UI de alto padrão, o sistema utiliza o conceito de *Glassmorphism* e uma paleta de cores executiva.
 
-## 🏗️ Stack
+![TaskFlow Preview](https://via.placeholder.com/1200x600/0f172a/ffffff?text=TaskFlow+Dashboard+Preview)
 
-| Camada      | Tecnologia                 |
-|-------------|----------------------------|
-| Frontend    | HTML5 + CSS3 + JavaScript  |
-| Backend     | Java 17 + Spring Boot 3.2  |
-| Banco       | PostgreSQL 15+             |
-| Auth        | JWT (JJWT 0.12)            |
-| Segurança   | Spring Security 6          |
+## 🚀 Funcionalidades Principais
 
----
+- **Autenticação Segura:** Sistema de login e registro com JWT (JSON Web Tokens) e criptografia de senhas (BCrypt).
+- **Recuperação de Senha:** Fluxo completo de "Esqueci minha senha" com envio de e-mails em HTML profissional via SMTP.
+- **Quadro Kanban:** Interface interativa para arrastar e organizar tarefas em diferentes estágios.
+- **Perfil Customizável:** Edição de perfil com ferramenta de recorte de imagem (Image Cropper) integrada para avatares.
+- **Categorização Inteligente:** Sistema de categorias personalizadas com ícones e cores para melhor organização.
+- **Design Responsivo:** Interface totalmente adaptável para dispositivos móveis e desktops, com suporte a Dark e Light Mode.
 
-## 📁 Estrutura do Projeto
+## 🛠 Tecnologias Utilizadas
 
-```
-task-manager/
-├── backend/
-│   ├── pom.xml
-│   └── src/main/
-│       ├── java/com/taskmanager/
-│       │   ├── TaskManagerApplication.java
-│       │   ├── config/
-│       │   │   └── SecurityConfig.java
-│       │   ├── controller/
-│       │   │   ├── AuthController.java
-│       │   │   └── TaskController.java
-│       │   ├── dto/
-│       │   │   ├── AuthResponse.java
-│       │   │   ├── LoginRequest.java
-│       │   │   ├── RegisterRequest.java
-│       │   │   ├── TaskRequest.java
-│       │   │   └── TaskResponse.java
-│       │   ├── entity/
-│       │   │   ├── User.java
-│       │   │   └── Task.java
-│       │   ├── repository/
-│       │   │   ├── UserRepository.java
-│       │   │   └── TaskRepository.java
-│       │   ├── security/
-│       │   │   ├── JwtTokenProvider.java
-│       │   │   └── JwtAuthenticationFilter.java
-│       │   └── service/
-│       │       ├── AuthService.java
-│       │       ├── TaskService.java
-│       │       └── UserDetailsServiceImpl.java
-│       └── resources/
-│           └── application.properties
-├── frontend/
-│   ├── index.html        ← Login / Registro
-│   ├── dashboard.html    ← Gerenciador de Tarefas
-│   ├── css/style.css
-│   └── js/
-│       ├── auth.js
-│       └── tasks.js
-└── database/
-    └── schema.sql
-```
+### Backend
+- **Java 17** com **Spring Boot 3**
+- **Spring Security** (Autenticação e Autorização)
+- **Spring Data JPA** (Persistência de Dados)
+- **PostgreSQL** (Banco de Dados Relacional)
+- **JavaMailSender** (Integração com serviços de e-mail)
+- **Lombok** (Produtividade e código limpo)
 
----
+### Frontend
+- **HTML5 & CSS3** (Vanilla, com variáveis CSS modernas)
+- **JavaScript Moderno (ES6+)**
+- **Cropper.js** (Manipulação de imagens)
+- **Google Fonts** (Tipografia profissional)
 
-## ⚙️ Configuração e Execução
+## 🔧 Como Rodar o Projeto Localmente
 
-### 1. Pré-requisitos
+### Pré-requisitos
+- JDK 17+
+- Maven
+- PostgreSQL rodando localmente
 
-- Java 17+
-- Maven 3.8+
-- PostgreSQL 15+
-- Qualquer navegador moderno
+### Configuração
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/task-manager.git
+   ```
+
+2. Configure as variáveis de ambiente (ou edite o `application.properties`):
+   - `DB_URL`: jdbc:postgresql://localhost:5432/taskmanager
+   - `DB_USER`: seu-usuario
+   - `DB_PASSWORD`: sua-senha
+   - `MAIL_USERNAME`: seu-email-smtp
+   - `MAIL_PASSWORD`: sua-senha-de-app
+
+3. Execute o Backend:
+   ```bash
+   cd backend
+   mvn spring-boot:run
+   ```
+
+4. Execute o Frontend:
+   Abra o arquivo `frontend/index.html` usando um servidor local (como a extensão Live Server do VS Code).
+
+## 🌍 Deploy
+
+O projeto está configurado para ser hospedado facilmente no **Render**:
+- **Backend:** Web Service (Java/Maven)
+- **Frontend:** Static Site
+- **Database:** PostgreSQL Service
 
 ---
 
-### 2. Banco de Dados
-
-```bash
-# Acesse o PostgreSQL
-psql -U postgres
-
-# Crie o banco
-CREATE DATABASE taskmanager;
-
-# Saia e execute o schema
-\q
-psql -U postgres -d taskmanager -f database/schema.sql
-```
-
----
-
-### 3. Backend
-
-Edite `backend/src/main/resources/application.properties`:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/taskmanager
-spring.datasource.username=postgres
-spring.datasource.password=SUA_SENHA_AQUI
-```
-
-Execute o backend:
-
-```bash
-cd backend
-mvn clean install
-mvn spring-boot:run
-```
-
-O servidor sobe em: `http://localhost:8080`
-
----
-
-### 4. Frontend
-
-Abra diretamente no navegador ou use um servidor local:
-
-```bash
-# Opção 1: VS Code Live Server (extensão)
-# Clique com botão direito em index.html → "Open with Live Server"
-
-# Opção 2: Python
-cd frontend
-python3 -m http.server 5500
-
-# Opção 3: Node.js
-npx serve frontend
-```
-
-Acesse: `http://localhost:5500`
-
----
-
-## 🔌 Endpoints da API
-
-### Autenticação
-```
-POST /api/auth/register   → Criar conta
-POST /api/auth/login      → Login (retorna JWT)
-```
-
-### Tarefas (requer Authorization: Bearer <token>)
-```
-GET    /api/tasks               → Listar todas
-GET    /api/tasks?status=TODO   → Filtrar por status
-GET    /api/tasks?search=texto  → Buscar por texto
-GET    /api/tasks/{id}          → Buscar por ID
-POST   /api/tasks               → Criar tarefa
-PUT    /api/tasks/{id}          → Atualizar tarefa
-PATCH  /api/tasks/{id}/status   → Atualizar apenas status
-DELETE /api/tasks/{id}          → Excluir tarefa
-GET    /api/tasks/stats         → Estatísticas
-```
-
-### Exemplo de Request
-
-**POST /api/auth/login**
-```json
-{
-  "email": "admin@teste.com",
-  "password": "senha123"
-}
-```
-
-**POST /api/tasks**
-```json
-{
-  "title": "Implementar autenticação",
-  "description": "Usar JWT com Spring Security",
-  "status": "IN_PROGRESS",
-  "priority": "HIGH",
-  "dueDate": "2025-12-31"
-}
-```
-
----
-
-## 🎨 Funcionalidades
-
-- [x] Registro e Login com JWT
-- [x] CRUD completo de tarefas
-- [x] Filtro por status (A Fazer / Em Progresso / Concluída)
-- [x] Busca por título e descrição
-- [x] Prioridade (Alta / Média / Baixa)
-- [x] Data de vencimento com aviso de atraso
-- [x] Troca rápida de status pelo card
-- [x] Estatísticas em tempo real
-- [x] Interface responsiva (mobile)
-- [x] Tema dark moderno
-
----
-
-## 🔐 Segurança
-
-- Senhas criptografadas com BCrypt
-- JWT com expiração de 24h
-- Spring Security com Stateless Session
-- CORS configurável via `application.properties`
-- Isolamento total de dados por usuário
-
----
-
-## 🛠️ Usuário de Teste
-
-Após executar o schema.sql, um usuário de teste é criado:
-
-| Campo | Valor           |
-|-------|-----------------|
-| Email | admin@teste.com |
-| Senha | senha123        |
+Desenvolvido por [Seu Nome](https://www.linkedin.com/in/seu-perfil/) — Sinta-se à vontade para se conectar!
