@@ -1,9 +1,9 @@
 // Se estiver rodando localmente (localhost, 127.0.0.1 ou abrindo o arquivo direto no navegador) usa a API local.
 const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') ? 'http://localhost:8080/api' : 'https://task-manager-with-login.onrender.com/api';
-const token    = localStorage.getItem('token');
-const userName = localStorage.getItem('userName') || 'Usuário';
-const userEmail = localStorage.getItem('userEmail') || '';
-const userProfileImage = localStorage.getItem('userProfileImage') || '';
+const token    = sessionStorage.getItem('token');
+const userName = sessionStorage.getItem('userName') || 'Usuário';
+const userEmail = sessionStorage.getItem('userEmail') || '';
+const userProfileImage = sessionStorage.getItem('userProfileImage') || '';
 
 if (!token) window.location.href = 'index.html';
 
@@ -25,13 +25,24 @@ function buildSidebar() {
     const current = window.location.pathname.split('/').pop();
     if (!nav) return;
 
-    nav.innerHTML = NAV_ITEMS.map(item => {
-        const active = current === item.href ? ' active' : '';
-        return `<a href="${item.href}" class="nav-item${active}">
-                    <span class="nav-icon">${item.icon}</span>
-                    <span>${item.label}</span>
-                </a>`;
-    }).join('');
+    nav.replaceChildren();
+    NAV_ITEMS.forEach(item => {
+        const active = current === item.href;
+        const a = document.createElement('a');
+        a.href = item.href;
+        a.className = 'nav-item' + (active ? ' active' : '');
+        
+        const spanIcon = document.createElement('span');
+        spanIcon.className = 'nav-icon';
+        spanIcon.textContent = item.icon;
+        
+        const spanLabel = document.createElement('span');
+        spanLabel.textContent = item.label;
+        
+        a.appendChild(spanIcon);
+        a.appendChild(spanLabel);
+        nav.appendChild(a);
+    });
 
     updateThemeBtn();
 
@@ -43,7 +54,14 @@ function buildSidebar() {
     if (ue) ue.textContent = userEmail;
 }
 
-document.addEventListener('DOMContentLoaded', buildSidebar);
+document.addEventListener('DOMContentLoaded', () => {
+    buildSidebar();
+    
+    // Bind global buttons
+    document.querySelectorAll('.btn-logout').forEach(btn => btn.addEventListener('click', logout));
+    document.querySelectorAll('.menu-toggle').forEach(btn => btn.addEventListener('click', toggleSidebar));
+    document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
+});
 
 // --- API helper -------------------------------------------------
 
@@ -136,7 +154,7 @@ function updateThemeBtn() {
     const btn = document.getElementById('themeToggleBtn');
     if (!btn) return;
     const isDark = (localStorage.getItem('theme') || 'dark') === 'dark';
-    btn.innerHTML = isDark ? '☀' : '◑';
+    btn.textContent = isDark ? '☀' : '◑';
     btn.title = isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro';
 }
 
@@ -146,10 +164,13 @@ function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
 }
 
-// --- Logout -----------------------------------------------------
-
 function logout() {
-    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userProfileImage');
+    localStorage.removeItem('userId');
     window.location.href = 'index.html';
 }
 
@@ -187,7 +208,7 @@ async function loadCategoriesIntoSelect(selectId) {
     if (!sel) return;
     try {
         const cats = await api('GET', '/categories');
-        sel.innerHTML = '';
+        sel.replaceChildren();
 
         const blank = document.createElement('option');
         blank.value = '';
@@ -336,4 +357,21 @@ function validateAndGetTaskDates() {
         return { ok: true, startDate, endDate };
     }
     return { ok: true, startDate: null, endDate: null };
+}
+
+// --- Funções de Ajuda para DOM Seguro (DRY & Hardening) --------
+
+/** Cria um elemento DOM com classe e (opcionalmente) texto seguros. */
+function createElementWithClass(tag, className, textContent = '') {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (textContent) el.textContent = textContent;
+    return el;
+}
+
+/** Cria um card meta-item padronizado (usado em tasks e kanban) */
+function createMetaItem(content, extraClass = '') {
+    const el = createElementWithClass('span', `kcard-meta-item ${extraClass}`.trim());
+    el.textContent = content;
+    return el;
 }

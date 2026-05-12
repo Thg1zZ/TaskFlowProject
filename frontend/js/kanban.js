@@ -19,28 +19,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCategoriesIntoSelect('taskCategory');
     document.getElementById('taskForm').addEventListener('submit', handleTaskSubmit);
     setupTaskPrazoModeListeners();
+    
+    // Bind global events
+    document.querySelectorAll('.btn-new-task').forEach(btn => btn.addEventListener('click', () => openModal()));
+    document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', closeModal));
+    document.querySelectorAll('.btn-close-delete').forEach(btn => btn.addEventListener('click', closeDeleteModal));
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDelete);
 });
 
 // --- Estrutura do board -----------------------------------------
 
 function buildBoard() {
     const board = document.getElementById('kanbanBoard');
-    // Valores de status são constantes internas — sem dados do servidor aqui
-    board.innerHTML = COLUMNS.map(col => `
-        <div class="kanban-col" id="col-${col.status}"
-             ondragover="onDragOver(event, '${col.status}')"
-             ondrop="onDrop(event, '${col.status}')"
-             ondragleave="onDragLeave(event)">
-            <div class="kanban-col-header">
-                <span class="kanban-col-icon" style="color:var(${col.colorVar})">${col.icon}</span>
-                <span class="kanban-col-title">${col.label}</span>
-                <span class="kanban-col-count" id="count-${col.status}">0</span>
-            </div>
-            <div class="kanban-cards" id="cards-${col.status}">
-                <span class="spin" style="color:var(--text-3);padding:16px;display:block;text-align:center">⟳</span>
-            </div>
-            <button class="kanban-add-btn" onclick="openModalWithStatus('${col.status}')">+ Adicionar</button>
-        </div>`).join('');
+    board.replaceChildren();
+
+    COLUMNS.forEach(col => {
+        const kanbanCol = document.createElement('div');
+        kanbanCol.className = 'kanban-col';
+        kanbanCol.id = `col-${col.status}`;
+        
+        kanbanCol.addEventListener('dragover', e => onDragOver(e, col.status));
+        kanbanCol.addEventListener('drop', e => onDrop(e, col.status));
+        kanbanCol.addEventListener('dragleave', e => onDragLeave(e));
+
+        const header = document.createElement('div');
+        header.className = 'kanban-col-header';
+
+        const icon = document.createElement('span');
+        icon.className = 'kanban-col-icon';
+        icon.style.color = `var(${col.colorVar})`;
+        icon.textContent = col.icon;
+
+        const title = document.createElement('span');
+        title.className = 'kanban-col-title';
+        title.textContent = col.label;
+
+        const count = document.createElement('span');
+        count.className = 'kanban-col-count';
+        count.id = `count-${col.status}`;
+        count.textContent = '0';
+
+        header.appendChild(icon);
+        header.appendChild(title);
+        header.appendChild(count);
+
+        const cards = document.createElement('div');
+        cards.className = 'kanban-cards';
+        cards.id = `cards-${col.status}`;
+        
+        const spin = document.createElement('span');
+        spin.className = 'spin';
+        spin.style.cssText = 'color:var(--text-3);padding:16px;display:block;text-align:center';
+        spin.textContent = '⟳';
+        cards.appendChild(spin);
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'kanban-add-btn';
+        addBtn.textContent = '+ Adicionar';
+        addBtn.addEventListener('click', () => openModalWithStatus(col.status));
+
+        kanbanCol.appendChild(header);
+        kanbanCol.appendChild(cards);
+        kanbanCol.appendChild(addBtn);
+
+        board.appendChild(kanbanCol);
+    });
 }
 
 // --- Dados ------------------------------------------------------
@@ -61,72 +104,110 @@ function renderBoard() {
         document.getElementById(`count-${col.status}`).textContent = tasks.length;
 
         if (tasks.length === 0) {
-            container.innerHTML = `<div class="kanban-empty">
-                <strong>Sem tarefas aqui</strong>
-                <span>Arraste uma tarefa ou crie uma nova nesta coluna.</span>
-            </div>`;
+            container.replaceChildren();
+            const empty = document.createElement('div');
+            empty.className = 'kanban-empty';
+            
+            const strong = document.createElement('strong');
+            strong.textContent = 'Sem tarefas aqui';
+            const span = document.createElement('span');
+            span.textContent = 'Arraste uma tarefa ou crie uma nova nesta coluna.';
+            
+            empty.appendChild(strong);
+            empty.appendChild(span);
+            container.appendChild(empty);
             return;
         }
-        container.innerHTML = tasks.map(renderCard).join('');
+        
+        container.replaceChildren();
+        tasks.forEach(task => container.appendChild(renderCard(task)));
     });
 }
 
 function renderCard(task) {
     const priorityColors = { HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#22d3a5' };
     const color    = priorityColors[task.priority] || '#3b82f6';
-    // safeColor valida cores vindas do servidor — previne CSS injection
     const catColor = safeColor(task.categoryColor);
     const taskId   = Number(task.id);
 
     const now     = new Date(); now.setHours(0, 0, 0, 0);
     const endDate = taskEndDate(task);
-    const overdue = endDate && task.status !== 'DONE' &&
-                    new Date(endDate + 'T00:00:00') < now;
+    const overdue = endDate && task.status !== 'DONE' && new Date(endDate + 'T00:00:00') < now;
 
-    const catHtml = task.categoryName
-        ? `<span class="kcard-cat"
-                style="background:${catColor}22;color:${catColor};border:1px solid ${catColor}44">
-               ${escHtml(task.categoryIcon || '')} ${escHtml(task.categoryName)}
-           </span>`
-        : '';
+    const card = document.createElement('div');
+    card.className = 'kanban-card';
+    card.id = `kcard-${taskId}`;
+    card.draggable = true;
+    card.addEventListener('dragstart', e => onDragStart(e, taskId));
+    card.addEventListener('dragend', e => onDragEnd(e));
 
-    const dueHtml = endDate
-        ? `<span class="kcard-meta-item ${overdue ? 'overdue' : ''}">
-               📅 ${escHtml(formatTaskRange(task))}
-           </span>`
-        : '';
+    const priorityBar = document.createElement('div');
+    priorityBar.className = 'kcard-priority-bar';
+    priorityBar.style.background = color;
+    card.appendChild(priorityBar);
 
-    const priorityHtml = `<span class="kcard-meta-item priority-${escHtml(task.priority)}">${escHtml(priorityLabel(task.priority))}</span>`;
+    const body = document.createElement('div');
+    body.className = 'kcard-body';
 
-    const estHtml = task.estimatedMinutes
-        ? `<span class="kcard-meta-item">⏱ ${escHtml(fmtMin(task.estimatedMinutes))}</span>`
-        : '';
+    const header = document.createElement('div');
+    header.className = 'kcard-header';
 
-    const commentHtml = task.commentCount > 0
-        ? `<span class="kcard-meta-item">💬 ${task.commentCount}</span>`
-        : '';
+    const title = createElementWithClass('span', `kcard-title ${task.status === 'DONE' ? 'done' : ''}`, task.title);
+    const actions = createElementWithClass('div', 'kcard-actions');
 
-    return `
-    <div class="kanban-card" id="kcard-${taskId}"
-         draggable="true"
-         ondragstart="onDragStart(event, ${taskId})"
-         ondragend="onDragEnd(event)">
-        <div class="kcard-priority-bar" style="background:${color}"></div>
-        <div class="kcard-body">
-            <div class="kcard-header">
-                <span class="kcard-title ${task.status === 'DONE' ? 'done' : ''}">${escHtml(task.title)}</span>
-                <div class="kcard-actions">
-                    <button class="task-action-btn" onclick="openEditModal(${taskId})" title="Editar">✎</button>
-                    <button class="task-action-btn delete" onclick="openDeleteModal(${taskId})" title="Excluir">✕</button>
-                </div>
-            </div>
-            ${task.description ? `<p class="kcard-desc">${escHtml(task.description)}</p>` : ''}
-            <div class="kcard-footer">
-                ${catHtml}
-                <div class="kcard-meta">${priorityHtml}${dueHtml}${estHtml}${commentHtml}</div>
-            </div>
-        </div>
-    </div>`;
+    const editBtn = createElementWithClass('button', 'task-action-btn', '✎');
+    editBtn.title = 'Editar';
+    editBtn.addEventListener('click', () => openEditModal(taskId));
+
+    const delBtn = createElementWithClass('button', 'task-action-btn delete', '✕');
+    delBtn.title = 'Excluir';
+    delBtn.addEventListener('click', () => openDeleteModal(taskId));
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    header.appendChild(title);
+    header.appendChild(actions);
+    body.appendChild(header);
+
+    if (task.description) {
+        const desc = createElementWithClass('p', 'kcard-desc', task.description);
+        body.appendChild(desc);
+    }
+
+    const footer = createElementWithClass('div', 'kcard-footer');
+
+    if (task.categoryName) {
+        const cat = createElementWithClass('span', 'kcard-cat', `${task.categoryIcon || ''} ${task.categoryName}`);
+        cat.style.background = `${catColor}22`;
+        cat.style.color = catColor;
+        cat.style.border = `1px solid ${catColor}44`;
+        footer.appendChild(cat);
+    }
+
+    const meta = createElementWithClass('div', 'kcard-meta');
+    const pri = createElementWithClass('span', `kcard-meta-item priority-${task.priority}`, priorityLabel(task.priority));
+    meta.appendChild(pri);
+
+    if (endDate) {
+        const due = createElementWithClass('span', `kcard-meta-item ${overdue ? 'overdue' : ''}`, `📅 ${formatTaskRange(task)}`);
+        meta.appendChild(due);
+    }
+
+    if (task.estimatedMinutes) {
+        const est = createElementWithClass('span', 'kcard-meta-item', `⏱ ${fmtMin(task.estimatedMinutes)}`);
+        meta.appendChild(est);
+    }
+
+    if (task.commentCount > 0) {
+        const com = createElementWithClass('span', 'kcard-meta-item', `💬 ${task.commentCount}`);
+        meta.appendChild(com);
+    }
+
+    footer.appendChild(meta);
+    body.appendChild(footer);
+    card.appendChild(body);
+
+    return card;
 }
 
 // --- Drag & Drop ------------------------------------------------

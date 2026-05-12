@@ -1,7 +1,19 @@
 const API_URL = 'https://task-manager-with-login.onrender.com/api';
-if (localStorage.getItem('token')) {
+if (sessionStorage.getItem('token')) {
     window.location.href = 'dashboard.html';
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnShowRegister')?.addEventListener('click', showRegister);
+    document.getElementById('btnShowLogin')?.addEventListener('click', showLogin);
+    
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            if (targetId) togglePassword(targetId);
+        });
+    });
+});
 
 // --- Alternar cards login / registro ----------------------------
 
@@ -155,8 +167,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 // --- Sessão -----------------------------------------------------
 
 function saveSession(data) {
-    localStorage.setItem('token',     data.token    || '');
-    localStorage.setItem('userId',    data.userId   || '');
-    localStorage.setItem('userName',  data.name     || '');
-    localStorage.setItem('userEmail', data.email    || '');
+    sessionStorage.setItem('token',     data.token    || '');
+    sessionStorage.setItem('userId',    data.userId   || '');
+    sessionStorage.setItem('userName',  data.name     || '');
+    sessionStorage.setItem('userEmail', data.email    || '');
+    // Remove any leftover localStorage token
+    localStorage.removeItem('token');
 }

@@ -19,6 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setupProfileImageInput();
     setupChartControls();
     loadProfile();
+    
+    // Bindings
+    document.getElementById('profileForm')?.addEventListener('submit', updateProfile);
+    document.getElementById('passwordForm')?.addEventListener('submit', updatePassword);
+    document.getElementById('btnRemovePhoto')?.addEventListener('click', removeProfileImage);
+    document.getElementById('btnRotateLeft')?.addEventListener('click', () => rotateCropper(-90));
+    document.getElementById('btnRotateRight')?.addEventListener('click', () => rotateCropper(90));
+    document.getElementById('btnZoomIn')?.addEventListener('click', () => zoomCropper(0.1));
+    document.getElementById('btnZoomOut')?.addEventListener('click', () => zoomCropper(-0.1));
+    document.querySelectorAll('.btn-close-crop-modal').forEach(btn => btn.addEventListener('click', closeCropModal));
+    document.getElementById('btnConfirmCrop')?.addEventListener('click', confirmCrop);
 });
 
 async function loadProfile() {
@@ -33,8 +44,8 @@ async function loadProfile() {
 function populateProfile(data) {
     const initials = (data.name || '?').charAt(0).toUpperCase();
     profileImageData = data.profileImage || '';
-    if (profileImageData) localStorage.setItem('userProfileImage', profileImageData);
-    else localStorage.removeItem('userProfileImage');
+    if (profileImageData) sessionStorage.setItem('userProfileImage', profileImageData);
+    else sessionStorage.removeItem('userProfileImage');
 
     setAvatar(document.getElementById('profileAvatarBig'), data.name, profileImageData);
     setAvatar(document.getElementById('profilePhotoPreview'), data.name, profileImageData);
@@ -422,9 +433,9 @@ document.getElementById('profileForm').addEventListener('submit', async e => {
             profileImage: profileImageData || null,
         });
 
-        localStorage.setItem('userName', data.name);
-        if (data.profileImage) localStorage.setItem('userProfileImage', data.profileImage);
-        else localStorage.removeItem('userProfileImage');
+        sessionStorage.setItem('userName', data.name);
+        if (data.profileImage) sessionStorage.setItem('userProfileImage', data.profileImage);
+        else sessionStorage.removeItem('userProfileImage');
 
         document.getElementById('userName').textContent = data.name;
         setAvatar(document.getElementById('userAvatar'), data.name, data.profileImage);

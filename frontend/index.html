@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow — Login</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com; img-src 'self' data: blob:;">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
@@ -50,7 +51,7 @@
                         <span class="field-icon">◉</span>
                         <input type="password" id="loginPassword" name="password"
                                class="field-input" placeholder="••••••••" autocomplete="current-password">
-                        <button type="button" class="toggle-password" onclick="togglePassword('loginPassword')">
+                        <button type="button" class="toggle-password" data-target="loginPassword">
                             <span id="loginPasswordEye">👁</span>
                         </button>
                     </div>
@@ -67,7 +68,7 @@
 
             <p class="auth-switch">
                 Não tem conta?
-                <button class="link-btn" onclick="showRegister()">Criar conta grátis →</button>
+                <button type="button" class="link-btn" id="btnShowRegister">Criar conta grátis →</button>
             </p>
         </div>
 
@@ -111,7 +112,7 @@
                         <span class="field-icon">◉</span>
                         <input type="password" id="registerPassword" name="password"
                                class="field-input" placeholder="Mín. 6 caracteres" autocomplete="new-password">
-                        <button type="button" class="toggle-password" onclick="togglePassword('registerPassword')">
+                        <button type="button" class="toggle-password" data-target="registerPassword">
                             <span id="registerPasswordEye">👁</span>
                         </button>
                     </div>
@@ -128,7 +129,7 @@
 
             <p class="auth-switch">
                 Já tem conta?
-                <button class="link-btn" onclick="showLogin()">Fazer login →</button>
+                <button type="button" class="link-btn" id="btnShowLogin">Fazer login →</button>
             </p>
         </div>
     </div>

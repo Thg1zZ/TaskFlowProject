@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow — Dashboard</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com; img-src 'self' data: blob:;">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
@@ -29,7 +30,7 @@
                     <span class="user-email" id="userEmail">—</span>
                 </div>
             </div>
-            <button class="btn-logout" onclick="logout()" title="Sair">⏻</button>
+            <button class="btn-logout" title="Sair">⏻</button>
         </div>
     </aside>
 
@@ -39,51 +40,50 @@
         <!-- TOPBAR -->
         <header class="topbar">
             <div class="topbar-left">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="menu-toggle">☰</button>
                 <div class="search-wrapper">
                     <span class="search-icon">⌕</span>
                     <input type="text" class="search-input" id="searchInput"
-                           placeholder="Buscar tarefas… (N = nova, ? = atalhos)"
-                           oninput="debounceSearch(this.value)">
+                           placeholder="Buscar tarefas… (N = nova, ? = atalhos)">
                 </div>
             </div>
             <div class="topbar-right">
-                <button id="themeToggleBtn" class="btn-ghost" onclick="toggleTheme()" style="padding: 6px 12px; font-size: 16px;"></button>
-                <select class="sort-select" id="catFilter" onchange="applyCatFilter(this.value)">
+                <button id="themeToggleBtn" class="btn-ghost" style="padding: 6px 12px; font-size: 16px;"></button>
+                <select class="sort-select" id="catFilter">
                     <option value="">Todas as categorias</option>
                 </select>
                 <div class="view-toggle">
-                    <button class="view-btn active" id="viewGrid" onclick="setView('grid')" title="Grade">⊞</button>
-                    <button class="view-btn" id="viewList" onclick="setView('list')" title="Lista">☰</button>
+                    <button class="view-btn active" id="viewGrid" data-view="grid" title="Grade">⊞</button>
+                    <button class="view-btn" id="viewList" data-view="list" title="Lista">☰</button>
                 </div>
-                <button class="btn-export" onclick="openExportMenu()" title="Exportar">↓ Export</button>
-                <button class="btn-new-task" onclick="openModal()">+ Nova Tarefa</button>
+                <button class="btn-export" id="btnExportMenu" title="Exportar">↓ Export</button>
+                <button class="btn-new-task">+ Nova Tarefa</button>
             </div>
         </header>
 
         <!-- STATS -->
         <section class="stats-section">
-            <div class="stat-card clickable" onclick="filterByStatus('ALL')" title="Todas">
+            <div class="stat-card clickable" data-status-filter="ALL" title="Todas">
                 <div class="stat-value" id="statTotal">0</div>
                 <div class="stat-label">Total</div>
                 <div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--accent)"></div></div>
             </div>
-            <div class="stat-card clickable" onclick="filterByStatus('TODO')" title="A Fazer">
+            <div class="stat-card clickable" data-status-filter="TODO" title="A Fazer">
                 <div class="stat-value" id="statTodo">0</div>
                 <div class="stat-label">A Fazer</div>
                 <div class="stat-bar"><div class="stat-fill stat-fill-todo" id="fillTodo"></div></div>
             </div>
-            <div class="stat-card clickable" onclick="filterByStatus('IN_PROGRESS')" title="Em Progresso">
+            <div class="stat-card clickable" data-status-filter="IN_PROGRESS" title="Em Progresso">
                 <div class="stat-value" id="statProgress">0</div>
                 <div class="stat-label">Em Progresso</div>
                 <div class="stat-bar"><div class="stat-fill stat-fill-progress" id="fillProgress"></div></div>
             </div>
-            <div class="stat-card clickable" onclick="filterByStatus('DONE')" title="Concluídas">
+            <div class="stat-card clickable" data-status-filter="DONE" title="Concluídas">
                 <div class="stat-value" id="statDone">0</div>
                 <div class="stat-label">Concluídas</div>
                 <div class="stat-bar"><div class="stat-fill stat-fill-done" id="fillDone"></div></div>
             </div>
-            <div class="stat-card clickable" onclick="filterByStatus('OVERDUE')" title="Vencidas">
+            <div class="stat-card clickable" data-status-filter="OVERDUE" title="Vencidas">
                 <div class="stat-value stat-overdue" id="statOverdue">0</div>
                 <div class="stat-label">Vencidas</div>
                 <div class="stat-bar"><div class="stat-fill" style="background:var(--red)" id="fillOverdue"></div></div>
@@ -93,14 +93,14 @@
         <!-- FILTER TABS + BULK BAR -->
         <div class="filter-bar-wrapper">
             <div class="filter-tabs" id="filterTabs">
-                <button class="filter-tab active" data-filter="ALL"        onclick="setFilterTab(this,'ALL')">Todas</button>
-                <button class="filter-tab"         data-filter="TODO"       onclick="setFilterTab(this,'TODO')">A Fazer</button>
-                <button class="filter-tab"         data-filter="IN_PROGRESS" onclick="setFilterTab(this,'IN_PROGRESS')">Em Progresso</button>
-                <button class="filter-tab"         data-filter="DONE"       onclick="setFilterTab(this,'DONE')">Concluídas</button>
-                <button class="filter-tab filter-tab-red" data-filter="OVERDUE" onclick="setFilterTab(this,'OVERDUE')">⚠ Vencidas</button>
+                <button class="filter-tab active" data-filter="ALL">Todas</button>
+                <button class="filter-tab" data-filter="TODO">A Fazer</button>
+                <button class="filter-tab" data-filter="IN_PROGRESS">Em Progresso</button>
+                <button class="filter-tab" data-filter="DONE">Concluídas</button>
+                <button class="filter-tab filter-tab-red" data-filter="OVERDUE">⚠ Vencidas</button>
             </div>
             <div class="sort-wrapper">
-                <select class="sort-select" onchange="sortTasks(this.value)">
+                <select class="sort-select" id="sortSelect">
                     <option value="newest">Mais recentes</option>
                     <option value="oldest">Mais antigas</option>
                     <option value="priority">Prioridade</option>
@@ -114,11 +114,11 @@
         <div class="bulk-bar hidden" id="bulkBar">
             <span id="bulkCount">0 selecionadas</span>
             <div class="bulk-actions">
-                <button class="bulk-btn" onclick="bulkChangeStatus('TODO')">○ A Fazer</button>
-                <button class="bulk-btn" onclick="bulkChangeStatus('IN_PROGRESS')">◑ Em Progresso</button>
-                <button class="bulk-btn" onclick="bulkChangeStatus('DONE')">● Concluída</button>
-                <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete()">✕ Excluir</button>
-                <button class="bulk-btn" onclick="clearSelection()">Cancelar</button>
+                <button class="bulk-btn" data-bulk-status="TODO">○ A Fazer</button>
+                <button class="bulk-btn" data-bulk-status="IN_PROGRESS">◑ Em Progresso</button>
+                <button class="bulk-btn" data-bulk-status="DONE">● Concluída</button>
+                <button class="bulk-btn bulk-btn-danger" id="btnBulkDelete">✕ Excluir</button>
+                <button class="bulk-btn" id="btnBulkCancel">Cancelar</button>
             </div>
         </div>
 
@@ -131,18 +131,18 @@
             <div id="emptyState" class="empty-state hidden">
                 <div class="empty-icon">◫</div>
                 <p id="emptyMessage">Nenhuma tarefa encontrada</p>
-                <button class="btn-primary small" onclick="openModal()">+ Criar primeira tarefa</button>
+                <button class="btn-primary small btn-new-task">+ Criar primeira tarefa</button>
             </div>
             <div class="task-grid" id="taskGrid"></div>
         </section>
     </main>
 
     <!-- ═══ MODAL: CREATE / EDIT ═══ -->
-    <div class="modal-overlay hidden" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal-overlay hidden" id="modalOverlay">
         <div class="modal-card" id="modalCard">
             <div class="modal-header">
                 <h3 class="modal-title" id="modalTitle">Nova Tarefa</h3>
-                <button class="modal-close" onclick="closeModal()">✕</button>
+                <button type="button" class="modal-close btn-close-modal">✕</button>
             </div>
             <div id="modalAlert" class="alert hidden"></div>
             <form id="taskForm" class="modal-form" novalidate>
@@ -206,7 +206,7 @@
                     <input type="number" id="taskEstimate" class="field-input" min="1" placeholder="ex: 90">
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-ghost" onclick="closeModal()">Cancelar</button>
+                    <button type="button" class="btn-ghost btn-close-modal">Cancelar</button>
                     <button type="submit" class="btn-primary" id="saveTaskBtn">
                         <span class="btn-text">Salvar Tarefa</span>
                         <span class="btn-loader hidden">⟳</span>
@@ -217,7 +217,7 @@
     </div>
 
     <!-- ═══ MODAL: DETAIL + COMMENTS ═══ -->
-    <div class="modal-overlay hidden" id="detailOverlay" onclick="closeDetailOutside(event)">
+    <div class="modal-overlay hidden" id="detailOverlay">
         <div class="modal-card modal-detail" id="detailCard">
             <div class="modal-header">
                 <div class="detail-header-info">
@@ -225,8 +225,8 @@
                     <h3 class="modal-title" id="detailTitle">—</h3>
                 </div>
                 <div class="detail-header-actions">
-                    <button class="task-action-btn" id="detailEditBtn" onclick="editFromDetail()">✎ Editar</button>
-                    <button class="modal-close" onclick="closeDetail()">✕</button>
+                    <button class="task-action-btn" id="detailEditBtn">✎ Editar</button>
+                    <button class="modal-close btn-close-detail">✕</button>
                 </div>
             </div>
             <div class="detail-body">
@@ -237,7 +237,7 @@
                 <div class="comments-section">
                     <h4 class="comments-title">Comentários <span id="commentCount" class="comments-count">0</span></h4>
                     <div id="commentsList" class="comments-list"></div>
-                    <form id="commentForm" class="comment-form" onsubmit="submitComment(event)">
+                    <form id="commentForm" class="comment-form">
                         <div class="comment-input-row">
                             <div class="comment-avatar" id="commentAvatar">?</div>
                             <input type="text" id="commentInput" class="field-input comment-input"
@@ -254,32 +254,32 @@
     </div>
 
     <!-- ═══ MODAL: DELETE CONFIRM ═══ -->
-    <div class="modal-overlay hidden" id="deleteOverlay" onclick="closeDeleteOutside(event)">
+    <div class="modal-overlay hidden" id="deleteOverlay">
         <div class="modal-card modal-sm">
             <div class="modal-header">
                 <h3 class="modal-title">Excluir Tarefa</h3>
-                <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+                <button class="modal-close btn-close-delete">✕</button>
             </div>
             <p class="delete-confirm-text">Tem certeza que deseja excluir <strong id="deleteTaskName"></strong>?</p>
             <div class="modal-actions">
-                <button class="btn-ghost" onclick="closeDeleteModal()">Cancelar</button>
-                <button class="btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Excluir</button>
+                <button class="btn-ghost btn-close-delete">Cancelar</button>
+                <button class="btn-danger" id="confirmDeleteBtn">Excluir</button>
             </div>
         </div>
     </div>
 
     <!-- ═══ EXPORT MENU ═══ -->
     <div class="export-menu hidden" id="exportMenu">
-        <button onclick="exportTasks('csv')">📄 Exportar CSV</button>
-        <button onclick="exportTasks('json')">📦 Exportar JSON</button>
+        <button id="btnExportCsv">📄 Exportar CSV</button>
+        <button id="btnExportJson">📦 Exportar JSON</button>
     </div>
 
     <!-- ═══ KEYBOARD SHORTCUTS PANEL ═══ -->
-    <div class="modal-overlay hidden" id="shortcutsOverlay" onclick="closeShortcuts()">
-        <div class="modal-card modal-sm shortcuts-panel" onclick="event.stopPropagation()">
+    <div class="modal-overlay hidden" id="shortcutsOverlay">
+        <div class="modal-card modal-sm shortcuts-panel">
             <div class="modal-header">
                 <h3 class="modal-title">⌨ Atalhos de Teclado</h3>
-                <button class="modal-close" onclick="closeShortcuts()">✕</button>
+                <button class="modal-close btn-close-shortcuts">✕</button>
             </div>
             <div class="shortcuts-list">
                 <div class="shortcut-row"><kbd>N</kbd><span>Nova tarefa</span></div>

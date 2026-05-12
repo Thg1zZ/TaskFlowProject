@@ -25,8 +25,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const commentAvatar = document.getElementById('commentAvatar');
     if (commentAvatar) {
-        commentAvatar.textContent = (localStorage.getItem('userName') || '?').charAt(0).toUpperCase();
+        commentAvatar.textContent = (sessionStorage.getItem('userName') || localStorage.getItem('userName') || '?').charAt(0).toUpperCase();
     }
+
+    // Bindings
+    document.getElementById('searchInput')?.addEventListener('input', e => debounceSearch(e.target.value));
+    document.getElementById('catFilter')?.addEventListener('change', e => applyCatFilter(e.target.value));
+    document.getElementById('sortSelect')?.addEventListener('change', e => sortTasks(e.target.value));
+    
+    document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => setView(btn.getAttribute('data-view'))));
+    document.getElementById('btnExportMenu')?.addEventListener('click', openExportMenu);
+    document.querySelectorAll('.btn-new-task').forEach(btn => btn.addEventListener('click', () => openModal()));
+    
+    document.querySelectorAll('.stat-card[data-status-filter]').forEach(el => 
+        el.addEventListener('click', () => filterByStatus(el.getAttribute('data-status-filter'))));
+        
+    document.querySelectorAll('.filter-tab[data-filter]').forEach(btn => 
+        btn.addEventListener('click', () => setFilterTab(btn, btn.getAttribute('data-filter'))));
+        
+    document.querySelectorAll('.bulk-btn[data-bulk-status]').forEach(btn => 
+        btn.addEventListener('click', () => bulkChangeStatus(btn.getAttribute('data-bulk-status'))));
+        
+    document.getElementById('btnBulkDelete')?.addEventListener('click', bulkDelete);
+    document.getElementById('btnBulkCancel')?.addEventListener('click', clearSelection);
+    
+    document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', closeModal));
+    document.querySelectorAll('.btn-close-detail').forEach(btn => btn.addEventListener('click', closeDetail));
+    document.getElementById('detailEditBtn')?.addEventListener('click', editFromDetail);
+    document.querySelectorAll('.btn-close-delete').forEach(btn => btn.addEventListener('click', closeDeleteModal));
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDelete);
+    document.getElementById('commentForm')?.addEventListener('submit', submitComment);
+    document.getElementById('btnExportCsv')?.addEventListener('click', () => exportTasks('csv'));
+    document.getElementById('btnExportJson')?.addEventListener('click', () => exportTasks('json'));
+    
+    document.querySelectorAll('.btn-close-shortcuts').forEach(btn => btn.addEventListener('click', closeShortcuts));
 });
 
 // --- Carga de dados ---------------------------------------------
@@ -85,7 +117,7 @@ async function loadCatsForFilter() {
         if (!sel) return;
 
         // Usar createElement para evitar XSS
-        sel.innerHTML = '';
+        sel.replaceChildren();
         const blank = document.createElement('option');
         blank.value = '';
         blank.textContent = 'Todas as categorias';
@@ -154,7 +186,7 @@ function renderTasks() {
     clearSelection();
 
     if (tasks.length === 0) {
-        grid.innerHTML = '';
+        grid.replaceChildren();
         empty.classList.remove('hidden');
         const msgs = {
             ALL:         'Nenhuma tarefa ainda',
@@ -168,83 +200,134 @@ function renderTasks() {
         return;
     }
     empty.classList.add('hidden');
-    grid.innerHTML = tasks.map(renderCard).join('');
+    grid.replaceChildren();
+    tasks.forEach(task => grid.appendChild(renderCard(task)));
 }
 
 function renderCard(task) {
     const statusLabel   = { TODO: 'A Fazer', IN_PROGRESS: 'Em Progresso', DONE: 'Concluída' };
     const priorityLabel = { LOW: 'Baixa', MEDIUM: 'Média', HIGH: 'Alta' };
-    // safeColor impede CSS injection com valores vindos do servidor
     const catColor = safeColor(task.categoryColor);
 
     const now       = new Date(); now.setHours(0, 0, 0, 0);
     const endDate = taskEndDate(task);
-    const isOverdue = endDate && task.status !== 'DONE' &&
-                      new Date(endDate + 'T00:00:00') < now;
+    const isOverdue = endDate && task.status !== 'DONE' && new Date(endDate + 'T00:00:00') < now;
     const isSelected = selectedIds.has(task.id);
-    const taskId     = Number(task.id); // garante inteiro — seguro em onclick
+    const taskId     = Number(task.id);
 
-    const catHtml = task.categoryName
-        ? `<span class="task-cat-badge"
-                style="background:${catColor}22;color:${catColor};border:1px solid ${catColor}44">
-               ${escHtml(task.categoryIcon || '')} ${escHtml(task.categoryName)}
-           </span>`
-        : '';
+    const card = document.createElement('div');
+    card.className = `task-card priority-${task.priority} status-${task.status} ${isSelected ? 'task-selected' : ''} ${task.status === 'DONE' ? 'task-done' : ''}`;
+    card.id = `task-${taskId}`;
 
-    const dueBadge = endDate
-        ? `<span class="task-badge ${isOverdue ? 'badge-overdue' : 'badge-due'}">
-               ${isOverdue ? '⚠ ' : '📅 '}${escHtml(formatTaskRange(task))}
-           </span>`
-        : '';
+    const priorityBar = document.createElement('div');
+    priorityBar.className = 'task-card-priority-bar';
+    priorityBar.style.background = task.priority === 'HIGH' ? 'var(--red)' : task.priority === 'MEDIUM' ? 'var(--yellow)' : 'var(--green)';
+    card.appendChild(priorityBar);
 
-    const estBadge = task.estimatedMinutes
-        ? `<span class="task-badge badge-est">⏱ ${escHtml(fmtMin(task.estimatedMinutes))}</span>`
-        : '';
+    const inner = document.createElement('div');
+    inner.className = 'task-card-inner';
 
-    const commentBadge = task.commentCount > 0
-        ? `<span class="task-badge badge-comment">💬 ${task.commentCount}</span>`
-        : '';
+    const checkboxWrapper = document.createElement('label');
+    checkboxWrapper.className = 'task-checkbox-wrapper';
+    checkboxWrapper.addEventListener('click', e => e.stopPropagation());
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'task-checkbox';
+    checkbox.checked = isSelected;
+    checkbox.addEventListener('change', e => toggleSelect(taskId, e.target.checked));
+    
+    const checkboxCustom = document.createElement('span');
+    checkboxCustom.className = 'task-checkbox-custom';
+    
+    checkboxWrapper.appendChild(checkbox);
+    checkboxWrapper.appendChild(checkboxCustom);
+    inner.appendChild(checkboxWrapper);
 
-    // IDs numéricos são seguros em onclick — não passar strings de usuario
-    return `
-    <div class="task-card priority-${escHtml(task.priority)} status-${escHtml(task.status)}
-                ${isSelected ? 'task-selected' : ''} ${task.status === 'DONE' ? 'task-done' : ''}"
-         id="task-${taskId}">
-        <div class="task-card-priority-bar"
-             style="background:${task.priority === 'HIGH' ? 'var(--red)' : task.priority === 'MEDIUM' ? 'var(--yellow)' : 'var(--green)'}">
-        </div>
-        <div class="task-card-inner">
-            <label class="task-checkbox-wrapper" onclick="event.stopPropagation()">
-                <input type="checkbox" class="task-checkbox" ${isSelected ? 'checked' : ''}
-                       onchange="toggleSelect(${taskId}, this.checked)">
-                <span class="task-checkbox-custom"></span>
-            </label>
-            <div class="task-card-header" onclick="openDetail(${taskId})">
-                <span class="task-card-title">${escHtml(task.title)}</span>
-                <div class="task-card-actions" onclick="event.stopPropagation()">
-                    <button class="task-action-btn" onclick="openEditModal(${taskId})" title="Editar">✎</button>
-                    <button class="task-action-btn delete" onclick="openDeleteModal(${taskId})" title="Excluir">✕</button>
-                </div>
-            </div>
-            ${task.description
-                ? `<p class="task-card-desc" onclick="openDetail(${taskId})">${escHtml(task.description)}</p>`
-                : ''}
-            <div class="task-card-meta">
-                <span class="task-badge badge-status-${escHtml(task.status)}">${statusLabel[task.status] || task.status}</span>
-                <span class="task-badge badge-priority-${escHtml(task.priority)}">${priorityLabel[task.priority] || task.priority}</span>
-                ${catHtml}${dueBadge}${estBadge}${commentBadge}
-            </div>
-            <div class="task-status-row">
-                <select class="status-select badge-status-${escHtml(task.status)} task-badge"
-                        onchange="quickStatus(${taskId}, this.value)"
-                        onclick="event.stopPropagation()">
-                    <option value="TODO"        ${task.status === 'TODO'        ? 'selected' : ''}>○ A Fazer</option>
-                    <option value="IN_PROGRESS" ${task.status === 'IN_PROGRESS' ? 'selected' : ''}>◑ Em Progresso</option>
-                    <option value="DONE"        ${task.status === 'DONE'        ? 'selected' : ''}>● Concluída</option>
-                </select>
-            </div>
-        </div>
-    </div>`;
+    const header = document.createElement('div');
+    header.className = 'task-card-header';
+    header.addEventListener('click', () => openDetail(taskId));
+
+    const title = createElementWithClass('span', 'task-card-title', task.title);
+    
+    const actions = createElementWithClass('div', 'task-card-actions');
+    actions.addEventListener('click', e => e.stopPropagation());
+    
+    const editBtn = createElementWithClass('button', 'task-action-btn', '✎');
+    editBtn.title = 'Editar';
+    editBtn.addEventListener('click', () => openEditModal(taskId));
+    
+    const delBtn = createElementWithClass('button', 'task-action-btn delete', '✕');
+    delBtn.title = 'Excluir';
+    delBtn.addEventListener('click', () => openDeleteModal(taskId));
+    
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    header.appendChild(title);
+    header.appendChild(actions);
+    inner.appendChild(header);
+
+    if (task.description) {
+        const desc = createElementWithClass('p', 'task-card-desc', task.description);
+        desc.addEventListener('click', () => openDetail(taskId));
+        inner.appendChild(desc);
+    }
+
+    const meta = createElementWithClass('div', 'task-card-meta');
+    
+    const statBadge = createElementWithClass('span', `task-badge badge-status-${task.status}`, statusLabel[task.status] || task.status);
+    meta.appendChild(statBadge);
+    
+    const priBadge = createElementWithClass('span', `task-badge badge-priority-${task.priority}`, priorityLabel[task.priority] || task.priority);
+    meta.appendChild(priBadge);
+    
+    if (task.categoryName) {
+        const catBadge = createElementWithClass('span', 'task-cat-badge', `${task.categoryIcon || ''} ${task.categoryName}`);
+        catBadge.style.background = `${catColor}22`;
+        catBadge.style.color = catColor;
+        catBadge.style.border = `1px solid ${catColor}44`;
+        meta.appendChild(catBadge);
+    }
+    
+    if (endDate) {
+        const dueBadge = createElementWithClass('span', `task-badge ${isOverdue ? 'badge-overdue' : 'badge-due'}`, `${isOverdue ? '⚠ ' : '📅 '}${formatTaskRange(task)}`);
+        meta.appendChild(dueBadge);
+    }
+    
+    if (task.estimatedMinutes) {
+        const estBadge = createElementWithClass('span', 'task-badge badge-est', `⏱ ${fmtMin(task.estimatedMinutes)}`);
+        meta.appendChild(estBadge);
+    }
+    
+    if (task.commentCount > 0) {
+        const comBadge = createElementWithClass('span', 'task-badge badge-comment', `💬 ${task.commentCount}`);
+        meta.appendChild(comBadge);
+    }
+    inner.appendChild(meta);
+
+    const statusRow = createElementWithClass('div', 'task-status-row');
+    
+    const select = createElementWithClass('select', `status-select badge-status-${task.status} task-badge`);
+    select.addEventListener('change', e => quickStatus(taskId, e.target.value));
+    select.addEventListener('click', e => e.stopPropagation());
+    
+    const opts = [
+        { val: 'TODO', text: '○ A Fazer' },
+        { val: 'IN_PROGRESS', text: '◑ Em Progresso' },
+        { val: 'DONE', text: '● Concluída' }
+    ];
+    opts.forEach(o => {
+        const opt = createElementWithClass('option', '', o.text);
+        opt.value = o.val;
+        if (task.status === o.val) opt.selected = true;
+        select.appendChild(opt);
+    });
+    
+    statusRow.appendChild(select);
+    inner.appendChild(statusRow);
+    card.appendChild(inner);
+
+    return card;
 }
 
 // --- Filtros e ordenação ----------------------------------------
@@ -534,9 +617,9 @@ async function openDetail(id) {
 
     document.getElementById('detailTitle').textContent = task.title;
 
-    // Badges usando createElement — sem innerHTML com dados do servidor
+    // Badges usando createElement
     const badgesEl = document.getElementById('detailBadges');
-    badgesEl.innerHTML = '';
+    badgesEl.replaceChildren();
     const addBadge = (cls, text) => {
         const s = document.createElement('span');
         s.className = `task-badge ${cls}`;
@@ -557,7 +640,7 @@ async function openDetail(id) {
 
     // Meta row com createElement
     const metaRow = document.getElementById('detailMetaRow');
-    metaRow.innerHTML = '';
+    metaRow.replaceChildren();
     const addMeta = (text, cls = '') => {
         const s = document.createElement('span');
         if (cls) s.className = cls;
@@ -601,7 +684,7 @@ async function loadComments(taskId) {
     try {
         const comments = await api('GET', `/tasks/${taskId}/comments`) || [];
         document.getElementById('commentCount').textContent = comments.length;
-        list.innerHTML = '';
+        list.replaceChildren();
         if (comments.length === 0) {
             const p = document.createElement('div');
             p.className = 'no-comments';
@@ -616,7 +699,7 @@ async function loadComments(taskId) {
 }
 
 function buildCommentEl(c) {
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
     const isMine = String(c.authorId) === String(userId);
     const date   = new Date(c.createdAt).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -723,16 +806,22 @@ function exportTasks(format) {
     const statusLabel   = { TODO: 'A Fazer', IN_PROGRESS: 'Em Progresso', DONE: 'Concluída' };
     const priorityLabel = { LOW: 'Baixa', MEDIUM: 'Média', HIGH: 'Alta' };
 
+    const sanitizeCSV = (str) => {
+        let s = (str || '').replace(/"/g, '""');
+        if (/^[=\+\-@\t\r]/.test(s)) s = "'" + s;
+        return `"${s}"`;
+    };
+
     if (format === 'csv') {
         const header = ['ID', 'Título', 'Descrição', 'Status', 'Prioridade',
                         'Categoria', 'Vencimento', 'Estimativa (min)', 'Criada em'];
         const rows = tasks.map(t => [
             t.id,
-            `"${(t.title || '').replace(/"/g, '""')}"`,
-            `"${(t.description || '').replace(/"/g, '""')}"`,
+            sanitizeCSV(t.title),
+            sanitizeCSV(t.description),
             statusLabel[t.status] || t.status,
             priorityLabel[t.priority] || t.priority,
-            t.categoryName || '',
+            sanitizeCSV(t.categoryName),
             formatTaskRange(t),
             t.estimatedMinutes || '',
             t.createdAt ? new Date(t.createdAt).toLocaleDateString('pt-BR') : '',

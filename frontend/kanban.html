@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow — Kanban</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com; img-src 'self' data: blob:;">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
@@ -24,19 +25,19 @@
                     <span class="user-email" id="userEmail">—</span>
                 </div>
             </div>
-            <button class="btn-logout" onclick="logout()" title="Sair">⏻</button>
+            <button class="btn-logout" title="Sair">⏻</button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="menu-toggle">☰</button>
                 <h2 class="page-title">Kanban Board</h2>
             </div>
             <div class="topbar-right">
-                <button id="themeToggleBtn" class="btn-ghost" onclick="toggleTheme()" style="padding: 6px 12px; font-size: 16px;"></button>
-                <button class="btn-new-task" onclick="openModal()">+ Nova Tarefa</button>
+                <button id="themeToggleBtn" class="btn-ghost" style="padding: 6px 12px; font-size: 16px;"></button>
+                <button class="btn-new-task">+ Nova Tarefa</button>
             </div>
         </header>
 
@@ -48,11 +49,11 @@
     </main>
 
     <!-- Modal reutilizado -->
-    <div class="modal-overlay hidden" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal-overlay hidden" id="modalOverlay">
         <div class="modal-card" id="modalCard">
             <div class="modal-header">
                 <h3 class="modal-title" id="modalTitle">Nova Tarefa</h3>
-                <button class="modal-close" onclick="closeModal()">✕</button>
+                <button type="button" class="modal-close btn-close-modal">✕</button>
             </div>
             <div id="modalAlert" class="alert hidden"></div>
             <form id="taskForm" class="modal-form" novalidate>
@@ -112,7 +113,7 @@
                     <div class="field-wrapper"><input type="number" id="taskEstimate" class="field-input" min="1" placeholder="ex: 60"></div>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-ghost" onclick="closeModal()">Cancelar</button>
+                    <button type="button" class="btn-ghost btn-close-modal">Cancelar</button>
                     <button type="submit" class="btn-primary" id="saveTaskBtn">
                         <span class="btn-text">Salvar</span>
                         <span class="btn-loader hidden">⟳</span>
@@ -123,16 +124,16 @@
     </div>
 
     <!-- Delete confirm -->
-    <div class="modal-overlay hidden" id="deleteOverlay" onclick="closeDeleteOutside(event)">
+    <div class="modal-overlay hidden" id="deleteOverlay">
         <div class="modal-card modal-sm">
             <div class="modal-header">
                 <h3 class="modal-title">Excluir Tarefa</h3>
-                <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+                <button class="modal-close btn-close-delete">✕</button>
             </div>
             <p class="delete-confirm-text">Excluir <strong id="deleteTaskName"></strong>? Ação irreversível.</p>
             <div class="modal-actions">
-                <button class="btn-ghost" onclick="closeDeleteModal()">Cancelar</button>
-                <button class="btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Excluir</button>
+                <button class="btn-ghost btn-close-delete">Cancelar</button>
+                <button class="btn-danger" id="confirmDeleteBtn">Excluir</button>
             </div>
         </div>
     </div>

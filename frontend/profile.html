@@ -25,19 +25,19 @@
                     <span class="user-email" id="userEmail">—</span>
                 </div>
             </div>
-            <button class="btn-logout" onclick="logout()" title="Sair">⏻</button>
+            <button class="btn-logout" title="Sair">⏻</button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="menu-toggle">☰</button>
                 <a href="dashboard.html" class="btn-ghost" style="text-decoration:none">← Dashboard</a>
                 <h2 class="page-title">Perfil</h2>
             </div>
             <div class="topbar-right" style="display:flex; align-items:center;">
-                <button id="themeToggleBtn" class="btn-ghost" onclick="toggleTheme()" style="padding: 6px 12px; font-size: 16px;"></button>
+                <button id="themeToggleBtn" class="btn-ghost" style="padding: 6px 12px; font-size: 16px;"></button>
             </div>
         </header>
 
@@ -78,7 +78,7 @@
                                 <div class="profile-photo-preview" id="profilePhotoPreview">?</div>
                                 <div class="profile-photo-actions">
                                     <input type="file" id="profileImageInput" accept="image/*" class="field-input">
-                                    <button type="button" class="btn-ghost" onclick="removeProfileImage()">Remover foto</button>
+                                    <button type="button" class="btn-ghost" id="btnRemovePhoto">Remover foto</button>
                                     <span class="field-hint">Use uma imagem de até 5 MB (será comprimida).</span>
                                 </div>
                             </div>
@@ -185,20 +185,20 @@
         <div class="modal-card modal-lg">
             <div class="modal-header">
                 <h3 class="modal-title">Ajustar Foto do Perfil</h3>
-                <button class="modal-close" onclick="closeCropModal()">✕</button>
+                <button class="modal-close btn-close-crop-modal">✕</button>
             </div>
             <div class="crop-container">
                 <img id="cropImageTarget" src="" alt="Imagem a ser recortada" style="max-width: 100%; display: block;">
             </div>
             <div class="crop-toolbar modal-row" style="margin-top: 16px; justify-content: center; gap: 8px;">
-                <button type="button" class="btn-ghost" onclick="rotateCropper(-90)" title="Rotacionar Esq">↺</button>
-                <button type="button" class="btn-ghost" onclick="rotateCropper(90)" title="Rotacionar Dir">↻</button>
-                <button type="button" class="btn-ghost" onclick="zoomCropper(0.1)" title="Zoom +">🔍+</button>
-                <button type="button" class="btn-ghost" onclick="zoomCropper(-0.1)" title="Zoom -">🔍-</button>
+                <button type="button" class="btn-ghost" id="btnRotateLeft" title="Rotacionar Esq">↺</button>
+                <button type="button" class="btn-ghost" id="btnRotateRight" title="Rotacionar Dir">↻</button>
+                <button type="button" class="btn-ghost" id="btnZoomIn" title="Zoom +">🔍+</button>
+                <button type="button" class="btn-ghost" id="btnZoomOut" title="Zoom -">🔍-</button>
             </div>
             <div class="modal-actions" style="margin-top: 16px;">
-                <button type="button" class="btn-ghost" onclick="closeCropModal()">Cancelar</button>
-                <button type="button" class="btn-primary" onclick="confirmCrop()">Confirmar</button>
+                <button type="button" class="btn-ghost btn-close-crop-modal">Cancelar</button>
+                <button type="button" class="btn-primary" id="btnConfirmCrop">Confirmar</button>
             </div>
         </div>
     </div>

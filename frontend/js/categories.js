@@ -36,11 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('catForm').addEventListener('submit', handleCatSubmit);
+    
+    // Bind global events
+    document.querySelectorAll('.btn-new-cat').forEach(btn => btn.addEventListener('click', () => openCatModal()));
+    document.querySelectorAll('.btn-close-cat-modal').forEach(btn => btn.addEventListener('click', closeCatModal));
+    document.querySelectorAll('.btn-close-del-cat-modal').forEach(btn => btn.addEventListener('click', closeDeleteCat));
+    document.getElementById('confirmDeleteCatBtn')?.addEventListener('click', confirmDeleteCat);
 });
 
 function buildColorPresets() {
     const row = document.getElementById('colorPresets');
-    row.innerHTML = '';
+    row.replaceChildren();
     PRESET_COLORS.forEach(color => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -60,7 +66,7 @@ function selectColor(color) {
 function renderSuggestedCategories() {
     const grid = document.getElementById('suggestedCatGrid');
     if (!grid) return;
-    grid.innerHTML = '';
+    grid.replaceChildren();
 
     SUGGESTED_CATEGORIES.forEach(cat => {
         const btn = document.createElement('button');
@@ -111,12 +117,12 @@ function renderCategories(cats) {
     const empty = document.getElementById('catEmpty');
 
     if (!cats.length) {
-        grid.innerHTML = '';
+        grid.replaceChildren();
         empty.classList.remove('hidden');
         return;
     }
     empty.classList.add('hidden');
-    grid.innerHTML = '';
+    grid.replaceChildren();
 
     cats.forEach(cat => {
         const card = buildCatCard(cat);

@@ -1,5 +1,14 @@
 const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') ? 'http://localhost:8080/api' : 'https://task-manager-with-login.onrender.com/api';
 
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            if (targetId) togglePassword(targetId);
+        });
+    });
+});
+
 function togglePassword(inputId) {
     const input = document.getElementById(inputId);
     const eye   = document.getElementById(inputId + 'Eye');
