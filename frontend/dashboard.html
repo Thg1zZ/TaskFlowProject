@@ -17,7 +17,8 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo">
-                <span class="logo-icon">⬡</span>
+                <img src="assets/Light%20Theme.png" class="logo-img light-theme-logo" alt="TaskFlow Logo">
+                <img src="assets/Dark%20theme.png" class="logo-img dark-theme-logo" alt="TaskFlow Logo">
                 <span class="logo-text">TaskFlow</span>
             </div>
         </div>
@@ -56,7 +57,6 @@
                     <button class="view-btn active" id="viewGrid" data-view="grid" title="Grade">⊞</button>
                     <button class="view-btn" id="viewList" data-view="list" title="Lista">☰</button>
                 </div>
-                <button class="btn-export" id="btnExportMenu" title="Exportar">↓ Export</button>
                 <button class="btn-new-task">+ Nova Tarefa</button>
             </div>
         </header>
@@ -268,11 +268,6 @@
         </div>
     </div>
 
-    <!-- ═══ EXPORT MENU ═══ -->
-    <div class="export-menu hidden" id="exportMenu">
-        <button id="btnExportCsv">📄 Exportar CSV</button>
-        <button id="btnExportJson">📦 Exportar JSON</button>
-    </div>
 
     <!-- ═══ KEYBOARD SHORTCUTS PANEL ═══ -->
     <div class="modal-overlay hidden" id="shortcutsOverlay">

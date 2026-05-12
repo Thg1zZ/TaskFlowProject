@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('sortSelect')?.addEventListener('change', e => sortTasks(e.target.value));
     
     document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => setView(btn.getAttribute('data-view'))));
-    document.getElementById('btnExportMenu')?.addEventListener('click', openExportMenu);
     document.querySelectorAll('.btn-new-task').forEach(btn => btn.addEventListener('click', () => openModal()));
     
     document.querySelectorAll('.stat-card[data-status-filter]').forEach(el => 
@@ -55,10 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.btn-close-delete').forEach(btn => btn.addEventListener('click', closeDeleteModal));
     document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDelete);
     document.getElementById('commentForm')?.addEventListener('submit', submitComment);
-    document.getElementById('btnExportCsv')?.addEventListener('click', () => exportTasks('csv'));
-    document.getElementById('btnExportJson')?.addEventListener('click', () => exportTasks('json'));
     
-    document.querySelectorAll('.btn-close-shortcuts').forEach(btn => btn.addEventListener('click', closeShortcuts));
+    document.getElementById('shortcutsOverlay')?.addEventListener('click', closeShortcutsOutside);
 });
 
 // --- Carga de dados ---------------------------------------------
@@ -786,63 +783,6 @@ async function deleteComment(commentId) {
     } catch {
         toast('Erro ao excluir comentário', 'error');
     }
-}
-
-// --- Exportação -------------------------------------------------
-
-function openExportMenu() {
-    const menu = document.getElementById('exportMenu');
-    menu.classList.toggle('hidden');
-    if (!menu.classList.contains('hidden')) {
-        document.addEventListener('click', () => menu.classList.add('hidden'), { once: true });
-    }
-}
-
-function exportTasks(format) {
-    document.getElementById('exportMenu').classList.add('hidden');
-    const tasks = visibleTasks();
-    if (!tasks.length) { toast('Nenhuma tarefa para exportar', 'warning'); return; }
-
-    const statusLabel   = { TODO: 'A Fazer', IN_PROGRESS: 'Em Progresso', DONE: 'Concluída' };
-    const priorityLabel = { LOW: 'Baixa', MEDIUM: 'Média', HIGH: 'Alta' };
-
-    const sanitizeCSV = (str) => {
-        let s = (str || '').replace(/"/g, '""');
-        if (/^[=\+\-@\t\r]/.test(s)) s = "'" + s;
-        return `"${s}"`;
-    };
-
-    if (format === 'csv') {
-        const header = ['ID', 'Título', 'Descrição', 'Status', 'Prioridade',
-                        'Categoria', 'Vencimento', 'Estimativa (min)', 'Criada em'];
-        const rows = tasks.map(t => [
-            t.id,
-            sanitizeCSV(t.title),
-            sanitizeCSV(t.description),
-            statusLabel[t.status] || t.status,
-            priorityLabel[t.priority] || t.priority,
-            sanitizeCSV(t.categoryName),
-            formatTaskRange(t),
-            t.estimatedMinutes || '',
-            t.createdAt ? new Date(t.createdAt).toLocaleDateString('pt-BR') : '',
-        ]);
-        const csv = [header, ...rows].map(r => r.join(',')).join('\n');
-        download('tarefas.csv', '\ufeff' + csv, 'text/csv;charset=utf-8;');
-        toast(`${tasks.length} tarefa(s) exportadas como CSV`, 'success');
-    } else {
-        download('tarefas.json', JSON.stringify(tasks, null, 2), 'application/json');
-        toast(`${tasks.length} tarefa(s) exportadas como JSON`, 'success');
-    }
-}
-
-function download(filename, content, mime) {
-    const a  = document.createElement('a');
-    a.href   = URL.createObjectURL(new Blob([content], { type: mime }));
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
 }
 
 // --- Atalhos de teclado -----------------------------------------

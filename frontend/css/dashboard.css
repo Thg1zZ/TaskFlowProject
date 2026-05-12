@@ -16,13 +16,7 @@
 .view-btn.active { background: var(--accent-dim); color: var(--accent); }
 .view-btn:hover:not(.active) { background: var(--bg-3); color: var(--text-2); }
 
-.btn-export {
-    background: transparent; border: 1px solid var(--border);
-    color: var(--text-2); border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
-    padding: 7px 14px; cursor: pointer; transition: all 0.2s;
-}
-.btn-export:hover { border-color: var(--border-glow); color: var(--text); background: var(--bg-3); }
+
 
 /* ── STATS CLICKABLE ───────────────────────────────────────── */
 .stat-card.clickable { cursor: pointer; }
@@ -186,22 +180,7 @@
 .comment-input { flex: 1; padding: 8px 12px; font-size: 13px; }
 .comment-input + .btn-primary { width: auto; padding: 8px 12px; font-size: 14px; }
 
-/* ── EXPORT MENU ───────────────────────────────────────────── */
-.export-menu {
-    position: fixed; top: 72px; right: 28px; z-index: 300;
-    background: var(--bg-2); border: 1px solid var(--border);
-    border-radius: var(--radius); box-shadow: var(--shadow);
-    display: flex; flex-direction: column; overflow: hidden;
-    animation: cardIn 0.2s ease;
-    min-width: 180px;
-}
-.export-menu button {
-    background: none; border: none; text-align: left;
-    color: var(--text); font-family: 'DM Sans', sans-serif;
-    font-size: 13px; padding: 11px 16px; cursor: pointer;
-    transition: background 0.15s;
-}
-.export-menu button:hover { background: var(--bg-3); }
+
 
 /* ── KEYBOARD SHORTCUTS PANEL ──────────────────────────────── */
 .shortcuts-panel { max-width: 360px; }
@@ -220,7 +199,6 @@ kbd {
     .filter-bar-wrapper { padding: 0 16px; }
     .tasks-section { padding: 8px 16px 40px; }
     .bulk-bar { margin: 0 16px 8px; }
-    .topbar-right .btn-export,
     .topbar-right .view-toggle { display: none; }
 }
 @media (max-width: 600px) {

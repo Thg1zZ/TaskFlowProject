@@ -130,12 +130,21 @@ body {
 }
 
 .logo {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
 }
-.logo-icon {
-  font-size: 22px; color: var(--accent);
-  text-shadow: 0 0 20px var(--accent-glow);
+.logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
+
+/* Theme-based logo visibility */
+[data-theme="dark"] .light-theme-logo { display: none; }
+[data-theme="dark"] .dark-theme-logo  { display: block; }
+
+[data-theme="light"] .dark-theme-logo { display: none; }
+[data-theme="light"] .light-theme-logo { display: block; }
+
 .logo-text {
   font-family: 'Space Mono', monospace;
   font-size: 18px; font-weight: 700;
