@@ -3,52 +3,51 @@ package com.taskmanager.service;
 import com.taskmanager.dto.AuthResponse;
 import com.taskmanager.dto.LoginRequest;
 import com.taskmanager.dto.RegisterRequest;
+import com.taskmanager.entity.PasswordResetToken;
 import com.taskmanager.entity.User;
+import com.taskmanager.repository.PasswordResetTokenRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
-import com.taskmanager.entity.PasswordResetToken;
-import com.taskmanager.repository.PasswordResetTokenRepository;
+
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Base64;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtTokenProvider tokenProvider;
-
-    @Autowired
-    private DefaultCategorySeeder defaultCategorySeeder;
-
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
-
-    @Autowired
-    private EmailService emailService;
+    @Autowired private AuthenticationManager authenticationManager;
+    @Autowired private UserRepository userRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JwtTokenProvider tokenProvider;
+    @Autowired private DefaultCategorySeeder defaultCategorySeeder;
+    @Autowired private PasswordResetTokenRepository tokenRepository;
+    @Autowired private EmailService emailService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    /**
+     * [ASVS 2.5.3] Expiração configurável via variável de ambiente.
+     * Padrão: 1 hora. Em produção, considere 15-30 minutos.
+     */
+    @Value("${app.password-reset.expiry-hours:1}")
+    private int passwordResetExpiryHours;
+
+    /** [ASVS 6.3.1] SecureRandom para geração de tokens criptograficamente seguros */
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // Mensagem genérica: não revelar se o email já existe (user enumeration)
+        // Mensagem genérica — não revelar se email já existe (user enumeration)
         if (userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
             throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
         }
@@ -66,7 +65,6 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        // authenticationManager lança BadCredentialsException — tratada no GlobalExceptionHandler
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail().toLowerCase().trim(),
@@ -85,12 +83,20 @@ public class AuthService {
     @Transactional
     public void forgotPassword(String email) {
         userRepository.findByEmailIgnoreCase(email.trim()).ifPresent(user -> {
-            tokenRepository.deleteByUser(user); // remover antigo se houver
-            String token = UUID.randomUUID().toString();
+            tokenRepository.deleteByUser(user);
+
+            // [ASVS 6.3.1] Token criptograficamente seguro (256 bits = 32 bytes → 44 chars Base64)
+            // UUID é apenas 122 bits de entropia — suficiente mas não ideal.
+            // Base64(SecureRandom(32 bytes)) oferece 256 bits de entropia.
+            byte[] randomBytes = new byte[32];
+            SECURE_RANDOM.nextBytes(randomBytes);
+            String token = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .token(token)
                     .user(user)
-                    .expiryDate(LocalDateTime.now().plusHours(1))
+                    // [ASVS 2.5.3] Expiração parametrizada via propriedade
+                    .expiryDate(LocalDateTime.now().plusHours(passwordResetExpiryHours))
                     .build();
             tokenRepository.save(resetToken);
 
@@ -113,6 +119,13 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
+        // [ASVS 3.3.1] Consumir o token de reset imediatamente (one-time use)
         tokenRepository.delete(resetToken);
+
+        // NOTA: Não é possível revogar JWTs existentes do usuário aqui sem conhecer
+        // os tokens ativos. A blacklist por JTI na JwtTokenProvider + Redis
+        // permitiria revogar todos os tokens de um userId.
+        // Por ora, a expiração natural (padrão 24h) limita a janela de risco.
+        // Para segurança máxima: armazene userId no JWT e invalide por userId no Redis.
     }
 }

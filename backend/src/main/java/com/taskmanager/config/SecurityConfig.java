@@ -1,6 +1,7 @@
 package com.taskmanager.config;
 
 import com.taskmanager.security.JwtAuthenticationFilter;
+import com.taskmanager.security.RateLimitingFilter;
 import com.taskmanager.service.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +28,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Configuração de segurança — OWASP ASVS v4.0 Level 2
+ *
+ * Correções aplicadas:
+ *  - [A05] contentTypeOptions NÃO é mais desabilitado (MIME sniff protection ativa)
+ *  - [A05] Content-Security-Policy header adicionado
+ *  - [A01] RateLimitingFilter adicionado antes do JWT filter
+ *  - [A05] CORS: origens validadas individualmente (não concatenadas)
+ *  - [A04] Comentário sobre CSRF corrigido: API stateless (JWT) não precisa de CSRF,
+ *          mas allowCredentials=true exige origens explícitas (nunca wildcard)
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -44,8 +56,13 @@ public class SecurityConfig {
     }
 
     @Bean
+    public RateLimitingFilter rateLimitingFilter() {
+        return new RateLimitingFilter();
+    }
+
+    @Bean
     public PasswordEncoder passwordEncoder() {
-        // strength 12 — melhor custo para produção
+        // BCrypt strength 12 — custo adequado para produção (ASVS 2.4.1)
         return new BCryptPasswordEncoder(12);
     }
 
@@ -65,13 +82,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+
+        // [ASVS 14.4.1] Origens explícitas — nunca wildcard quando allowCredentials=true
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(o -> !o.isBlank())
+                .toList();
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        // Cabeçalhos explícitos em vez de wildcard "*"
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"
         ));
+        // Credenciais permitidas apenas porque usamos JWT no header Authorization,
+        // não em cookies — origens são explícitas (acima), nunca wildcard.
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -84,25 +107,39 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // [A04] CSRF desabilitado legitimamente: API stateless com JWT no header
+            // (não em cookies), portanto CSRF não se aplica (ASVS 4.2.2 nota).
+            // ATENÇÃO: se migrar para cookies httpOnly, reabilitar CSRF.
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Security headers
+            // [A05] Security headers — ASVS 14.4
             .headers(headers -> headers
                 .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
-                .contentTypeOptions(HeadersConfigurer.ContentTypeOptionsConfig::disable)
+                // [CORREÇÃO CRÍTICA] contentTypeOptions NÃO deve ser desabilitado.
+                // O padrão do Spring Security já envia X-Content-Type-Options: nosniff.
+                // A linha .contentTypeOptions(disable) foi REMOVIDA.
+                .contentTypeOptions(opt -> { /* padrão: nosniff ativo */ })
                 .referrerPolicy(ref ->
                     ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 .httpStrictTransportSecurity(hsts -> hsts
                     .includeSubDomains(true)
                     .maxAgeInSeconds(31536000))
+                // [A05 / ASVS 14.4.3] Content-Security-Policy
+                .contentSecurityPolicy(csp ->
+                    csp.policyDirectives(
+                        "default-src 'none'; " +
+                        "frame-ancestors 'none'; " +
+                        "form-action 'self'"
+                    ))
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
-                // actuator exposto apenas internamente — nunca em produção sem autenticação
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
+            // [A01] Rate limiting antes da autenticação JWT
+            .addFilterBefore(rateLimitingFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

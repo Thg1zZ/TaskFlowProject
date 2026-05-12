@@ -21,8 +21,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "Usuário não encontrado com o email: " + email));
+                .orElseThrow(() -> {
+                    // [ASVS 7.1.1 / LGPD] Não expor PII (email) em mensagens de exceção.
+                    // A mensagem genérica previne user enumeration via timing de erros.
+                    // O Spring Security converte UsernameNotFoundException em BadCredentialsException
+                    // quando hideUserNotFoundExceptions=true (padrão do DaoAuthenticationProvider).
+                    return new UsernameNotFoundException("Credenciais inválidas");
+                });
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())

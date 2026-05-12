@@ -50,7 +50,6 @@ public class TaskService {
         User user = getCurrentUser();
         String sanitized = keyword.trim();
         if (sanitized.isEmpty()) {
-            // Não chamar this.getAllTasks() — invocação interna não passa pelo proxy @Transactional
             return taskRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                     .stream().map(TaskResponse::fromEntity).collect(Collectors.toList());
         }
@@ -149,13 +148,16 @@ public class TaskService {
         return categoryRepository.findByIdAndUserId(categoryId, userId)
                 .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
     }
+
     private LocalDate resolveEndDate(TaskRequest request) {
         return request.getEndDate() != null ? request.getEndDate() : request.getDueDate();
     }
 
     private void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
-            throw new IllegalArgumentException("Data inicial nÃ£o pode ser depois da data final");
+            // [A05 CORREÇÃO] Encoding correto: caractere "ã" em UTF-8 nativo (não ISO corrompido)
+            // O arquivo deve ser salvo como UTF-8 e o build configurado com -encoding UTF-8
+            throw new IllegalArgumentException("Data inicial não pode ser depois da data final");
         }
     }
 }

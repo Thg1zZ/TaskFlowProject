@@ -67,4 +67,4 @@ O projeto está configurado para ser hospedado facilmente no **Render**:
 
 ---
 
-Desenvolvido por [Seu Nome](https://www.linkedin.com/in/seu-perfil/) — Sinta-se à vontade para se conectar!
+Desenvolvido por [Seu Nome](https://www.linkedin.com/in/thiago-gomes-fc) — Sinta-se à vontade para se conectar!

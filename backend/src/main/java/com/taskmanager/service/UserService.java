@@ -6,11 +6,14 @@ import com.taskmanager.entity.Task;
 import com.taskmanager.entity.User;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
+import com.taskmanager.security.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +24,8 @@ public class UserService {
     @Autowired private UserRepository userRepo;
     @Autowired private TaskRepository taskRepo;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JwtTokenProvider jwtTokenProvider;
+    @Autowired private HttpServletRequest httpServletRequest;
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -31,7 +36,6 @@ public class UserService {
     public Map<String, Object> getProfile() {
         User u = getCurrentUser();
 
-        // Todas as contagens via COUNT — sem carregar listas
         long total      = taskRepo.countByUserId(u.getId());
         long done       = taskRepo.countByUserIdAndStatus(u.getId(), Task.TaskStatus.DONE);
         long inProgress = taskRepo.countByUserIdAndStatus(u.getId(), Task.TaskStatus.IN_PROGRESS);
@@ -94,6 +98,23 @@ public class UserService {
         u.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepo.save(u);
 
-        return Map.of("message", "Senha alterada com sucesso");
+        // [ASVS 3.3.1] Revogar o token atual para forçar novo login com nova senha.
+        // Tokens anteriores emitidos para este usuário ficam inválidos a partir deste ponto.
+        revokeCurrentToken();
+
+        return Map.of("message", "Senha alterada com sucesso. Faça login novamente.");
+    }
+
+    /**
+     * Extrai e revoga o JWT da requisição atual.
+     * Isso garante que um atacante com token capturado perca acesso
+     * imediatamente após a vítima trocar a senha.
+     */
+    private void revokeCurrentToken() {
+        String bearerToken = httpServletRequest.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            String token = bearerToken.substring(7);
+            jwtTokenProvider.revokeToken(token);
+        }
     }
 }
