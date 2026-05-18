@@ -27,15 +27,10 @@ public class UserService {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtTokenProvider jwtTokenProvider;
     @Autowired private HttpServletRequest httpServletRequest;
-
-    private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepo.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-    }
+    @Autowired private SecurityService securityService;
 
     public Map<String, Object> getProfile() {
-        User u = getCurrentUser();
+        User u = securityService.getCurrentUser();
 
         long total      = taskRepo.countByUserId(u.getId());
         long done       = taskRepo.countByUserIdAndStatus(u.getId(), Task.TaskStatus.DONE);
@@ -66,7 +61,7 @@ public class UserService {
 
     @Transactional
     public Map<String, Object> updateProfile(UserProfileRequest req) {
-        User u = getCurrentUser();
+        User u = securityService.getCurrentUser();
         u.setName(req.getName().trim());
         u.setBio(req.getBio() != null ? req.getBio().trim() : null);
         u.setJobTitle(req.getJobTitle() != null ? req.getJobTitle().trim() : null);
@@ -89,7 +84,7 @@ public class UserService {
 
     @Transactional
     public Map<String, String> changePassword(ChangePasswordRequest req) {
-        User u = getCurrentUser();
+        User u = securityService.getCurrentUser();
 
         if (!passwordEncoder.matches(req.getCurrentPassword(), u.getPassword())) {
             throw new IllegalArgumentException("Senha atual incorreta");

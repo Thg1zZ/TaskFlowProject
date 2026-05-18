@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow — Login</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com; img-src 'self' data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com https://accounts.google.com; img-src 'self' data: blob: https://lh3.googleusercontent.com; frame-src 'self' https://accounts.google.com;">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="auth-page">
 
@@ -66,6 +67,8 @@
             </form>
 
             <div class="auth-divider"><span>ou</span></div>
+
+            <div class="google-btn-wrapper g-signin-target" data-type="signin"></div>
 
             <p class="auth-switch">
                 Não tem conta?
@@ -128,6 +131,8 @@
             </form>
 
             <div class="auth-divider"><span>ou</span></div>
+
+            <div class="google-btn-wrapper g-signin-target" data-type="signup"></div>
 
             <p class="auth-switch">
                 Já tem conta?

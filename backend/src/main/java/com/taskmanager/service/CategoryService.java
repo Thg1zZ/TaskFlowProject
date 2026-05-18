@@ -22,16 +22,10 @@ public class CategoryService {
     private CategoryRepository categoryRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-    }
+    private SecurityService securityService;
 
     public List<CategoryResponse> getAll() {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
         return categoryRepository.findByUserIdOrderByNameAsc(user.getId())
                 .stream()
                 .map(c -> {
@@ -44,7 +38,7 @@ public class CategoryService {
 
     @Transactional
     public CategoryResponse create(CategoryRequest req) {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
 
         if (categoryRepository.existsByNameAndUserId(req.getName().trim(), user.getId())) {
             throw new IllegalArgumentException("Já existe uma categoria com esse nome");
@@ -62,7 +56,7 @@ public class CategoryService {
 
     @Transactional
     public CategoryResponse update(Long id, CategoryRequest req) {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
         Category cat = categoryRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
 
@@ -83,7 +77,7 @@ public class CategoryService {
 
     @Transactional
     public void delete(Long id) {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
         Category cat = categoryRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
         categoryRepository.delete(cat);

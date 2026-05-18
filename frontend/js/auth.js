@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetId) togglePassword(targetId);
         });
     });
+
+    // Inicialização programática segura do Google OAuth2
+    initializeGoogleOAuth();
 });
 
 // --- Alternar cards login / registro ----------------------------
@@ -186,4 +189,73 @@ function saveSession(data) {
     sessionStorage.setItem('userRole',  data.role     || 'ROLE_USER');
     // Remove any leftover localStorage token
     localStorage.removeItem('token');
+}
+
+// --- Google Login Callback --------------------------------------
+window.handleGoogleLogin = async (response) => {
+    clearErrors();
+    const alertId = document.getElementById('loginCard').classList.contains('hidden') ? 'registerAlert' : 'authAlert';
+    const btnId = document.getElementById('loginCard').classList.contains('hidden') ? 'registerBtn' : 'loginBtn';
+    
+    setLoading(btnId, true);
+    try {
+        const nonce = sessionStorage.getItem('oauth_nonce');
+        // Envia o ID Token e o Nonce de sessão contra CSRF de forma segura
+        const data = await authPost('/auth/google', { 
+            idToken: response.credential,
+            nonce: nonce
+        });
+        saveSession(data);
+        showAlert(alertId, 'Login efetuado com sucesso! Redirecionando...', 'success');
+        setTimeout(() => (window.location.href = 'dashboard.html'), 1000);
+    } catch (err) {
+        showAlert(alertId, err.message || 'Falha na autenticação com o Google');
+    } finally {
+        setLoading(btnId, false);
+    }
+};
+
+// --- Geração Segura de Nonce e Inicialização Programática do GSI ───
+function getOrCreateNonce() {
+    let nonce = sessionStorage.getItem('oauth_nonce');
+    if (!nonce) {
+        // Gera um valor de alta entropia criptográfica para mitigar CSRF e Replays
+        const array = new Uint8Array(16);
+        window.crypto.getRandomValues(array);
+        nonce = Array.from(array, dec => dec.toString(16).padStart(2, '0')).join('');
+        sessionStorage.setItem('oauth_nonce', nonce);
+    }
+    return nonce;
+}
+
+function initializeGoogleOAuth() {
+    if (typeof google === 'undefined') {
+        // Aguarda a carga assíncrona da biblioteca do Google
+        setTimeout(initializeGoogleOAuth, 100);
+        return;
+    }
+
+    const nonce = getOrCreateNonce();
+    google.accounts.id.initialize({
+        client_id: "1078491873215-placeholder.apps.googleusercontent.com",
+        callback: window.handleGoogleLogin,
+        nonce: nonce, // Proteção contra CSRF e Replay attacks
+        context: "signin",
+        ux_mode: "popup",
+        auto_prompt: false
+    });
+
+    const targets = document.querySelectorAll('.g-signin-target');
+    targets.forEach(target => {
+        const type = target.getAttribute('data-type');
+        google.accounts.id.renderButton(target, {
+            type: "standard",
+            shape: "rectangular",
+            theme: "outline",
+            text: type === "signup" ? "signup_with" : "signin_with",
+            size: "large",
+            logo_alignment: "left",
+            width: "100%"
+        });
+    });
 }

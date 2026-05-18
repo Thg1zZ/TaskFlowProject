@@ -620,3 +620,22 @@ th {
 tbody td {
   border-top: 1px solid var(--border);
 }
+
+/* ─── GOOGLE LOGIN BUTTON INTEGRATION ─── */
+.google-btn-wrapper {
+  margin: 20px 0 10px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.google-btn-wrapper:hover {
+  transform: translateY(-1px);
+}
+
+iframe[id^="g_id_"] {
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-glow) !important;
+}

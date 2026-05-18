@@ -22,16 +22,10 @@ public class CommentService {
 
     @Autowired private TaskCommentRepository commentRepo;
     @Autowired private TaskRepository taskRepo;
-    @Autowired private UserRepository userRepo;
-
-    private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepo.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-    }
+    @Autowired private SecurityService securityService;
 
     public List<CommentResponse> getByTask(Long taskId) {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
         // Verify task belongs to user
         taskRepo.findByIdAndUserId(taskId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
@@ -42,7 +36,7 @@ public class CommentService {
 
     @Transactional
     public CommentResponse add(Long taskId, CommentRequest req) {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
         Task task = taskRepo.findByIdAndUserId(taskId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
@@ -57,7 +51,7 @@ public class CommentService {
 
     @Transactional
     public void delete(Long taskId, Long commentId) {
-        User user = getCurrentUser();
+        User user = securityService.getCurrentUser();
         taskRepo.findByIdAndUserId(taskId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
