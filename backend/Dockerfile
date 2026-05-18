@@ -9,10 +9,7 @@
 # Use `docker scout` ou `trivy` para verificar CVEs nas imagens antes de fixar o digest.
 
 # ─── Build stage ────────────────────────────────────────────────────────────────
-FROM maven:3.9.6-eclipse-temurin-17-alpine@sha256:SUBSTITUA_PELO_DIGEST_REAL AS build
-# INSTRUÇÃO: substitua o valor acima pelo digest real obtido via:
-#   docker pull maven:3.9.6-eclipse-temurin-17-alpine && \
-#   docker image inspect maven:3.9.6-eclipse-temurin-17-alpine --format='{{index .RepoDigests 0}}'
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
 
 WORKDIR /app
 
@@ -26,10 +23,7 @@ COPY backend/src ./src
 RUN mvn clean package -DskipTests -B -Dfile.encoding=UTF-8
 
 # ─── Runtime stage ──────────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-alpine@sha256:SUBSTITUA_PELO_DIGEST_REAL
-# INSTRUÇÃO: substitua pelo digest real:
-#   docker pull eclipse-temurin:17-jre-alpine && \
-#   docker image inspect eclipse-temurin:17-jre-alpine --format='{{index .RepoDigests 0}}'
+FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
