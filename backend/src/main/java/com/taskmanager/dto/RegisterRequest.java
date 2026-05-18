@@ -17,6 +17,15 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Senha é obrigatória")
-    @Size(min = 6, message = "Senha deve ter pelo menos 6 caracteres")
+    /**
+     * [VULN-06 FIX] ASVS 2.1.1 — Política de senha mínima:
+     * - Mínimo 10 caracteres
+     * - Ao menos 1 maiúscula, 1 minúscula, 1 dígito e 1 especial
+     */
+    @Size(min = 10, message = "Senha deve ter pelo menos 10 caracteres")
+    @jakarta.validation.constraints.Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).+$",
+        message = "Senha deve conter maiúsculas, minúsculas, números e um caractere especial"
+    )
     private String password;
 }

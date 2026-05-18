@@ -12,9 +12,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Date;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,11 +48,18 @@ public class JwtTokenProvider {
     private long jwtExpiration;
 
     /**
-     * Blacklist de JTIs revogados.
-     * Cada entrada tem TTL implícito = tempo de expiração do token.
-     * Em produção: use Redis com TTL automático.
+     * Blacklist de JTIs revogados com TTL implícito.
+     * Chave: JTI. Valor: timestamp de expiração do token (epoch ms).
+     *
+     * [VULN-02 FIX PARCIAL] Limpeza lazy: entradas expiradas são removidas
+     * automaticamente durante a validação, evitando memória ilimitada.
+     *
+     * [VULN-02 RISCO RESIDUAL] Esta blacklist é perdida no restart da aplicação.
+     * Para garantir revogação durável entre restarts e clusters, migre para Redis:
+     *   redisTemplate.opsForValue().set("jwt:revoked:" + jti, "1",
+     *       Duration.ofMillis(jwtExpiration));
      */
-    private final Set<String> revokedJtis = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final ConcurrentHashMap<String, Long> revokedJtis = new ConcurrentHashMap<>();
 
     private SecretKey getSigningKey() {
         // [ASVS 6.4.1] Valida tamanho mínimo da chave antes de usar
@@ -92,21 +98,33 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Revoga um token pelo seu JTI.
-     * Chamado ao trocar senha, logout, ou suspeita de comprometimento.
+     * Revoga um token pelo seu JTI, armazenando o instante de expiração
+     * para permitir limpeza automática posterior.
      *
      * ASVS 3.3.1 — Tokens de sessão devem ser invalidados no logout/troca de senha.
      */
     public void revokeToken(String token) {
         try {
-            String jti = getJtiFromToken(token);
-            if (jti != null) {
-                revokedJtis.add(jti);
+            Claims claims = parseClaims(token);
+            String jti = claims.getId();
+            Date expiry = claims.getExpiration();
+            if (jti != null && expiry != null) {
+                revokedJtis.put(jti, expiry.getTime());
                 logger.info("Token revogado: jti={}", jti);
             }
         } catch (Exception e) {
             logger.warn("Não foi possível revogar token: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Remove da blacklist entradas cujo token já expirou naturalmente.
+     * Chamado a cada validação (limpeza lazy — O(n) sobre entradas revogadas,
+     * não sobre todos os tokens do sistema).
+     */
+    private void purgeExpiredJtis() {
+        long now = System.currentTimeMillis();
+        revokedJtis.entrySet().removeIf(e -> e.getValue() < now);
     }
 
     public String getEmailFromToken(String token) {
@@ -121,9 +139,12 @@ public class JwtTokenProvider {
         try {
             Claims claims = parseClaims(token);
 
+            // [VULN-02 FIX] Limpar JTIs expirados antes de verificar a blacklist
+            purgeExpiredJtis();
+
             // [ASVS 3.5.3] Verifica blacklist de JTIs revogados
             String jti = claims.getId();
-            if (jti != null && revokedJtis.contains(jti)) {
+            if (jti != null && revokedJtis.containsKey(jti)) {
                 logger.warn("Token com JTI revogado foi apresentado: jti={}", jti);
                 return false;
             }

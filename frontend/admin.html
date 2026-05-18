@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow — Painel Admin</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com; img-src 'self' data: blob:;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/kanban.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard-page">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="assets/Light-Theme.svg" class="logo-img light-theme-logo" alt="TaskFlow Logo">
+                <img src="assets/Dark-theme.svg" class="logo-img dark-theme-logo" alt="TaskFlow Logo">
+                <span class="logo-text">TaskFlow</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">—</span>
+                    <span class="user-email" id="userEmail">—</span>
+                </div>
+            </div>
+            <button class="btn-logout" title="Sair">⏻</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle">☰</button>
+                <h2 class="page-title">Painel de Administração</h2>
+            </div>
+            <div class="topbar-right" style="display:flex; align-items:center;">
+                <button id="themeToggleBtn" class="btn-ghost" style="padding: 6px 12px; font-size: 16px;"></button>
+            </div>
+        </header>
+
+        <div class="dashboard-stats" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);">◉</span>
+                    <span class="stat-title">Total de Usuários</span>
+                </div>
+                <div class="stat-value" id="statsTotalUsers">—</div>
+                <div class="stat-desc">Cadastrados no TaskFlow</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-icon" style="background: rgba(34, 211, 165, 0.1); color: var(--accent-green);">⊞</span>
+                    <span class="stat-title">Total de Tarefas</span>
+                </div>
+                <div class="stat-value" id="statsTotalTasks">—</div>
+                <div class="stat-desc">Criadas por todos os usuários</div>
+            </div>
+        </div>
+
+        <div class="dashboard-section" style="margin-top: 0;">
+            <div class="section-header" style="margin-bottom: 16px;">
+                <div>
+                    <h3 class="section-title">Usuários Cadastrados</h3>
+                    <p class="section-subtitle">Gerencie e visualize as contas ativas do sistema</p>
+                </div>
+            </div>
+
+            <div class="table-container" style="background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr style="background: var(--bg-3); border-bottom: 1px solid var(--border); color: var(--text-2);">
+                            <th style="padding: 14px 16px;">Nome</th>
+                            <th style="padding: 14px 16px;">Email</th>
+                            <th style="padding: 14px 16px;">Função / Cargo</th>
+                            <th style="padding: 14px 16px;">Perfil / Acesso</th>
+                            <th style="padding: 14px 16px;">Total Tarefas</th>
+                            <th style="padding: 14px 16px;">Membro Desde</th>
+                            <th style="padding: 14px 16px; text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="7" style="padding: 32px; text-align: center; color: var(--text-3);">Carregando usuários...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal-overlay hidden" id="deleteUserModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Excluir Conta do Usuário</h3>
+                <button class="modal-close" id="btnCloseDeleteModal">✕</button>
+            </div>
+            <div style="padding: 16px 0; color: var(--text-2); line-height: 1.5;">
+                <p>Tem certeza de que deseja excluir permanentemente o usuário <strong id="deleteTargetName">...</strong>?</p>
+                <p style="margin-top: 8px; color: var(--accent-red); font-size: 13px;">⚠️ Esta ação é irreversível e apagará todas as tarefas, comentários e dados associados a esta conta.</p>
+            </div>
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button class="btn-ghost" id="btnCancelDelete">Cancelar</button>
+                <button class="btn-primary" id="btnConfirmDeleteUser" style="background: var(--accent-red); border-color: var(--accent-red);">
+                    <span class="btn-text">Excluir Usuário</span>
+                    <span class="btn-loader hidden">⟳</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/shared.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

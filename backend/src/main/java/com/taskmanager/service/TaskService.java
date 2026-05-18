@@ -6,10 +6,13 @@ import com.taskmanager.entity.Category;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.Task.TaskStatus;
 import com.taskmanager.entity.User;
+import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.CategoryRepository;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,36 +34,43 @@ public class TaskService {
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + email));
     }
 
-    public List<TaskResponse> getAllTasks() {
+    public List<TaskResponse> getAllTasks(int page, int size) {
         User user = getCurrentUser();
-        return taskRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+        // [VULN-08 FIX] Enforcar limite máximo por requisição (teto de 100 tarefas)
+        int safeSize = Math.min(size, 100);
+        Pageable pageable = PageRequest.of(page, safeSize);
+        return taskRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable)
                 .stream().map(TaskResponse::fromEntity).collect(Collectors.toList());
     }
 
-    public List<TaskResponse> getTasksByStatus(TaskStatus status) {
+    public List<TaskResponse> getTasksByStatus(TaskStatus status, int page, int size) {
         User user = getCurrentUser();
-        return taskRepository.findByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), status)
+        int safeSize = Math.min(size, 100);
+        Pageable pageable = PageRequest.of(page, safeSize);
+        return taskRepository.findByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), status, pageable)
                 .stream().map(TaskResponse::fromEntity).collect(Collectors.toList());
     }
 
-    public List<TaskResponse> searchTasks(String keyword) {
+    public List<TaskResponse> searchTasks(String keyword, int page, int size) {
         User user = getCurrentUser();
         String sanitized = keyword.trim();
+        int safeSize = Math.min(size, 100);
+        Pageable pageable = PageRequest.of(page, safeSize);
         if (sanitized.isEmpty()) {
-            return taskRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+            return taskRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable)
                     .stream().map(TaskResponse::fromEntity).collect(Collectors.toList());
         }
-        return taskRepository.searchByUserIdAndKeyword(user.getId(), sanitized)
+        return taskRepository.searchByUserIdAndKeyword(user.getId(), sanitized, pageable)
                 .stream().map(TaskResponse::fromEntity).collect(Collectors.toList());
     }
 
     public TaskResponse getTaskById(Long id) {
         User user = getCurrentUser();
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
         return TaskResponse.fromEntity(task);
     }
 
@@ -92,7 +102,7 @@ public class TaskService {
     public TaskResponse updateTask(Long id, TaskRequest request) {
         User user = getCurrentUser();
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
         Category category = resolveCategory(request.getCategoryId(), user.getId());
         LocalDate endDate = resolveEndDate(request);
@@ -115,7 +125,7 @@ public class TaskService {
     public TaskResponse updateTaskStatus(Long id, TaskStatus status) {
         User user = getCurrentUser();
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
         task.setStatus(status);
         return TaskResponse.fromEntity(taskRepository.save(task));
     }
@@ -124,7 +134,7 @@ public class TaskService {
     public void deleteTask(Long id) {
         User user = getCurrentUser();
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
         taskRepository.delete(task);
     }
 
@@ -146,7 +156,7 @@ public class TaskService {
     private Category resolveCategory(Long categoryId, Long userId) {
         if (categoryId == null) return null;
         return categoryRepository.findByIdAndUserId(categoryId, userId)
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
     }
 
     private LocalDate resolveEndDate(TaskRequest request) {

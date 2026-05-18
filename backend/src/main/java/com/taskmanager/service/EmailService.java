@@ -1,5 +1,6 @@
 package com.taskmanager.service;
 
+import com.taskmanager.exception.EmailDeliveryException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,9 @@ public class EmailService {
             helper.setText(htmlContent, true);
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Erro ao disparar e-mail de recuperação", e);
+            // [VULN-04] EmailDeliveryException é capturada pelo handler genérico
+            // e retorna "Erro interno" ao cliente — sem vazar detalhes SMTP.
+            throw new EmailDeliveryException("Erro ao disparar e-mail de recuperação", e);
         }
     }
 }

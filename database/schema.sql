@@ -32,9 +32,11 @@ CREATE TABLE IF NOT EXISTS users (
     password      VARCHAR(255)  NOT NULL,  -- BCrypt hash (60 chars), 255 por segurança
     bio           VARCHAR(200),
     job_title     VARCHAR(50),
-    -- [CRÍTICO CORRIGIDO] Limite explícito — TEXT ilimitado é vetor de DoS.
-    -- Ideal: mover imagens para object storage (S3/R2) e armazenar apenas URL VARCHAR(512).
-    profile_image VARCHAR(1400000),
+    -- [VULN-03 FIX] Limite reduzido de 1.4 MB para 65535 chars (~50 KB Base64 de avatar).
+    -- Ideal em produção: mover para S3/R2 e armazenar apenas URL VARCHAR(512).
+    profile_image VARCHAR(65535),
+    -- [ASVS 4.1] Controle de Acesso Baseado em Perfis (RBAC).
+    role          VARCHAR(20)   NOT NULL DEFAULT 'ROLE_USER',
     created_at    TIMESTAMP     NOT NULL DEFAULT NOW(),
 
     -- [ASVS 2.5.3] Suporte a lockout de conta (implementar no backend)
@@ -82,7 +84,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     CONSTRAINT chk_task_dates CHECK (
         start_date IS NULL OR end_date IS NULL OR start_date <= end_date
     ),
-    estimated_minutes INTEGER        CHECK (estimated_minutes IS NULL OR estimated_minutes > 0),
+    -- [VULN-09 FIX] Limite superior adicionado: max 43200 min = 30 dias
+    estimated_minutes INTEGER        CHECK (estimated_minutes IS NULL OR (estimated_minutes > 0 AND estimated_minutes <= 43200)),
     created_at        TIMESTAMP      NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMP      NOT NULL DEFAULT NOW(),
     user_id           BIGINT         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -110,15 +113,19 @@ CREATE INDEX IF NOT EXISTS idx_comments_task_id ON task_comments(task_id);
 -- (já existe na entidade Java — explicitada aqui para clareza)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
-    id          BIGSERIAL   PRIMARY KEY,
-    token       VARCHAR(128) NOT NULL UNIQUE,  -- Base64url de 32 bytes = 43 chars; 128 com margem
-    user_id     BIGINT      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expiry_date TIMESTAMP   NOT NULL,
-    created_at  TIMESTAMP   NOT NULL DEFAULT NOW()
+    id          BIGSERIAL    PRIMARY KEY,
+    -- [VULN-07 FIX] Armazena apenas o hash SHA-256 (64 chars hex) do token.
+    -- O token plain-text é enviado por e-mail e nunca persistido.
+    -- ASVS 2.5.4 / CWE-312 (Cleartext Storage of Sensitive Information)
+    token_hash  CHAR(64)     NOT NULL UNIQUE,
+    user_id     BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expiry_date TIMESTAMP    NOT NULL,
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_prt_user_id ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_prt_user_id   ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_prt_token_hash ON password_reset_tokens(token_hash);
 -- [ASVS 2.5.3] Remove tokens expirados automaticamente (requer pg_cron ou job externo)
--- ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
+-- DELETE FROM password_reset_tokens WHERE expiry_date < NOW();
 
 -- ============================================================
 -- TABELA: revoked_tokens  ← NOVA

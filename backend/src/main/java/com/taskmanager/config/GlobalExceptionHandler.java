@@ -1,5 +1,6 @@
 package com.taskmanager.config;
 
+import com.taskmanager.exception.ResourceNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,21 +41,32 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.UNAUTHORIZED, "Credenciais inválidas", null);
     }
 
+    /**
+     * [VULN-04 FIX] Exceções de "recurso não encontrado" retornam 404
+     * com mensagem controlada. O campo exato NÃO é revelado (evita IDOR oracle).
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
+        log.warn("Recurso não encontrado: {}", ex.getMessage());
+        return buildError(HttpStatus.NOT_FOUND, "Recurso não encontrado", null);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArg(IllegalArgumentException ex) {
         // Safe to expose: these are intentional validation messages from services
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
+    /**
+     * [VULN-04 FIX] RuntimeException genérica NUNCA deve vazar ex.getMessage() ao cliente.
+     * O detalhe real é logado internamente (ASVS 7.1.1).
+     * Se você quiser retornar mensagens específicas, use exceções de domínio
+     * como ResourceNotFoundException ou IllegalArgumentException.
+     */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
-        // Log internally but never expose internal stack details to clients
-        log.error("Erro de negócio: {}", ex.getMessage());
-        String msg = ex.getMessage();
-        if (msg == null || msg.isBlank()) {
-            msg = "Operação não pôde ser concluída";
-        }
-        return buildError(HttpStatus.BAD_REQUEST, msg, null);
+        log.error("Erro de negócio não tratado: {}", ex.getMessage(), ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Operação não pôde ser concluída", null);
     }
 
     @ExceptionHandler(Exception.class)

@@ -591,3 +591,32 @@ body {
   .modal-row { grid-template-columns: 1fr; }
   .auth-card { padding: 28px 20px; }
 }
+
+/* ============================================================
+   ADMIN PANEL PREMIUM STYLING
+   ============================================================ */
+.table-container {
+  overflow-x: auto;
+  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
+  background: var(--bg-2);
+}
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+.table-row-hover:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+[data-theme="light"] .table-row-hover:hover {
+  background-color: rgba(15, 23, 42, 0.02) !important;
+}
+th {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+tbody td {
+  border-top: 1px solid var(--border);
+}

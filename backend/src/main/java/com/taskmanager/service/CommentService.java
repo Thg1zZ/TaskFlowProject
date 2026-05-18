@@ -5,6 +5,7 @@ import com.taskmanager.dto.CommentResponse;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.TaskComment;
 import com.taskmanager.entity.User;
+import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.TaskCommentRepository;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
@@ -26,14 +27,14 @@ public class CommentService {
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepo.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     public List<CommentResponse> getByTask(Long taskId) {
         User user = getCurrentUser();
         // Verify task belongs to user
         taskRepo.findByIdAndUserId(taskId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
         return commentRepo.findByTaskIdOrderByCreatedAtAsc(taskId)
                 .stream().map(CommentResponse::fromEntity).collect(Collectors.toList());
@@ -43,7 +44,7 @@ public class CommentService {
     public CommentResponse add(Long taskId, CommentRequest req) {
         User user = getCurrentUser();
         Task task = taskRepo.findByIdAndUserId(taskId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
         TaskComment comment = TaskComment.builder()
                 .content(req.getContent())
@@ -58,10 +59,10 @@ public class CommentService {
     public void delete(Long taskId, Long commentId) {
         User user = getCurrentUser();
         taskRepo.findByIdAndUserId(taskId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
         TaskComment comment = commentRepo.findByIdAndUserId(commentId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Comentário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Comentário não encontrado"));
 
         commentRepo.delete(comment);
     }

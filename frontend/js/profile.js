@@ -46,6 +46,7 @@ function populateProfile(data) {
     profileImageData = data.profileImage || '';
     if (profileImageData) sessionStorage.setItem('userProfileImage', profileImageData);
     else sessionStorage.removeItem('userProfileImage');
+    if (data.role) sessionStorage.setItem('userRole', data.role);
 
     setAvatar(document.getElementById('profileAvatarBig'), data.name, profileImageData);
     setAvatar(document.getElementById('profilePhotoPreview'), data.name, profileImageData);
@@ -467,9 +468,21 @@ document.getElementById('passwordForm').addEventListener('submit', async e => {
         document.getElementById('currentPwdErr').textContent = 'Informe a senha atual';
         valid = false;
     }
-    if (!newPwd || newPwd.length < 6) {
-        document.getElementById('newPwdErr').textContent = 'Mínimo de 6 caracteres';
+    if (!newPwd) {
+        document.getElementById('newPwdErr').textContent = 'Informe a nova senha';
         valid = false;
+    } else {
+        const hasUpper = /[A-Z]/.test(newPwd);
+        const hasLower = /[a-z]/.test(newPwd);
+        const hasDigit = /\d/.test(newPwd);
+        const hasSpecial = /[^a-zA-Z\d]/.test(newPwd);
+        if (newPwd.length < 10) {
+            document.getElementById('newPwdErr').textContent = 'Senha deve ter pelo menos 10 caracteres';
+            valid = false;
+        } else if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            document.getElementById('newPwdErr').textContent = 'Senha deve conter maiúsculas, minúsculas, números e caractere especial';
+            valid = false;
+        }
     }
     if (currentPwd && newPwd && currentPwd === newPwd) {
         document.getElementById('newPwdErr').textContent = 'A nova senha deve ser diferente da atual';

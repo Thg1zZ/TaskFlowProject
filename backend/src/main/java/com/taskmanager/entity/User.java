@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.taskmanager.entity.UserRole;
 
 @Entity
 @Table(name = "users")
@@ -44,6 +45,15 @@ public class User {
 
     @Column(name = "profile_image", columnDefinition = "TEXT")
     private String profileImage;
+
+    /**
+     * [ASVS 4.1] Controle de Acesso Baseado em Perfis (RBAC).
+     * O padrão para novos usuários cadastrados é sempre ROLE_USER.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserRole role = UserRole.ROLE_USER;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

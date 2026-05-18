@@ -9,7 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
-    Optional<PasswordResetToken> findByToken(String token);
+    /** [VULN-07 FIX] Busca por hash SHA-256 do token, nunca por token plain-text */
+    Optional<PasswordResetToken> findByTokenHash(String tokenHash);
     Optional<PasswordResetToken> findByUser(User user);
     void deleteByUser(User user);
 }

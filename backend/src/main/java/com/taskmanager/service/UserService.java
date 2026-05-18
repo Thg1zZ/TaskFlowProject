@@ -4,6 +4,7 @@ import com.taskmanager.dto.ChangePasswordRequest;
 import com.taskmanager.dto.UserProfileRequest;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.User;
+import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.security.JwtTokenProvider;
@@ -30,7 +31,7 @@ public class UserService {
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepo.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     public Map<String, Object> getProfile() {
@@ -57,6 +58,7 @@ public class UserService {
         profile.put("jobTitle",  u.getJobTitle());
         profile.put("profileImage", u.getProfileImage());
         profile.put("createdAt", u.getCreatedAt());
+        profile.put("role",      u.getRole().name());
         profile.put("stats",     stats);
 
         return profile;
@@ -80,6 +82,7 @@ public class UserService {
         res.put("bio",      u.getBio());
         res.put("jobTitle", u.getJobTitle());
         res.put("profileImage", u.getProfileImage());
+        res.put("role",         u.getRole().name());
         res.put("message",  "Perfil atualizado com sucesso");
         return res;
     }

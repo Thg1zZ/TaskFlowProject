@@ -4,8 +4,17 @@ const token    = sessionStorage.getItem('token');
 const userName = sessionStorage.getItem('userName') || 'Usuário';
 const userEmail = sessionStorage.getItem('userEmail') || '';
 const userProfileImage = sessionStorage.getItem('userProfileImage') || '';
+const userRole = sessionStorage.getItem('userRole') || 'ROLE_USER';
 
 if (!token) window.location.href = 'index.html';
+
+// Guard de Rota Cliente: Impede visualização estrutural da admin.html se não for administrador
+(function () {
+    const current = window.location.pathname.split('/').pop();
+    if (current === 'admin.html' && userRole !== 'ROLE_ADMIN') {
+        window.location.href = 'dashboard.html';
+    }
+})();
 
 // Aplica o tema salvo antes de qualquer render para evitar flash
 (function () {
@@ -26,7 +35,12 @@ function buildSidebar() {
     if (!nav) return;
 
     nav.replaceChildren();
-    NAV_ITEMS.forEach(item => {
+    const items = [...NAV_ITEMS];
+    if (userRole === 'ROLE_ADMIN') {
+        items.push({ href: 'admin.html', icon: '⚙', label: 'Admin' });
+    }
+
+    items.forEach(item => {
         const active = current === item.href;
         const a = document.createElement('a');
         a.href = item.href;

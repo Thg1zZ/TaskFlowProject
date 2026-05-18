@@ -4,6 +4,7 @@ import com.taskmanager.dto.CategoryRequest;
 import com.taskmanager.dto.CategoryResponse;
 import com.taskmanager.entity.Category;
 import com.taskmanager.entity.User;
+import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.CategoryRepository;
 import com.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ public class CategoryService {
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     public List<CategoryResponse> getAll() {
@@ -63,7 +64,7 @@ public class CategoryService {
     public CategoryResponse update(Long id, CategoryRequest req) {
         User user = getCurrentUser();
         Category cat = categoryRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
 
         // Se mudou o nome, verificar duplicata (excluindo a própria)
         String newName = req.getName().trim();
@@ -84,7 +85,7 @@ public class CategoryService {
     public void delete(Long id) {
         User user = getCurrentUser();
         Category cat = categoryRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
         categoryRepository.delete(cat);
     }
 }

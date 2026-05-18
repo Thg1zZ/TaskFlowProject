@@ -17,10 +17,13 @@ public class AuthResponse {
     private String name;
     private String email;
 
-    public AuthResponse(String token, Long userId, String name, String email) {
+    private UserRole role;
+
+    public AuthResponse(String token, Long userId, String name, String email, com.taskmanager.entity.UserRole role) {
         this.token = token;
         this.userId = userId;
         this.name = name;
         this.email = email;
+        this.role = role;
     }
 }

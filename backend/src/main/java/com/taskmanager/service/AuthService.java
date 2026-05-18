@@ -5,6 +5,7 @@ import com.taskmanager.dto.LoginRequest;
 import com.taskmanager.dto.RegisterRequest;
 import com.taskmanager.entity.PasswordResetToken;
 import com.taskmanager.entity.User;
+import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.PasswordResetTokenRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.security.JwtTokenProvider;
@@ -17,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -61,7 +64,7 @@ public class AuthService {
         User saved = userRepository.save(user);
         defaultCategorySeeder.seedForNewUser(saved);
         String token = tokenProvider.generateToken(saved.getEmail());
-        return new AuthResponse(token, saved.getId(), saved.getName(), saved.getEmail());
+        return new AuthResponse(token, saved.getId(), saved.getName(), saved.getEmail(), saved.getRole());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -75,9 +78,9 @@ public class AuthService {
         String token = tokenProvider.generateToken(authentication);
 
         User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail());
+        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
 
     @Transactional
@@ -85,29 +88,31 @@ public class AuthService {
         userRepository.findByEmailIgnoreCase(email.trim()).ifPresent(user -> {
             tokenRepository.deleteByUser(user);
 
-            // [ASVS 6.3.1] Token criptograficamente seguro (256 bits = 32 bytes → 44 chars Base64)
-            // UUID é apenas 122 bits de entropia — suficiente mas não ideal.
-            // Base64(SecureRandom(32 bytes)) oferece 256 bits de entropia.
+            // [ASVS 6.3.1] Token criptograficamente seguro (256 bits)
             byte[] randomBytes = new byte[32];
             SECURE_RANDOM.nextBytes(randomBytes);
-            String token = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+            String tokenPlain = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+
+            // [VULN-07 FIX] Salvar apenas o hash SHA-256 — token plain-text nunca é persistido
+            String tokenHash = hashToken(tokenPlain);
 
             PasswordResetToken resetToken = PasswordResetToken.builder()
-                    .token(token)
+                    .tokenHash(tokenHash)
                     .user(user)
-                    // [ASVS 2.5.3] Expiração parametrizada via propriedade
                     .expiryDate(LocalDateTime.now().plusHours(passwordResetExpiryHours))
                     .build();
             tokenRepository.save(resetToken);
 
-            String resetLink = frontendUrl + "/reset_password.html?token=" + token;
+            String resetLink = frontendUrl + "/reset_password.html?token=" + tokenPlain;
             emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
         });
     }
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        PasswordResetToken resetToken = tokenRepository.findByToken(token)
+        // [VULN-07 FIX] Hashear o token recebido antes de buscar no banco
+        String tokenHash = hashToken(token);
+        PasswordResetToken resetToken = tokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new IllegalArgumentException("Token inválido"));
 
         if (resetToken.isExpired()) {
@@ -121,11 +126,23 @@ public class AuthService {
 
         // [ASVS 3.3.1] Consumir o token de reset imediatamente (one-time use)
         tokenRepository.delete(resetToken);
+    }
 
-        // NOTA: Não é possível revogar JWTs existentes do usuário aqui sem conhecer
-        // os tokens ativos. A blacklist por JTI na JwtTokenProvider + Redis
-        // permitiria revogar todos os tokens de um userId.
-        // Por ora, a expiração natural (padrão 24h) limita a janela de risco.
-        // Para segurança máxima: armazene userId no JWT e invalide por userId no Redis.
+    /**
+     * [VULN-07 FIX] Gera hash SHA-256 do token para armazenamento seguro.
+     * ASVS 2.5.4 / CWE-312
+     */
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 não disponível", e);
+        }
     }
 }

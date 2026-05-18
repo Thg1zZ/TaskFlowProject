@@ -95,9 +95,21 @@ function validateRegister(name, email, password) {
         setFieldError('registerEmail', 'registerEmailError', 'Informe um email válido');
         valid = false;
     }
-    if (!password || password.length < 6) {
-        setFieldError('registerPassword', 'registerPasswordError', 'Senha deve ter pelo menos 6 caracteres');
+    if (!password) {
+        setFieldError('registerPassword', 'registerPasswordError', 'Senha é obrigatória');
         valid = false;
+    } else {
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasDigit = /\d/.test(password);
+        const hasSpecial = /[^a-zA-Z\d]/.test(password);
+        if (password.length < 10) {
+            setFieldError('registerPassword', 'registerPasswordError', 'Senha deve ter pelo menos 10 caracteres');
+            valid = false;
+        } else if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            setFieldError('registerPassword', 'registerPasswordError', 'Senha deve conter maiúsculas, minúsculas, números e caractere especial');
+            valid = false;
+        }
     }
     return valid;
 }
@@ -171,6 +183,7 @@ function saveSession(data) {
     sessionStorage.setItem('userId',    data.userId   || '');
     sessionStorage.setItem('userName',  data.name     || '');
     sessionStorage.setItem('userEmail', data.email    || '');
+    sessionStorage.setItem('userRole',  data.role     || 'ROLE_USER');
     // Remove any leftover localStorage token
     localStorage.removeItem('token');
 }

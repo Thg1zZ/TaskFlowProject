@@ -104,9 +104,21 @@ if (resetPasswordForm) {
         const confirmPassword = document.getElementById('confirmPassword').value;
         let valid = true;
 
-        if (!newPassword || newPassword.length < 6) {
-            setFieldError('newPassword', 'newPasswordError', 'Senha deve ter no mínimo 6 caracteres');
+        if (!newPassword) {
+            setFieldError('newPassword', 'newPasswordError', 'Senha é obrigatória');
             valid = false;
+        } else {
+            const hasUpper = /[A-Z]/.test(newPassword);
+            const hasLower = /[a-z]/.test(newPassword);
+            const hasDigit = /\d/.test(newPassword);
+            const hasSpecial = /[^a-zA-Z\d]/.test(newPassword);
+            if (newPassword.length < 10) {
+                setFieldError('newPassword', 'newPasswordError', 'Senha deve ter pelo menos 10 caracteres');
+                valid = false;
+            } else if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+                setFieldError('newPassword', 'newPasswordError', 'Senha deve conter maiúsculas, minúsculas, números e caractere especial');
+                valid = false;
+            }
         }
         if (newPassword !== confirmPassword) {
             setFieldError('confirmPassword', 'confirmPasswordError', 'As senhas não coincidem');

@@ -24,15 +24,17 @@ public class TaskController {
     @GetMapping
     public ResponseEntity<List<TaskResponse>> getAllTasks(
             @RequestParam(required = false) TaskStatus status,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
 
         List<TaskResponse> tasks;
         if (search != null && !search.isBlank()) {
-            tasks = taskService.searchTasks(search);
+            tasks = taskService.searchTasks(search, page, size);
         } else if (status != null) {
-            tasks = taskService.getTasksByStatus(status);
+            tasks = taskService.getTasksByStatus(status, page, size);
         } else {
-            tasks = taskService.getAllTasks();
+            tasks = taskService.getAllTasks(page, size);
         }
         return ResponseEntity.ok(tasks);
     }
