@@ -25,6 +25,7 @@ if (!token) window.location.href = 'index.html';
 const NAV_ITEMS = [
     { href: 'dashboard.html',  icon: '◫', label: 'Dashboard'  },
     { href: 'kanban.html',     icon: '⊞', label: 'Kanban'     },
+    { href: 'calendar.html',   icon: '📅', label: 'Calendário' },
     { href: 'categories.html', icon: '◈', label: 'Categorias' },
     { href: 'profile.html',    icon: '◉', label: 'Perfil'     },
 ];
@@ -111,7 +112,7 @@ async function api(method, path, body = null) {
         return await apiRaw(method, path, body);
     } catch (err) {
         if (err instanceof TypeError) {
-            throw new Error('NÃ£o foi possÃ­vel conectar agora. Verifique a internet ou aguarde o Render acordar.');
+            throw new Error('Não foi possível conectar agora. Verifique a internet ou aguarde o Render acordar.');
         }
         throw err;
     } finally {
@@ -388,4 +389,471 @@ function createMetaItem(content, extraClass = '') {
     const el = createElementWithClass('span', `kcard-meta-item ${extraClass}`.trim());
     el.textContent = content;
     return el;
+}
+
+// --- Funções Compartilhadas de Formatação e Utilitários de Tarefa (DRY) ---
+
+function formatDate(d) {
+    if (!d) return '';
+    const [y, m, dd] = d.split('-');
+    return `${dd}/${m}/${y}`;
+}
+
+function taskEndDate(task) {
+    return task.endDate || task.dueDate || '';
+}
+
+function formatTaskRange(task) {
+    const start = task.startDate;
+    const end = taskEndDate(task);
+    if (start && end) return `${formatDate(start)} até ${formatDate(end)}`;
+    if (end) return formatDate(end);
+    if (start) return `A partir de ${formatDate(start)}`;
+    return '';
+}
+
+function fmtMin(m) {
+    if (!m) return '';
+    if (m < 60) return `${m}min`;
+    const h   = Math.floor(m / 60);
+    const min = m % 60;
+    return min ? `${h}h${min}m` : `${h}h`;
+}
+
+// ============================================================
+// ⏱️ MOTOR DO CRONÔMETRO POMODORO INTEGRADO (TIME TRACKING)
+// ============================================================
+
+let timerInterval = null;
+let timerSeconds = 25 * 60;
+let timerMode = 'pomodoro'; // 'pomodoro', 'short', 'long'
+let timerTask = null; // { id, title }
+let isTimerRunning = false;
+
+function loadTimerState() {
+    const stateStr = localStorage.getItem('tf_pomodoro_state');
+    if (!stateStr) return;
+
+    try {
+        const state = JSON.parse(stateStr);
+        timerMode = state.timerMode || 'pomodoro';
+        timerTask = state.timerTask || null;
+        isTimerRunning = state.isTimerRunning || false;
+        
+        const savedSeconds = state.timerSeconds !== undefined ? state.timerSeconds : (25 * 60);
+        const lastTick = state.lastTickTimestamp || Date.now();
+        const gap = Math.floor((Date.now() - lastTick) / 1000);
+
+        if (isTimerRunning) {
+            timerSeconds = Math.max(0, savedSeconds - gap);
+            if (timerSeconds === 0) {
+                isTimerRunning = false;
+                timerSeconds = getModeDefaultTime(timerMode) * 60;
+            }
+        } else {
+            timerSeconds = savedSeconds;
+        }
+    } catch (e) {
+        console.error('Erro ao ler estado do Pomodoro:', e);
+    }
+}
+
+function saveTimerState() {
+    const state = {
+        timerSeconds,
+        timerMode,
+        timerTask,
+        isTimerRunning,
+        lastTickTimestamp: Date.now()
+    };
+    localStorage.setItem('tf_pomodoro_state', JSON.stringify(state));
+}
+
+function getModeDefaultTime(mode) {
+    if (mode === 'short') return 5;
+    if (mode === 'long') return 15;
+    return 25;
+}
+
+function formatClockTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// Sintetizador de Áudio Nativo (Web Audio API)
+function playChimeSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Nota DING
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // Lá (A5)
+        gain1.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+        osc1.start(audioCtx.currentTime);
+        osc1.stop(audioCtx.currentTime + 0.6);
+        
+        // Nota DONG (atrasada 400ms)
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(698.46, audioCtx.currentTime + 0.4); // Fá (F5)
+        gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain2.gain.setValueAtTime(0.4, audioCtx.currentTime + 0.4);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+        osc2.start(audioCtx.currentTime + 0.4);
+        osc2.stop(audioCtx.currentTime + 1.2);
+    } catch (e) {
+        console.warn('Web Audio API não autorizada pelo navegador ainda:', e);
+    }
+}
+
+// Envia tempo trabalhado para o backend
+async function logTaskTime(taskId, minutes) {
+    try {
+        const res = await api('PATCH', `/tasks/${taskId}/track-time`, { minutes });
+        toast(`⏱️ ${minutes} minutos focados foram salvos no banco!`, 'success');
+        // Disparar evento customizado para forçar atualização da tela se necessário
+        window.dispatchEvent(new CustomEvent('taskTimeUpdated', { detail: { taskId, timeSpentMinutes: res.timeSpentMinutes } }));
+    } catch (e) {
+        console.error('Falha ao registrar tempo no backend:', e);
+        toast('Não foi possível registrar o tempo focado no servidor.', 'error');
+    }
+}
+
+function initializePomodoroWidget() {
+    // Só renderiza se estiver logado (evita auth pages)
+    if (!sessionStorage.getItem('token')) return;
+
+    // Remove anterior se existir para evitar duplicações
+    const old = document.getElementById('pomodoroFloatingWidget');
+    if (old) old.remove();
+
+    loadTimerState();
+
+    const widget = document.createElement('div');
+    widget.id = 'pomodoroFloatingWidget';
+    widget.className = 'pomodoro-widget collapsed';
+
+    widget.innerHTML = `
+        <div class="pomodoro-collapsed-bubble" title="Cronômetro Pomodoro Focus">
+            ⏱️
+            <div id="pomodoroCollapsedBadge" class="pomodoro-collapsed-badge ${isTimerRunning ? 'running' : ''}"></div>
+        </div>
+        <div class="pomodoro-expanded-content hidden">
+            <div class="pomodoro-header">
+                <span class="pomodoro-title">⏱️ Pomodoro</span>
+                <div class="pomodoro-control-top">
+                    <button id="pomodoroBtnToggleCollapse" class="pomodoro-btn-close" title="Minimizar">➖</button>
+                </div>
+            </div>
+            <div id="pomodoroTaskBadge" class="pomodoro-task-badge">Nenhuma tarefa focada</div>
+            <div class="pomodoro-modes">
+                <button class="pomodoro-mode-btn" data-mode="pomodoro">Foco (25m)</button>
+                <button class="pomodoro-mode-btn" data-mode="short">Pausa Curta</button>
+                <button class="pomodoro-mode-btn" data-mode="long">Pausa Longa</button>
+            </div>
+            <div class="pomodoro-timer-display">
+                <div id="pomodoroClock" class="pomodoro-clock">25:00</div>
+            </div>
+            <div class="pomodoro-controls">
+                <button id="pomodoroBtnReset" class="pomodoro-btn-round" title="Reiniciar">🔄</button>
+                <button id="pomodoroBtnPlayPause" class="pomodoro-btn-round play-pause" title="Iniciar">▶️</button>
+                <button id="pomodoroBtnSkip" class="pomodoro-btn-round" title="Pular">⏭️</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(widget);
+
+    const collapsedBubble = widget.querySelector('.pomodoro-collapsed-bubble');
+    const expandedContent = widget.querySelector('.pomodoro-expanded-content');
+    const clockEl = widget.querySelector('#pomodoroClock');
+    const taskBadge = widget.querySelector('#pomodoroTaskBadge');
+    const playPauseBtn = widget.querySelector('#pomodoroBtnPlayPause');
+    const resetBtn = widget.querySelector('#pomodoroBtnReset');
+    const skipBtn = widget.querySelector('#pomodoroBtnSkip');
+    const collapseBtn = widget.querySelector('#pomodoroBtnToggleCollapse');
+    const modeBtns = widget.querySelectorAll('.pomodoro-mode-btn');
+
+    // Restaura layout colapsado/expandido do sessionStorage
+    const isWidgetExpanded = sessionStorage.getItem('tf_pomodoro_expanded') === 'true';
+    if (isWidgetExpanded) {
+        widget.classList.remove('collapsed');
+        expandedContent.classList.remove('hidden');
+    }
+
+    // Toggle expandir
+    collapsedBubble.addEventListener('click', (e) => {
+        if (!widget.classList.contains('collapsed')) return;
+        widget.classList.remove('collapsed');
+        expandedContent.classList.remove('hidden');
+        sessionStorage.setItem('tf_pomodoro_expanded', 'true');
+    });
+
+    // Toggle colapsar
+    collapseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        widget.classList.add('collapsed');
+        expandedContent.classList.add('hidden');
+        sessionStorage.setItem('tf_pomodoro_expanded', 'false');
+    });
+
+    // Atualiza View do Estado Inicial
+    updateWidgetView();
+
+    // Inicia o intervalo de contagem se estivesse ativo anteriormente
+    if (isTimerRunning) {
+        startTicker();
+    }
+
+    // Eventos de Modos de Foco
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            switchMode(mode);
+        });
+    });
+
+    // Play/Pause
+    playPauseBtn.addEventListener('click', () => {
+        if (isTimerRunning) {
+            pauseTimer();
+        } else {
+            startTimer();
+        }
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+        resetTimer();
+    });
+
+    // Skip/Pular
+    skipBtn.addEventListener('click', () => {
+        skipTimer();
+    });
+
+    function updateWidgetView() {
+        clockEl.textContent = formatClockTime(timerSeconds);
+        
+        // Atualiza botões de modo
+        modeBtns.forEach(btn => {
+            if (btn.dataset.mode === timerMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Nome da Tarefa
+        if (timerTask) {
+            taskBadge.textContent = `Foco: ${timerTask.title}`;
+            taskBadge.title = timerTask.title;
+            taskBadge.classList.remove('hidden');
+        } else {
+            taskBadge.textContent = 'Sem tarefa em foco';
+            taskBadge.title = '';
+        }
+
+        // Ícone de Play/Pause
+        playPauseBtn.textContent = isTimerRunning ? '⏸️' : '▶️';
+        playPauseBtn.title = isTimerRunning ? 'Pausar' : 'Iniciar';
+
+        // Badge flutuante colapsado
+        const badge = widget.querySelector('#pomodoroCollapsedBadge');
+        if (badge) {
+            if (isTimerRunning) {
+                badge.classList.add('running');
+            } else {
+                badge.classList.remove('running');
+            }
+        }
+    }
+
+    function switchMode(newMode) {
+        pauseTimer();
+        timerMode = newMode;
+        timerSeconds = getModeDefaultTime(newMode) * 60;
+        updateWidgetView();
+        saveTimerState();
+    }
+
+    function startTimer() {
+        if (isTimerRunning) return;
+        isTimerRunning = true;
+        updateWidgetView();
+        saveTimerState();
+        startTicker();
+    }
+
+    function pauseTimer() {
+        if (!isTimerRunning) return;
+        isTimerRunning = false;
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        updateWidgetView();
+        saveTimerState();
+    }
+
+    function startTicker() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (timerSeconds > 0) {
+                timerSeconds--;
+                clockEl.textContent = formatClockTime(timerSeconds);
+                if (timerSeconds % 10 === 0) { // Salva estado a cada 10s para resiliência
+                    saveTimerState();
+                }
+            } else {
+                handleTimerFinished();
+            }
+        }, 1000);
+    }
+
+    function handleTimerFinished() {
+        pauseTimer();
+        playChimeSound();
+
+        const minutesFocused = getModeDefaultTime(timerMode);
+
+        if (timerMode === 'pomodoro') {
+            toast('🏆 Sessão de foco concluída com sucesso! Excelente trabalho!', 'success');
+            
+            // Logar tempo no backend se houver tarefa
+            if (timerTask && timerTask.id) {
+                logTaskTime(timerTask.id, minutesFocused);
+            }
+            
+            // Próximo automático: Pausa Curta
+            switchMode('short');
+        } else {
+            toast('☕ Pausa concluída! Hora de focar novamente.', 'success');
+            switchMode('pomodoro');
+        }
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        timerSeconds = getModeDefaultTime(timerMode) * 60;
+        updateWidgetView();
+        saveTimerState();
+    }
+
+    function skipTimer() {
+        pauseTimer();
+        if (timerMode === 'pomodoro') {
+            switchMode('short');
+        } else {
+            switchMode('pomodoro');
+        }
+    }
+
+    // Expõe globalmente a ativação de foco externa (invocada pelo modal de detalhes de qualquer página)
+    window.startPomodoroFocus = function(task) {
+        if (!task || !task.id) return;
+        
+        timerTask = { id: task.id, title: task.title };
+        timerMode = 'pomodoro';
+        timerSeconds = getModeDefaultTime('pomodoro') * 60;
+        
+        // Expande o widget para dar feedback visual
+        widget.classList.remove('collapsed');
+        expandedContent.classList.remove('hidden');
+        sessionStorage.setItem('tf_pomodoro_expanded', 'true');
+        
+        startTimer();
+    };
+}
+
+// Inicializa no carregamento do DOM
+window.addEventListener('DOMContentLoaded', () => {
+    initializePomodoroWidget();
+});
+
+// Re-inicializa em logins sucedidos
+window.addEventListener('loginSuccess', () => {
+    initializePomodoroWidget();
+});
+
+// Centraliza a renderização e bindings da seção de Time Tracking nos modais de detalhe (DRY)
+function renderDetailTimeTracking(task, openDetailCallback) {
+    let timerSec = document.getElementById('detailTimerSection');
+    if (!timerSec) {
+        timerSec = document.createElement('div');
+        timerSec.id = 'detailTimerSection';
+        timerSec.className = 'detail-timer-section';
+        const desc = document.getElementById('detailDescription');
+        if (desc) {
+            desc.parentNode.insertBefore(timerSec, desc.nextSibling);
+        } else {
+            return;
+        }
+    }
+
+    const spent = task.timeSpentMinutes || 0;
+    const est = task.estimatedMinutes || 0;
+    const pct = est > 0 ? Math.min(100, Math.round((spent / est) * 100)) : 0;
+    const overrun = spent > est && est > 0;
+
+    timerSec.innerHTML = `
+        <div class="detail-timer-header">
+            <span>⏱️ Tempo Gasto: <strong>${fmtMin(spent)}</strong> ${est > 0 ? `/ ${fmtMin(est)} estimado` : ''}</span>
+            <div class="detail-timer-actions">
+                <button class="btn-detail-focus" id="btnDetailFocus">Focar (Pomodoro)</button>
+            </div>
+        </div>
+        <div class="timer-progress-track">
+            <div class="timer-progress-fill ${overrun ? 'overrun' : ''}" style="width: ${pct}%"></div>
+        </div>
+        <div class="manual-time-input-group">
+            <input type="number" class="manual-time-input" id="manualTimeInput" min="1" max="1440" placeholder="Minutos">
+            <button class="btn-manual-time-save" id="btnManualTimeSave">Registrar Tempo</button>
+        </div>
+    `;
+
+    document.getElementById('btnDetailFocus').addEventListener('click', () => {
+        window.startPomodoroFocus(task);
+    });
+
+    document.getElementById('btnManualTimeSave').addEventListener('click', async () => {
+        const input = document.getElementById('manualTimeInput');
+        const mins = parseInt(input.value, 10);
+        if (!mins || mins <= 0) {
+            toast('Por favor, insira um valor válido em minutos.', 'error');
+            return;
+        }
+        if (mins > 1440) {
+            toast('Máximo de 1440 minutos (24 horas) por registro.', 'error');
+            return;
+        }
+        try {
+            const res = await api('PATCH', `/tasks/${task.id}/track-time`, { minutes: mins });
+            task.timeSpentMinutes = res.timeSpentMinutes;
+            
+            // Re-renderiza o modal
+            openDetailCallback(task.id);
+            
+            // Sincroniza na listagem principal
+            const mainTask = allTasks.find(t => t.id === task.id);
+            if (mainTask) mainTask.timeSpentMinutes = res.timeSpentMinutes;
+            
+            if (typeof renderTasks === 'function') renderTasks();
+            else if (typeof renderBoard === 'function') renderBoard();
+            else if (typeof renderCalendar === 'function') renderCalendar();
+
+            toast('Tempo registrado com sucesso!', 'success');
+        } catch (e) {
+            toast(e.message || 'Erro ao registrar tempo', 'error');
+        }
+    });
 }

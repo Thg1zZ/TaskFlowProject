@@ -31,4 +31,8 @@ public class TaskRequest {
     @Min(value = 1)
     @Max(value = 43200, message = "Máximo de 43200 minutos (30 dias)")
     private Integer estimatedMinutes;
+
+    @Min(value = 0, message = "Tempo gasto não pode ser negativo")
+    @Max(value = 43200, message = "Tempo gasto não pode exceder 30 dias (43200 minutos)")
+    private Integer timeSpentMinutes;
 }

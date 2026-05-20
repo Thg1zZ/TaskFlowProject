@@ -13,7 +13,6 @@ import com.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +82,7 @@ public class TaskService {
                 .endDate(endDate)
                 .dueDate(endDate)
                 .estimatedMinutes(request.getEstimatedMinutes())
+                .timeSpentMinutes(request.getTimeSpentMinutes() != null ? request.getTimeSpentMinutes() : 0)
                 .category(category)
                 .user(user)
                 .build();
@@ -108,6 +108,7 @@ public class TaskService {
         task.setEndDate(endDate);
         task.setDueDate(endDate);
         task.setEstimatedMinutes(request.getEstimatedMinutes());
+        if (request.getTimeSpentMinutes() != null) task.setTimeSpentMinutes(request.getTimeSpentMinutes());
         task.setCategory(category);
 
         return TaskResponse.fromEntity(taskRepository.save(task));
@@ -119,6 +120,28 @@ public class TaskService {
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
         task.setStatus(status);
+        return TaskResponse.fromEntity(taskRepository.save(task));
+    }
+
+    @Transactional(readOnly = false)
+    public TaskResponse incrementTaskTime(Long id, Integer minutes) {
+        User user = securityService.getCurrentUser();
+        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+
+        if (minutes == null || minutes < 1) {
+            throw new IllegalArgumentException("Os minutos incrementados devem ser de no mínimo 1");
+        }
+
+        int currentSpent = task.getTimeSpentMinutes() != null ? task.getTimeSpentMinutes() : 0;
+        int newSpent = currentSpent + minutes;
+
+        // Validação estrita: O backend nunca confia no frontend
+        if (newSpent > 43200) { // Máximo de 30 dias de trabalho contínuo
+            throw new IllegalArgumentException("Tempo total gasto não pode exceder 30 dias (43200 minutos)");
+        }
+
+        task.setTimeSpentMinutes(newSpent);
         return TaskResponse.fromEntity(taskRepository.save(task));
     }
 

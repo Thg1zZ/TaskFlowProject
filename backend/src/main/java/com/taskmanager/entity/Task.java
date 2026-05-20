@@ -57,6 +57,10 @@ public class Task {
     @Column(name = "estimated_minutes")
     private Integer estimatedMinutes;
 
+    /** Minutos reais trabalhados (Time Tracking) */
+    @Column(name = "time_spent_minutes")
+    private Integer timeSpentMinutes;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -85,6 +89,7 @@ public class Task {
         updatedAt = LocalDateTime.now();
         if (status == null) status = TaskStatus.TODO;
         if (priority == null) priority = TaskPriority.MEDIUM;
+        if (timeSpentMinutes == null) timeSpentMinutes = 0;
     }
 
     @PreUpdate

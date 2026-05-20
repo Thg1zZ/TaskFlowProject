@@ -26,6 +26,7 @@ public class TaskResponse {
     private LocalDate endDate;
     private LocalDate dueDate;
     private Integer estimatedMinutes;
+    private Integer timeSpentMinutes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -40,18 +41,19 @@ public class TaskResponse {
         LocalDate finalEndDate = task.getEndDate() != null ? task.getEndDate() : task.getDueDate();
 
         TaskResponse r = TaskResponse.builder()
-                .id(task.getId())
-                .title(task.getTitle())
-                .description(task.getDescription())
-                .status(task.getStatus())
-                .priority(task.getPriority())
-                .startDate(task.getStartDate())
-                .endDate(finalEndDate)
-                .dueDate(finalEndDate)
-                .estimatedMinutes(task.getEstimatedMinutes())
-                .createdAt(task.getCreatedAt())
-                .updatedAt(task.getUpdatedAt())
-                .build();
+            .id(task.getId())
+            .title(task.getTitle())
+            .description(task.getDescription())
+            .status(task.getStatus())
+            .priority(task.getPriority())
+            .startDate(task.getStartDate())
+            .endDate(finalEndDate)
+            .dueDate(finalEndDate)
+            .estimatedMinutes(task.getEstimatedMinutes())
+            .timeSpentMinutes(task.getTimeSpentMinutes() != null ? task.getTimeSpentMinutes() : 0)
+            .createdAt(task.getCreatedAt())
+            .updatedAt(task.getUpdatedAt())
+            .build();
 
         if (task.getCategory() != null) {
             r.setCategoryId(task.getCategory().getId());

@@ -44,6 +44,17 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                 jdbcTemplate.execute("ALTER TABLE tasks ADD CONSTRAINT tasks_estimated_minutes_check CHECK (estimated_minutes IS NULL OR (estimated_minutes > 0 AND estimated_minutes <= 43200))");
             } catch (Exception ignored) {}
 
+            // 6. Adicionar coluna 'time_spent_minutes' se não existir no banco
+            jdbcTemplate.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS time_spent_minutes INT NOT NULL DEFAULT 0");
+
+            // 7. Adicionar check constraint para time_spent_minutes no banco para integridade total
+            try {
+                jdbcTemplate.execute("ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_time_spent_minutes_check");
+            } catch (Exception ignored) {}
+            try {
+                jdbcTemplate.execute("ALTER TABLE tasks ADD CONSTRAINT tasks_time_spent_minutes_check CHECK (time_spent_minutes >= 0 AND time_spent_minutes <= 43200)");
+            } catch (Exception ignored) {}
+
             System.out.println("====== AUTO MIGRATION EXECUTADA COM SUCESSO ======");
         } catch (Exception e) {
             System.err.println("Aviso na execução de Auto Migration (pode já estar aplicada): " + e.getMessage());

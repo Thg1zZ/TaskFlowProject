@@ -1,0 +1,305 @@
+/* ============================================================
+   TaskFlow — Calendar View Styles
+   ============================================================ */
+
+.calendar-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 28px 40px;
+    flex: 1;
+}
+
+/* ── CALENDAR HEADER ────────────────────────────────────────── */
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 24px;
+    backdrop-filter: blur(10px);
+}
+
+.calendar-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.calendar-month-title {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    text-transform: capitalize;
+    min-width: 180px;
+}
+
+.calendar-nav-btn {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.calendar-nav-btn:hover {
+    background: var(--bg-4);
+    color: var(--text);
+    border-color: var(--border-glow);
+    transform: scale(1.05);
+}
+
+.calendar-today-btn {
+    background: var(--accent-dim);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.calendar-today-btn:hover {
+    background: var(--accent);
+    color: white;
+    box-shadow: var(--shadow-glow);
+}
+
+/* ── CALENDAR GRID ──────────────────────────────────────────── */
+.calendar-grid-container {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    overflow-x: auto;
+}
+
+.calendar-days-header {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(100px, 1fr));
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+
+.calendar-day-name {
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 0;
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(100px, 1fr));
+    grid-auto-rows: minmax(110px, 1fr);
+    gap: 8px;
+}
+
+/* ── CALENDAR CELL ──────────────────────────────────────────── */
+.calendar-cell {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    transition: all 0.15s ease;
+    overflow: hidden;
+}
+
+.calendar-cell:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-glow);
+    box-shadow: var(--shadow);
+}
+
+.calendar-cell.other-month {
+    opacity: 0.3;
+}
+
+.calendar-cell.today {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.04);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+
+.calendar-cell-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.calendar-day-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-2);
+}
+
+.calendar-cell.today .calendar-day-num {
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+/* Botão de Adicionar Rápido */
+.calendar-add-btn {
+    opacity: 0;
+    pointer-events: none;
+    background: var(--accent-dim);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--accent);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.calendar-cell:hover .calendar-add-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.calendar-add-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Lista de pílulas */
+.calendar-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 100px;
+    padding-right: 2px;
+}
+
+/* ── CALENDAR TASK PILL ──────────────────────────────────────── */
+.calendar-task-pill {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3.5px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    border: 1px solid transparent;
+    transition: all 0.1s ease;
+}
+
+.calendar-task-pill:hover {
+    filter: brightness(1.2) contrast(1.1);
+    transform: translateX(1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* Prioridades default */
+.calendar-task-pill.priority-HIGH {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+.calendar-task-pill.priority-MEDIUM {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--yellow);
+    border-color: rgba(245, 158, 11, 0.25);
+}
+.calendar-task-pill.priority-LOW {
+    background: rgba(34, 211, 165, 0.15);
+    color: var(--green);
+    border-color: rgba(34, 211, 165, 0.25);
+}
+
+/* Concluídas */
+.calendar-task-pill.done {
+    text-decoration: line-through;
+    opacity: 0.45;
+}
+
+/* Scrollbars customizadas para a lista de tarefas internas do dia */
+.calendar-tasks-list::-webkit-scrollbar {
+    width: 3px;
+}
+.calendar-tasks-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.calendar-tasks-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+/* ── RESPONSIVO ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .calendar-wrapper {
+        padding: 8px 16px 40px;
+    }
+}
+
+@media (max-width: 680px) {
+    .calendar-month-title {
+        font-size: 16px;
+        min-width: auto;
+    }
+    .calendar-today-btn {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+    .calendar-nav-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    .calendar-day-name {
+        font-size: 11px;
+    }
+    .calendar-days-grid {
+        grid-auto-rows: minmax(80px, 1fr);
+    }
+    .calendar-task-pill {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+}

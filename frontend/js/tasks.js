@@ -291,8 +291,19 @@ function renderCard(task) {
         meta.appendChild(dueBadge);
     }
     
-    if (task.estimatedMinutes) {
-        const estBadge = createElementWithClass('span', 'task-badge badge-est', `⏱ ${fmtMin(task.estimatedMinutes)}`);
+    const spent = task.timeSpentMinutes || 0;
+    const est = task.estimatedMinutes || 0;
+    if (spent > 0 || est > 0) {
+        let label = '⏱ ';
+        if (spent > 0 && est > 0) {
+            label += `${fmtMin(spent)} / ${fmtMin(est)}`;
+        } else if (spent > 0) {
+            label += fmtMin(spent);
+        } else {
+            label += fmtMin(est);
+        }
+        const overrun = spent > est && est > 0;
+        const estBadge = createElementWithClass('span', `task-badge badge-est ${overrun ? 'badge-overdue' : ''}`, label);
         meta.appendChild(estBadge);
     }
     
@@ -656,6 +667,8 @@ async function openDetail(id) {
     document.getElementById('detailDescription').textContent = task.description || 'Sem descrição.';
     document.getElementById('detailDescription').style.opacity = task.description ? '1' : '0.4';
 
+    renderDetailTimeTracking(task, openDetail);
+
     document.getElementById('detailOverlay').classList.remove('hidden');
     loadComments(id);
 }
@@ -832,29 +845,14 @@ function showLoading(show) {
 
 // --- Helpers ---------------------------------------------------
 
-function formatDate(d) {
-    if (!d) return '';
-    const [y, m, dd] = d.split('-');
-    return `${dd}/${m}/${y}`;
-}
-
-function taskEndDate(task) {
-    return task.endDate || task.dueDate || '';
-}
-
-function formatTaskRange(task) {
-    const start = task.startDate;
-    const end = taskEndDate(task);
-    if (start && end) return `${formatDate(start)} até ${formatDate(end)}`;
-    if (end) return formatDate(end);
-    if (start) return `A partir de ${formatDate(start)}`;
-    return '';
-}
-
-function fmtMin(m) {
-    if (!m) return '';
-    if (m < 60) return `${m}min`;
-    const h   = Math.floor(m / 60);
-    const min = m % 60;
-    return min ? `${h}h${min}m` : `${h}h`;
-}
+window.addEventListener('taskTimeUpdated', (e) => {
+    const { taskId, timeSpentMinutes } = e.detail;
+    const task = allTasks.find(t => t.id === taskId);
+    if (task) {
+        task.timeSpentMinutes = timeSpentMinutes;
+        if (detailTaskId === taskId) {
+            openDetail(taskId);
+        }
+    }
+    renderTasks();
+});

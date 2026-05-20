@@ -2,6 +2,7 @@ package com.taskmanager.controller;
 
 import com.taskmanager.dto.TaskRequest;
 import com.taskmanager.dto.TaskResponse;
+import com.taskmanager.dto.TimeTrackingRequest;
 import com.taskmanager.entity.Task.TaskStatus;
 import com.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
@@ -75,6 +76,12 @@ public class TaskController {
                 ". Valores aceitos: TODO, IN_PROGRESS, DONE");
         }
         return ResponseEntity.ok(taskService.updateTaskStatus(id, status));
+    }
+
+    @PatchMapping("/{id}/track-time")
+    public ResponseEntity<TaskResponse> trackTime(@PathVariable Long id,
+                                                  @Valid @RequestBody TimeTrackingRequest request) {
+        return ResponseEntity.ok(taskService.incrementTaskTime(id, request.getMinutes()));
     }
 
     @DeleteMapping("/{id}")

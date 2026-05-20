@@ -193,9 +193,20 @@ function renderCard(task) {
         meta.appendChild(due);
     }
 
-    if (task.estimatedMinutes) {
-        const est = createElementWithClass('span', 'kcard-meta-item', `⏱ ${fmtMin(task.estimatedMinutes)}`);
-        meta.appendChild(est);
+    const spent = task.timeSpentMinutes || 0;
+    const est = task.estimatedMinutes || 0;
+    if (spent > 0 || est > 0) {
+        let label = '⏱ ';
+        if (spent > 0 && est > 0) {
+            label += `${fmtMin(spent)} / ${fmtMin(est)}`;
+        } else if (spent > 0) {
+            label += fmtMin(spent);
+        } else {
+            label += fmtMin(est);
+        }
+        const overrun = spent > est && est > 0;
+        const estCard = createElementWithClass('span', `kcard-meta-item ${overrun ? 'overdue' : ''}`, label);
+        meta.appendChild(estCard);
     }
 
     if (task.commentCount > 0) {
@@ -405,34 +416,15 @@ async function confirmDelete() {
 
 // --- Helpers ---------------------------------------------------
 
-function formatDate(d) {
-    if (!d) return '';
-    const [, m, dd] = d.split('-');
-    const y = d.split('-')[0];
-    return `${dd}/${m}/${y}`;
-}
-
-function taskEndDate(task) {
-    return task.endDate || task.dueDate || '';
-}
-
-function formatTaskRange(task) {
-    const start = task.startDate;
-    const end = taskEndDate(task);
-    if (start && end) return `${formatDate(start)} até ${formatDate(end)}`;
-    if (end) return formatDate(end);
-    if (start) return `A partir de ${formatDate(start)}`;
-    return '';
-}
-
 function priorityLabel(priority) {
     return { HIGH: 'Alta', MEDIUM: 'Média', LOW: 'Baixa' }[priority] || priority || 'Prioridade';
 }
 
-function fmtMin(m) {
-    if (!m) return '';
-    if (m < 60) return `${m}min`;
-    const h   = Math.floor(m / 60);
-    const min = m % 60;
-    return min ? `${h}h${min}m` : `${h}h`;
-}
+window.addEventListener('taskTimeUpdated', (e) => {
+    const { taskId, timeSpentMinutes } = e.detail;
+    const task = allTasks.find(t => t.id === taskId);
+    if (task) {
+        task.timeSpentMinutes = timeSpentMinutes;
+    }
+    renderBoard();
+});
