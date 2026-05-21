@@ -24,6 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const pathname = usePathname();
 
@@ -144,14 +145,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            <button 
-              onClick={() => alert("Você não possui novas notificações no momento.")}
-              className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors relative"
-              title="Notificações"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full border border-[var(--bg)]"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors relative"
+                title="Notificações"
+              >
+                <Bell className="w-5 h-5" />
+                {/* <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full border border-[var(--bg)]"></span> */}
+              </button>
+
+              {isNotificationsOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsNotificationsOpen(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-80 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-lg z-20 overflow-hidden">
+                    <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
+                      <h3 className="font-semibold text-[var(--text)]">Notificações</h3>
+                    </div>
+                    <div className="p-8 text-center text-[var(--color-muted-foreground)] text-sm">
+                      <Bell className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                      Você não possui novas notificações no momento.
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <button 
               onClick={() => setIsNewTaskModalOpen(true)}
               className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium hover:opacity-90 transition-opacity"
