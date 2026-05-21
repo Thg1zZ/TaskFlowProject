@@ -12,12 +12,12 @@ interface ChartData {
 }
 
 interface ChartRendererProps {
-  type: "bar" | "line" | "pie" | "area" | "scatter";
+  type: "bar" | "line" | "pie" | "area" | "scatter" | "histogram";
   data: ChartData[];
-  color: string;
+  barHorizontal?: boolean;
 }
 
-export default function ChartRenderer({ type, data, color }: ChartRendererProps) {
+export default function ChartRenderer({ type, data, barHorizontal = false }: ChartRendererProps) {
   
   if (!data || data.length === 0) {
     return (
@@ -27,15 +27,12 @@ export default function ChartRenderer({ type, data, color }: ChartRendererProps)
     );
   }
 
-  // Format ScatterChart data to ensure X and Y exist properly
   const scatterData = data.map((item, index) => ({
     x: index,
     name: item.name,
     value: item.value,
     fill: item.fill
   }));
-
-  const pieColors = [color, `${color}bb`, `${color}77`, `${color}33`];
 
   const tooltipStyle = {
     backgroundColor: 'var(--bg)', 
@@ -47,6 +44,7 @@ export default function ChartRenderer({ type, data, color }: ChartRendererProps)
   const renderChartContent = () => {
     switch (type) {
       case "line":
+        const lineColor = data[1]?.fill || data[0]?.fill || "#3b82f6";
         return (
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
@@ -54,7 +52,7 @@ export default function ChartRenderer({ type, data, color }: ChartRendererProps)
             <YAxis tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
             <Tooltip cursor={{ fill: 'transparent' }} contentStyle={tooltipStyle} />
             <Legend />
-            <Line type="monotone" dataKey="value" name="Tarefas" stroke={color} strokeWidth={4} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+            <Line type="monotone" dataKey="value" name="Tarefas" stroke={lineColor} strokeWidth={4} dot={{ r: 6 }} activeDot={{ r: 8 }} />
           </LineChart>
         );
         
@@ -75,13 +73,14 @@ export default function ChartRenderer({ type, data, color }: ChartRendererProps)
               label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Pie>
           </PieChart>
         );
         
       case "area":
+        const areaColor = data[1]?.fill || data[0]?.fill || "#3b82f6";
         return (
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
@@ -89,7 +88,7 @@ export default function ChartRenderer({ type, data, color }: ChartRendererProps)
             <YAxis tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Area type="monotone" dataKey="value" name="Tarefas" stroke={color} fill={color} fillOpacity={0.3} />
+            <Area type="monotone" dataKey="value" name="Tarefas" stroke={areaColor} fill={areaColor} fillOpacity={0.3} />
           </AreaChart>
         );
         
@@ -101,26 +100,49 @@ export default function ChartRenderer({ type, data, color }: ChartRendererProps)
             <YAxis type="number" dataKey="value" name="Tarefas" allowDecimals={false} tick={{ fill: 'var(--color-muted-foreground)' }} />
             <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={tooltipStyle} />
             <Legend />
-            <Scatter name="Quantidade de Tarefas" data={scatterData} fill={color} />
+            <Scatter name="Quantidade de Tarefas" data={scatterData}>
+              {scatterData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Scatter>
           </ScatterChart>
         );
         
+      case "histogram":
       case "bar":
       default:
+        const isHist = type === "histogram";
+        const layoutMode = barHorizontal ? "vertical" : "horizontal";
         return (
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: 'var(--color-muted-foreground)' }} />
-            <YAxis tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
+          <BarChart data={data} layout={layoutMode} barCategoryGap={isHist ? "0%" : "10%"}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={!barHorizontal} horizontal={barHorizontal} />
+            {barHorizontal ? (
+              <>
+                <XAxis type="number" tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} hide />
+                <YAxis type="category" dataKey="name" tick={{ fill: 'var(--color-muted-foreground)' }} width={100} />
+              </>
+            ) : (
+              <>
+                <XAxis dataKey="name" tick={{ fill: 'var(--color-muted-foreground)' }} />
+                <YAxis tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
+              </>
+            )}
             <Tooltip cursor={{ fill: 'var(--bg-3)' }} contentStyle={tooltipStyle} />
             <Legend />
-            <Bar dataKey="value" name="Tarefas" fill={color} radius={[6, 6, 0, 0]} />
+            <Bar 
+              dataKey="value" 
+              name="Tarefas" 
+              radius={isHist ? 0 : [6, 6, 6, 6]}
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} fillOpacity={isHist ? 0.8 : 1} />
+              ))}
+            </Bar>
           </BarChart>
         );
     }
   };
 
-  // We wrap the dynamic chart in a ResponsiveContainer here
   return (
     <ResponsiveContainer width="100%" height="100%">
       {renderChartContent()}
