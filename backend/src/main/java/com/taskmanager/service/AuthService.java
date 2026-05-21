@@ -86,6 +86,10 @@ public class AuthService {
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
 
+    public void logout(String token) {
+        tokenProvider.revokeToken(token);
+    }
+
     @Transactional
     public void forgotPassword(String email) {
         userRepository.findByEmailIgnoreCase(email.trim()).ifPresent(user -> {
@@ -152,21 +156,8 @@ public class AuthService {
     @Transactional
     public AuthResponse loginWithGoogle(String idTokenString, String suppliedNonce) {
         try {
-            com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = 
-                new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
-                        new com.google.api.client.http.javanet.NetHttpTransport(), 
-                        new com.google.api.client.json.gson.GsonFactory())
-                    .setAudience(java.util.Collections.singletonList(googleClientId))
-                    .setIssuers(java.util.Arrays.asList("accounts.google.com", "https://accounts.google.com"))
-                    .build();
+            com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = verifyGoogleToken(idTokenString);
 
-            com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(idTokenString);
-            if (idToken == null) {
-                throw new IllegalArgumentException("Assinatura do token do Google inválida ou expirada");
-            }
-
-            com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = idToken.getPayload();
-            
             // 1. Exigir verificação estrita de e-mail (ASVS 2.1.12)
             if (!payload.getEmailVerified()) {
                 throw new IllegalArgumentException("Email do Google não verificado");
@@ -178,36 +169,7 @@ public class AuthService {
                 throw new IllegalArgumentException("Token de estado (Nonce/CSRF) inválido ou expirado");
             }
 
-            String email = payload.getEmail().toLowerCase().trim();
-            String name = (String) payload.get("name");
-            if (name == null || name.isBlank()) {
-                name = email.split("@")[0];
-            }
-
-            // Buscar ou criar usuário autonomamente no Backend
-            User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-            boolean isNewUser = false;
-
-            if (user == null) {
-                isNewUser = true;
-                // [ASVS 2.4.6] Senha de alta entropia para login social (nunca exposta, impossível adivinhar)
-                byte[] randomBytes = new byte[24];
-                SECURE_RANDOM.nextBytes(randomBytes);
-                String secureRandomPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes) + "aA1!";
-
-                user = User.builder()
-                        .name(name.trim())
-                        .email(email)
-                        .password(passwordEncoder.encode(secureRandomPassword))
-                        .role(com.taskmanager.entity.UserRole.ROLE_USER)
-                        .build();
-
-                user = userRepository.save(user);
-            }
-
-            if (isNewUser) {
-                defaultCategorySeeder.seedForNewUser(user);
-            }
+            User user = syncSocialUser(payload);
 
             // Gerar token nativo do TaskFlow para a sessão
             String appToken = tokenProvider.generateToken(user.getEmail());
@@ -218,5 +180,54 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Erro ao processar login com Google: " + e.getMessage(), e);
         }
+    }
+
+    private com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload verifyGoogleToken(String idTokenString) throws Exception {
+        com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = 
+            new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
+                    new com.google.api.client.http.javanet.NetHttpTransport(), 
+                    new com.google.api.client.json.gson.GsonFactory())
+                .setAudience(java.util.Collections.singletonList(googleClientId))
+                .setIssuers(java.util.Arrays.asList("accounts.google.com", "https://accounts.google.com"))
+                .build();
+
+        com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(idTokenString);
+        if (idToken == null) {
+            throw new IllegalArgumentException("Assinatura do token do Google inválida ou expirada");
+        }
+        return idToken.getPayload();
+    }
+
+    private User syncSocialUser(com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload) {
+        String email = payload.getEmail().toLowerCase().trim();
+        String name = (String) payload.get("name");
+        if (name == null || name.isBlank()) {
+            name = email.split("@")[0];
+        }
+
+        User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
+        boolean isNewUser = false;
+
+        if (user == null) {
+            isNewUser = true;
+            // [ASVS 2.4.6] Senha de alta entropia para login social (nunca exposta, impossível adivinhar)
+            byte[] randomBytes = new byte[24];
+            SECURE_RANDOM.nextBytes(randomBytes);
+            String secureRandomPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes) + "aA1!";
+
+            user = User.builder()
+                    .name(name.trim())
+                    .email(email)
+                    .password(passwordEncoder.encode(secureRandomPassword))
+                    .role(com.taskmanager.entity.UserRole.ROLE_USER)
+                    .build();
+
+            user = userRepository.save(user);
+        }
+
+        if (isNewUser) {
+            defaultCategorySeeder.seedForNewUser(user);
+        }
+        return user;
     }
 }

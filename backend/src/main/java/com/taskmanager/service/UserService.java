@@ -2,6 +2,7 @@ package com.taskmanager.service;
 
 import com.taskmanager.dto.ChangePasswordRequest;
 import com.taskmanager.dto.UserProfileRequest;
+import com.taskmanager.dto.UserProfileResponse;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.User;
 import com.taskmanager.exception.ResourceNotFoundException;
@@ -29,7 +30,7 @@ public class UserService {
     @Autowired private HttpServletRequest httpServletRequest;
     @Autowired private SecurityService securityService;
 
-    public Map<String, Object> getProfile() {
+    public UserProfileResponse getProfile() {
         User u = securityService.getCurrentUser();
 
         long total      = taskRepo.countByUserId(u.getId());
@@ -38,29 +39,24 @@ public class UserService {
         long todo       = taskRepo.countByUserIdAndStatus(u.getId(), Task.TaskStatus.TODO);
         long rate       = total > 0 ? (done * 100 / total) : 0;
 
-        Map<String, Long> stats = new HashMap<>();
-        stats.put("total",          total);
-        stats.put("done",           done);
-        stats.put("inProgress",     inProgress);
-        stats.put("todo",           todo);
-        stats.put("completionRate", rate);
+        UserProfileResponse.UserStatsDTO stats = new UserProfileResponse.UserStatsDTO(total, done, inProgress, todo, rate);
 
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("id",        u.getId());
-        profile.put("name",      u.getName());
-        profile.put("email",     u.getEmail());
-        profile.put("bio",       u.getBio());
-        profile.put("jobTitle",  u.getJobTitle());
-        profile.put("profileImage", u.getProfileImage());
-        profile.put("createdAt", u.getCreatedAt());
-        profile.put("role",      u.getRole().name());
-        profile.put("stats",     stats);
+        UserProfileResponse profile = new UserProfileResponse();
+        profile.setId(u.getId());
+        profile.setName(u.getName());
+        profile.setEmail(u.getEmail());
+        profile.setBio(u.getBio());
+        profile.setJobTitle(u.getJobTitle());
+        profile.setProfileImage(u.getProfileImage());
+        profile.setCreatedAt(u.getCreatedAt());
+        profile.setRole(u.getRole().name());
+        profile.setStats(stats);
 
         return profile;
     }
 
     @Transactional
-    public Map<String, Object> updateProfile(UserProfileRequest req) {
+    public UserProfileResponse updateProfile(UserProfileRequest req) {
         User u = securityService.getCurrentUser();
         u.setName(req.getName().trim());
         u.setBio(req.getBio() != null ? req.getBio().trim() : null);
@@ -70,16 +66,7 @@ public class UserService {
                 : null);
         userRepo.save(u);
 
-        Map<String, Object> res = new HashMap<>();
-        res.put("id",       u.getId());
-        res.put("name",     u.getName());
-        res.put("email",    u.getEmail());
-        res.put("bio",      u.getBio());
-        res.put("jobTitle", u.getJobTitle());
-        res.put("profileImage", u.getProfileImage());
-        res.put("role",         u.getRole().name());
-        res.put("message",  "Perfil atualizado com sucesso");
-        return res;
+        return getProfile();
     }
 
     @Transactional

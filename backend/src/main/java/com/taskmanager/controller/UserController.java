@@ -2,6 +2,7 @@ package com.taskmanager.controller;
 
 import com.taskmanager.dto.ChangePasswordRequest;
 import com.taskmanager.dto.UserProfileRequest;
+import com.taskmanager.dto.UserProfileResponse;
 import com.taskmanager.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +19,12 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getProfile() {
+    public ResponseEntity<UserProfileResponse> getProfile() {
         return ResponseEntity.ok(userService.getProfile());
     }
 
     @PutMapping("/me")
-    public ResponseEntity<Map<String, Object>> updateProfile(@Valid @RequestBody UserProfileRequest req) {
+    public ResponseEntity<UserProfileResponse> updateProfile(@Valid @RequestBody UserProfileRequest req) {
         return ResponseEntity.ok(userService.updateProfile(req));
     }
 

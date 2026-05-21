@@ -1,5 +1,6 @@
 package com.taskmanager.config;
 
+import com.taskmanager.dto.ApiErrorResponse;
 import com.taskmanager.exception.ResourceNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String field   = ((FieldError) error).getField();
@@ -32,12 +33,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraint(ConstraintViolationException ex) {
+    public ResponseEntity<ApiErrorResponse> handleConstraint(ConstraintViolationException ex) {
         return buildError(HttpStatus.BAD_REQUEST, "Dados inválidos", null);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
+    public ResponseEntity<ApiErrorResponse> handleBadCredentials(BadCredentialsException ex) {
         return buildError(HttpStatus.UNAUTHORIZED, "Credenciais inválidas", null);
     }
 
@@ -46,13 +47,13 @@ public class GlobalExceptionHandler {
      * com mensagem controlada. O campo exato NÃO é revelado (evita IDOR oracle).
      */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
+    public ResponseEntity<ApiErrorResponse> handleNotFound(ResourceNotFoundException ex) {
         log.warn("Recurso não encontrado: {}", ex.getMessage());
         return buildError(HttpStatus.NOT_FOUND, "Recurso não encontrado", null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArg(IllegalArgumentException ex) {
+    public ResponseEntity<ApiErrorResponse> handleIllegalArg(IllegalArgumentException ex) {
         // Safe to expose: these are intentional validation messages from services
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
@@ -64,26 +65,21 @@ public class GlobalExceptionHandler {
      * como ResourceNotFoundException ou IllegalArgumentException.
      */
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+    public ResponseEntity<ApiErrorResponse> handleRuntime(RuntimeException ex) {
         log.error("Erro de negócio não tratado: {}", ex.getMessage(), ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Operação não pôde ser concluída", null);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
+    public ResponseEntity<ApiErrorResponse> handleGeneral(Exception ex) {
         log.error("Erro interno inesperado", ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno do servidor", null);
     }
 
-    private ResponseEntity<Map<String, Object>> buildError(HttpStatus status,
+    private ResponseEntity<ApiErrorResponse> buildError(HttpStatus status,
                                                             String message,
-                                                            Object details) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", status.value());
-        body.put("error", message);
-        if (details != null) {
-            body.put("details", details);
-        }
+                                                            Map<String, String> details) {
+        ApiErrorResponse body = new ApiErrorResponse(status.value(), message, details);
         return ResponseEntity.status(status).body(body);
     }
 }

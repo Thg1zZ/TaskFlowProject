@@ -13,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string, user: User) => void;
+  login: (user: User) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -26,29 +26,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
+    const checkSession = async () => {
       try {
-        setUser(JSON.parse(storedUser));
+        const response = await api.get('/users/me');
+        setUser(response.data);
       } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+    checkSession();
   }, []);
 
-  const login = (token: string, userData: User) => {
-    localStorage.setItem('token', token);
+  const login = (userData: User) => {
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     router.push('/dashboard');
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      console.error(e);
+    }
     localStorage.removeItem('user');
     setUser(null);
     router.push('/login');

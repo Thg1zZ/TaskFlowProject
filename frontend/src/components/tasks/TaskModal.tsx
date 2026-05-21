@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Task, TaskInput, tasksApi } from "@/lib/api/tasks";
+import { useEffect, useState, useMemo } from "react";
+import { Task, TaskInput, tasksApi, TaskStatus, TaskPriority } from "@/lib/api/tasks";
 import { X, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
@@ -27,33 +27,31 @@ export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModa
     categoryId: null,
   });
 
+  // Função para resetar formulário chamada do componente pai via remounting (key) ou quando abre
   useEffect(() => {
     if (isOpen) {
-      if (task) {
-        setFormData({
-          title: task.title,
-          description: task.description || "",
-          status: task.status,
-          priority: task.priority,
-          startDate: task.startDate || "",
-          endDate: task.endDate || task.dueDate || "",
-          estimatedMinutes: task.estimatedMinutes || null,
-          categoryId: task.categoryId || null,
-        });
-      } else {
-        setFormData({
-          title: "",
-          description: "",
-          status: "TODO",
-          priority: "MEDIUM",
-          startDate: "",
-          endDate: "",
-          estimatedMinutes: null,
-          categoryId: null,
-        });
-      }
+      setFormData(task ? {
+        title: task.title,
+        description: task.description || "",
+        status: task.status,
+        priority: task.priority,
+        startDate: task.startDate || "",
+        endDate: task.endDate || task.dueDate || "",
+        estimatedMinutes: task.estimatedMinutes || null,
+        categoryId: task.categoryId || null,
+      } : {
+        title: "",
+        description: "",
+        status: "TODO",
+        priority: "MEDIUM",
+        startDate: "",
+        endDate: "",
+        estimatedMinutes: null,
+        categoryId: null,
+      });
       setError("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, task]);
 
   if (!isOpen) return null;
@@ -142,7 +140,7 @@ export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModa
                 <label className="text-sm font-medium">Status</label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
                   className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                 >
                   <option value="TODO">A Fazer</option>
@@ -154,7 +152,7 @@ export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModa
                 <label className="text-sm font-medium">Prioridade</label>
                 <select
                   value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
                   className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                 >
                   <option value="LOW">Baixa</option>

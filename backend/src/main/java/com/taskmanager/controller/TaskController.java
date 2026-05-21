@@ -3,6 +3,7 @@ package com.taskmanager.controller;
 import com.taskmanager.dto.TaskRequest;
 import com.taskmanager.dto.TaskResponse;
 import com.taskmanager.dto.TimeTrackingRequest;
+import com.taskmanager.dto.UpdateTaskStatusRequest;
 import com.taskmanager.entity.Task.TaskStatus;
 import com.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
@@ -63,19 +64,8 @@ public class TaskController {
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<TaskResponse> updateStatus(@PathVariable Long id,
-                                                     @RequestBody Map<String, String> body) {
-        String statusStr = body.get("status");
-        if (statusStr == null || statusStr.isBlank()) {
-            throw new IllegalArgumentException("Campo 'status' é obrigatório");
-        }
-        TaskStatus status;
-        try {
-            status = TaskStatus.valueOf(statusStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Status inválido: " + statusStr +
-                ". Valores aceitos: TODO, IN_PROGRESS, DONE");
-        }
-        return ResponseEntity.ok(taskService.updateTaskStatus(id, status));
+                                                     @Valid @RequestBody UpdateTaskStatusRequest request) {
+        return ResponseEntity.ok(taskService.updateTaskStatus(id, request.getStatus()));
     }
 
     @PatchMapping("/{id}/track-time")

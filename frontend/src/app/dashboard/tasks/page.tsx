@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
-import { tasksApi, Task, TaskStatus } from "@/lib/api/tasks";
+import { Task, TaskStatus } from "@/lib/api/tasks";
 import TaskCard from "@/components/tasks/TaskCard";
 import KanbanBoard from "@/components/tasks/KanbanBoard";
 import TaskModal from "@/components/tasks/TaskModal";
 import { LayoutGrid, List, KanbanSquare, Plus, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
+import { useTasks } from "@/hooks/useTasks";
 
 type ViewMode = "grid" | "list" | "kanban";
 type FilterStatus = "ALL" | TaskStatus;
@@ -18,10 +18,8 @@ export default function TasksPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  // SWR for automatic fetching, caching, and revalidation
-  const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);
-
-  const filteredTasks = tasks?.filter((t) => filter === "ALL" || t.status === filter) || [];
+  // Lógica delegada para o custom hook (Clean Code)
+  const { tasks, filteredTasks, error, isLoading, updateTaskStatus, revalidate } = useTasks(filter);
 
   const handleCreateNew = () => {
     setSelectedTask(null);
@@ -31,21 +29,6 @@ export default function TasksPage() {
   const handleEdit = (task: Task) => {
     setSelectedTask(task);
     setIsModalOpen(true);
-  };
-
-  const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
-    if (!tasks) return;
-    // Optimistic Update
-    mutate(
-      tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
-      false
-    );
-    try {
-      await tasksApi.updateStatus(taskId, newStatus);
-      mutate();
-    } catch {
-      mutate(); // revert on error
-    }
   };
 
   return (
@@ -157,7 +140,7 @@ export default function TasksPage() {
         ) : viewMode === "kanban" ? (
           <KanbanBoard 
             tasks={tasks || []} 
-            onTaskMove={handleStatusChange} 
+            onTaskMove={updateTaskStatus} 
             onTaskClick={handleEdit} 
             isLoading={isLoading} 
           />
@@ -172,7 +155,7 @@ export default function TasksPage() {
                   key={task.id}
                   task={task}
                   onClick={() => handleEdit(task)}
-                  onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
+                  onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
                 />
               ))}
             </div>
@@ -185,7 +168,7 @@ export default function TasksPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
-        onSuccess={() => mutate()}
+        onSuccess={() => revalidate()}
       />
     </div>
   );

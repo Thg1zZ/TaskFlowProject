@@ -40,7 +40,7 @@ export default function RegisterPage() {
         email: res.data.email,
         role: res.data.role,
       };
-      login(res.data.token, userData);
+      login(userData);
     } catch (err: any) {
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0) {
         setError(err.response.data.errors[0].defaultMessage);
@@ -153,7 +153,12 @@ export default function RegisterPage() {
                     idToken: credentialResponse.credential,
                     nonce: nonceRef.current,
                   });
-                  login(res.data.token, res.data.user);
+                  login({
+                    id: res.data.id,
+                    name: res.data.name,
+                    email: res.data.email,
+                    role: res.data.role
+                  });
                 } catch (err: any) {
                   setError("Erro na autenticação com o Google.");
                   setLoading(false);

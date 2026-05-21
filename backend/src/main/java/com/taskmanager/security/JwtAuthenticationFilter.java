@@ -3,6 +3,7 @@ package com.taskmanager.security;
 import com.taskmanager.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -52,6 +53,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
+        // [Zero Trust] Tenta pegar o token do cookie HttpOnly (mais seguro contra XSS)
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        // [Retrocompatibilidade] Tenta pegar do Header Authorization
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);

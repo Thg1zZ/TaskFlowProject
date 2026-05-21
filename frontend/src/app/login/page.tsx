@@ -39,7 +39,7 @@ export default function LoginPage() {
         email: res.data.email,
         role: res.data.role,
       };
-      login(res.data.token, userData);
+      login(userData);
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao efetuar login. Verifique as credenciais.");
     } finally {
@@ -139,7 +139,12 @@ export default function LoginPage() {
                     idToken: credentialResponse.credential,
                     nonce: nonceRef.current,
                   });
-                  login(res.data.token, res.data.user);
+                  login({
+                    id: res.data.id,
+                    name: res.data.name,
+                    email: res.data.email,
+                    role: res.data.role
+                  });
                 } catch (err: any) {
                   setError("Erro na autenticação com o Google.");
                   setLoading(false);

@@ -60,6 +60,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway Database Migration -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
         <!-- JWT - JJWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
