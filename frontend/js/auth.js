@@ -237,7 +237,7 @@ function initializeGoogleOAuth() {
 
     const nonce = getOrCreateNonce();
     google.accounts.id.initialize({
-        client_id: "1078491873215-placeholder.apps.googleusercontent.com",
+        client_id: "998805737602-bn3djirobk8duvelb097be3pt0g03iqu.apps.googleusercontent.com",
         callback: window.handleGoogleLogin,
         nonce: nonce, // Proteção contra CSRF e Replay attacks
         context: "signin",
