@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -32,6 +33,7 @@ export default function LoginPage() {
   };
 
   return (
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-8">
       {/* Background shapes for modern aesthetic */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
@@ -78,9 +80,9 @@ export default function LoginPage() {
                 <label className="text-sm font-medium" htmlFor="password">
                   Senha
                 </label>
-                <a href="#" className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors">
+                <Link href="/forgot-password" className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors">
                   Esqueceu a senha?
-                </a>
+                </Link>
               </div>
               <input
                 id="password"
@@ -109,7 +111,33 @@ export default function LoginPage() {
             Criar conta
           </Link>
         </div>
+
+        <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              if (credentialResponse.credential) {
+                setLoading(true);
+                setError("");
+                try {
+                  const res = await api.post("/auth/google", { idToken: credentialResponse.credential, nonce: "random-nonce" });
+                  login(res.data.token, res.data.user);
+                } catch (err: any) {
+                  setError("Erro na autenticação com o Google.");
+                  setLoading(false);
+                }
+              }
+            }}
+            onError={() => {
+              setError("Login com o Google falhou.");
+            }}
+            useOneTap
+            theme="outline"
+            text="signin_with"
+            shape="rectangular"
+          />
+        </div>
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 }

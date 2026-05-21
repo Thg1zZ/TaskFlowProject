@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -37,6 +38,7 @@ export default function RegisterPage() {
   };
 
   return (
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-8">
       {/* Background shapes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
@@ -123,7 +125,33 @@ export default function RegisterPage() {
             Fazer login
           </Link>
         </div>
+
+        <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              if (credentialResponse.credential) {
+                setLoading(true);
+                setError("");
+                try {
+                  const res = await api.post("/auth/google", { idToken: credentialResponse.credential, nonce: "random-nonce" });
+                  login(res.data.token, res.data.user);
+                } catch (err: any) {
+                  setError("Erro na autenticação com o Google.");
+                  setLoading(false);
+                }
+              }
+            }}
+            onError={() => {
+              setError("Login com o Google falhou.");
+            }}
+            useOneTap
+            theme="outline"
+            text="signup_with"
+            shape="rectangular"
+          />
+        </div>
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 }
