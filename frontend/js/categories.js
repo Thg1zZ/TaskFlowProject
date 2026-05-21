@@ -75,21 +75,15 @@ function renderSuggestedCategories(existingCategories = []) {
     if (!grid) return;
     grid.replaceChildren();
 
-    const section = grid.closest('.suggested-cats');
     const existingNames = new Set(existingCategories.map(cat => normalizeCategoryName(cat.name)));
-    const remainingSuggestions = SUGGESTED_CATEGORIES.filter(
-        cat => !existingNames.has(normalizeCategoryName(cat.name))
-    );
 
-    if (section) {
-        section.classList.toggle('hidden', remainingSuggestions.length === 0);
-    }
-
-    remainingSuggestions.forEach(cat => {
+    SUGGESTED_CATEGORIES.forEach(cat => {
+        const alreadyCreated = existingNames.has(normalizeCategoryName(cat.name));
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'suggested-cat-btn';
         btn.style.setProperty('--cat-color', cat.color);
+        btn.title = alreadyCreated ? 'Categoria já criada' : `Criar categoria ${cat.name}`;
 
         const icon = document.createElement('span');
         icon.textContent = cat.icon;
@@ -98,7 +92,13 @@ function renderSuggestedCategories(existingCategories = []) {
 
         btn.appendChild(icon);
         btn.appendChild(name);
-        btn.addEventListener('click', () => createSuggestedCategory(cat, btn));
+        btn.addEventListener('click', () => {
+            if (alreadyCreated) {
+                toast(`Categoria "${cat.name}" já existe`, 'info');
+                return;
+            }
+            createSuggestedCategory(cat, btn);
+        });
         grid.appendChild(btn);
     });
 }
