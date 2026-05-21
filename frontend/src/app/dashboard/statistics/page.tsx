@@ -229,7 +229,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Recharts Container */}
-        <div className="flex-1 w-full relative">
+        <div className="flex-1 w-full h-[400px] min-h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             {renderChart()}
           </ResponsiveContainer>

@@ -15,6 +15,7 @@ interface TaskStats {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<TaskStats | null>(null);
+  const [recentTasks, setRecentTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -35,8 +36,10 @@ export default function DashboardPage() {
         done: tasks.filter((t: any) => t.status === "DONE").length,
         overdue: tasks.filter((t: any) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date()).length
       };
-      
       setStats(calcStats);
+      // Pega as 5 mais recentes que não estão concluídas
+      const pending = tasks.filter((t: any) => t.status !== "DONE");
+      setRecentTasks(pending.slice(0, 5));
     } catch (err: any) {
       console.error(err);
       setError("Erro ao carregar os dados.");
@@ -126,13 +129,36 @@ export default function DashboardPage() {
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Tarefas Placeholder */}
-        <div className="lg:col-span-2 glass rounded-[var(--radius-lg)] p-6 min-h-[400px] border-dashed border-2 flex flex-col items-center justify-center text-center space-y-3 text-[var(--color-muted-foreground)]">
-          <div className="w-12 h-12 rounded-full bg-[var(--bg-3)] flex items-center justify-center mb-2">
-            <CheckSquare className="w-6 h-6" />
-          </div>
-          <p className="font-medium text-[var(--text)]">Área de Tarefas em Breve</p>
-          <p className="text-sm max-w-sm">A lista de tarefas será integrada aqui.</p>
+        {/* Tarefas Recentes */}
+        <div className="lg:col-span-2 glass rounded-[var(--radius-lg)] p-6 min-h-[400px] border border-[var(--color-border)] shadow-sm flex flex-col">
+          <h2 className="text-lg font-semibold mb-4 text-[var(--text)]">Tarefas Recentes</h2>
+          
+          {recentTasks.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3 text-[var(--color-muted-foreground)]">
+              <div className="w-12 h-12 rounded-full bg-[var(--bg-3)] flex items-center justify-center mb-2">
+                <CheckSquare className="w-6 h-6" />
+              </div>
+              <p className="font-medium text-[var(--text)]">Tudo em dia!</p>
+              <p className="text-sm max-w-sm">Você não possui tarefas pendentes no momento.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 overflow-y-auto pr-2">
+              {recentTasks.map((task) => (
+                <div key={task.id} className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${task.priority === 'HIGH' ? 'bg-[var(--red)]' : task.priority === 'MEDIUM' ? 'bg-[var(--yellow)]' : 'bg-[var(--blue)]'}`} />
+                    <div>
+                      <p className="font-medium text-[var(--text)] text-sm">{task.title}</p>
+                      <p className="text-xs text-[var(--color-muted-foreground)] line-clamp-1">{task.description || "Sem descrição"}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-[var(--bg-3)] text-[var(--text-2)]">
+                    {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Pomodoro Timer */}
