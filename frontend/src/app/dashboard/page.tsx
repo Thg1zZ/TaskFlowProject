@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { AlertCircle, Loader2, CheckSquare } from "lucide-react";
+import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
 
 interface TaskStats {
   total: number;
@@ -122,15 +123,23 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Main Content Area Placeholder */}
-      <div className="glass rounded-[var(--radius-lg)] p-6 min-h-[400px] border-dashed">
-        <div className="flex flex-col items-center justify-center h-full text-center space-y-3 text-[var(--color-muted-foreground)]">
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Tarefas Placeholder */}
+        <div className="lg:col-span-2 glass rounded-[var(--radius-lg)] p-6 min-h-[400px] border-dashed border-2 flex flex-col items-center justify-center text-center space-y-3 text-[var(--color-muted-foreground)]">
           <div className="w-12 h-12 rounded-full bg-[var(--bg-3)] flex items-center justify-center mb-2">
             <CheckSquare className="w-6 h-6" />
           </div>
           <p className="font-medium text-[var(--text)]">Área de Tarefas em Breve</p>
-          <p className="text-sm max-w-sm">A lista de tarefas (lista/grid) será integrada aqui conectando aos endpoints REST correspondentes.</p>
+          <p className="text-sm max-w-sm">A lista de tarefas será integrada aqui.</p>
         </div>
+
+        {/* Pomodoro Timer */}
+        <div className="lg:col-span-1">
+          <PomodoroTimer />
+        </div>
+        
       </div>
     </div>
   );

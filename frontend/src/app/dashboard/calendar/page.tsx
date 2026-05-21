@@ -25,6 +25,7 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);
 
@@ -41,6 +42,13 @@ export default function CalendarPage() {
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
+    setSelectedDate(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleDayClick = (day: Date) => {
+    setSelectedTask(null);
+    setSelectedDate(day);
     setIsModalOpen(true);
   };
 
@@ -108,7 +116,7 @@ export default function CalendarPage() {
                   <div 
                     key={day.toISOString()}
                     className={clsx(
-                      "min-h-[100px] border-r border-b border-[var(--color-border)]/50 p-2 transition-colors",
+                      "min-h-[100px] border-r border-b border-[var(--color-border)]/50 p-2 transition-colors group/day",
                       !isSameMonth(day, monthStart) && "bg-[var(--bg-2)]/30 opacity-60",
                       isToday(day) && "bg-[var(--accent)]/5"
                     )}
@@ -116,10 +124,17 @@ export default function CalendarPage() {
                     <div className="flex items-center justify-between mb-1">
                       <span className={clsx(
                         "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium",
-                        isToday(day) ? "bg-[var(--accent)] text-white shadow-md" : "text-[var(--text)]"
+                        isToday(day) ? "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-md" : "text-[var(--text)]"
                       )}>
                         {format(day, "d")}
                       </span>
+                      <button 
+                        onClick={() => handleDayClick(day)}
+                        className="opacity-0 group-hover/day:opacity-100 p-1 hover:bg-[var(--bg-3)] rounded text-[var(--text-2)] transition-opacity"
+                        title="Nova tarefa neste dia"
+                      >
+                        <span className="text-sm font-bold">+</span>
+                      </button>
                     </div>
 
                     <div className="space-y-1 overflow-y-auto max-h-[80%] pr-1 custom-scrollbar">
@@ -150,6 +165,7 @@ export default function CalendarPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
+        initialDate={selectedDate}
         onSuccess={() => mutate()}
       />
     </div>

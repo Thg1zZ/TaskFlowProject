@@ -16,7 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -100,6 +102,37 @@ public class UserService {
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             String token = bearerToken.substring(7);
             jwtTokenProvider.revokeToken(token);
+        }
+    }
+
+    @Transactional
+    public UserProfileResponse uploadAvatar(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("O arquivo de imagem não pode estar vazio.");
+        }
+
+        // Validação de Tamanho (Max 5MB) -> Já coberto parcialmente pelo Spring, mas reforçamos
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("A imagem não pode ultrapassar 5MB.");
+        }
+
+        // Validação de Mime Type
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/jpg"))) {
+            throw new IllegalArgumentException("Formato de imagem inválido. Apenas JPG/JPEG são permitidos.");
+        }
+
+        try {
+            User u = securityService.getCurrentUser();
+            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+            String dataUri = "data:" + contentType + ";base64," + base64Image;
+            
+            u.setProfileImage(dataUri);
+            userRepo.save(u);
+            
+            return getProfile();
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao processar o upload da imagem.", e);
         }
     }
 }

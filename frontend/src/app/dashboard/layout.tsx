@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { mutate } from "swr";
+import TaskModal from "@/components/tasks/TaskModal";
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -21,6 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
 
   const pathname = usePathname();
 
@@ -98,8 +101,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             href="/dashboard/profile"
             className="flex items-center gap-3 p-2 rounded-md hover:bg-[var(--bg-3)] transition-colors group"
           >
-            <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold text-sm">
-              {user.name.charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold text-sm overflow-hidden border border-[var(--color-border)]">
+              {user.profileImage ? (
+                <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user.name.charAt(0).toUpperCase()
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate group-hover:text-[var(--accent)] transition-colors">{user.name}</p>
@@ -141,7 +148,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full border border-[var(--bg)]"></span>
             </button>
-            <button className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium hover:opacity-90 transition-opacity">
+            <button 
+              onClick={() => setIsNewTaskModalOpen(true)}
+              className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium hover:opacity-90 transition-opacity"
+            >
               + Nova Tarefa
             </button>
           </div>
@@ -155,6 +165,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
+      <TaskModal 
+        isOpen={isNewTaskModalOpen} 
+        onClose={() => setIsNewTaskModalOpen(false)} 
+        onSuccess={() => mutate("/tasks")} 
+      />
     </div>
   );
 }

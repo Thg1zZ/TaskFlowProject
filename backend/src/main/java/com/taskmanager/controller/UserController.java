@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -28,8 +29,13 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(req));
     }
 
-    @PatchMapping("/me/password")
-    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest req) {
-        return ResponseEntity.ok(userService.changePassword(req));
+    @PostMapping("/me/password")
+    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        return ResponseEntity.ok(userService.changePassword(request));
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = "multipart/form-data")
+    public ResponseEntity<UserProfileResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.uploadAvatar(file));
     }
 }

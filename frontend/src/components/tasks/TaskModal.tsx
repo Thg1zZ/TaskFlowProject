@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Task, TaskInput, tasksApi, TaskStatus, TaskPriority } from "@/lib/api/tasks";
+import { categoriesApi, Category } from "@/lib/api/categories";
 import { X, Loader2 } from "lucide-react";
 import clsx from "clsx";
+import { format } from "date-fns";
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   task?: Task | null;
+  initialDate?: Date;
   onSuccess: () => void;
 }
 
-export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModalProps) {
+export default function TaskModal({ isOpen, onClose, task, initialDate, onSuccess }: TaskModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,6 +30,8 @@ export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModa
     estimatedMinutes: null,
     categoryId: null,
   });
+
+  const { data: categories } = useSWR<Category[]>("/categories", categoriesApi.getAll);
 
   // Função para resetar formulário chamada do componente pai via remounting (key) ou quando abre
   useEffect(() => {
@@ -44,15 +50,15 @@ export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModa
         description: "",
         status: "TODO",
         priority: "MEDIUM",
-        startDate: "",
-        endDate: "",
+        startDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : "",
+        endDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : "",
         estimatedMinutes: null,
         categoryId: null,
       });
       setError("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, task]);
+  }, [isOpen, task, initialDate]);
 
   if (!isOpen) return null;
 
@@ -183,16 +189,33 @@ export default function TaskModal({ isOpen, onClose, task, onSuccess }: TaskModa
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Estimativa (minutos)</label>
-              <input
-                type="number"
-                min="0"
-                value={formData.estimatedMinutes || ""}
-                onChange={(e) => setFormData({ ...formData, estimatedMinutes: e.target.value ? Number(e.target.value) : null })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
-                placeholder="Ex: 120"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Estimativa (minutos)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.estimatedMinutes || ""}
+                  onChange={(e) => setFormData({ ...formData, estimatedMinutes: e.target.value ? Number(e.target.value) : null })}
+                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
+                  placeholder="Ex: 120"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Categoria</label>
+                <select
+                  value={formData.categoryId || ""}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value ? Number(e.target.value) : null })}
+                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
+                >
+                  <option value="">Sem Categoria</option>
+                  {categories?.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </form>
         </div>

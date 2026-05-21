@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { usersApi } from "@/lib/api/users";
 import { useAuth } from "@/context/AuthContext";
-import { User, Mail, Lock, ShieldCheck, Loader2 } from "lucide-react";
+import { User, Mail, Lock, ShieldCheck, Loader2, Camera } from "lucide-react";
+import Image from "next/image";
 
 export default function ProfilePage() {
   const { user, login } = useAuth();
@@ -17,11 +18,17 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdMessage, setPwdMessage] = useState({ text: "", type: "" });
+  
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
+      if (user.profileImage) {
+        setAvatarPreview(user.profileImage);
+      }
     }
   }, [user]);
 
@@ -38,6 +45,33 @@ export default function ProfilePage() {
       setProfileMessage(err.response?.data?.message || "Erro ao atualizar perfil.");
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "image/jpeg" && file.type !== "image/jpg") {
+      setProfileMessage("Por favor, selecione apenas imagens JPG ou JPEG.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileMessage("A imagem não pode ultrapassar 5MB.");
+      return;
+    }
+
+    try {
+      setAvatarLoading(true);
+      setProfileMessage("");
+      const updatedProfile = await usersApi.uploadAvatar(file);
+      setAvatarPreview(updatedProfile.profileImage);
+      setProfileMessage("Foto de perfil atualizada com sucesso! A alteração será visível globalmente no próximo login ou recarregamento.");
+    } catch (err: any) {
+      setProfileMessage(err.response?.data?.message || "Erro ao fazer upload da imagem.");
+    } finally {
+      setAvatarLoading(false);
     }
   };
 
@@ -78,10 +112,27 @@ export default function ProfilePage() {
           </div>
 
           {profileMessage && (
-            <div className={`p-3 mb-4 text-sm rounded-[var(--radius)] ${profileMessage.includes("Erro") ? "bg-[var(--red)]/10 text-[var(--red)]" : "bg-[var(--green)]/10 text-[var(--green)]"}`}>
+            <div className={`p-3 mb-4 text-sm rounded-[var(--radius)] ${profileMessage.includes("Erro") || profileMessage.includes("Por favor") || profileMessage.includes("não pode") ? "bg-[var(--red)]/10 text-[var(--red)]" : "bg-[var(--green)]/10 text-[var(--green)]"}`}>
               {profileMessage}
             </div>
           )}
+
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-[var(--bg-3)] border-2 border-[var(--color-border)] flex items-center justify-center text-[var(--text-3)] text-3xl font-bold">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  name.charAt(0).toUpperCase()
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 p-2 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-full cursor-pointer hover:opacity-90 transition-opacity shadow-md">
+                {avatarLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                <input type="file" className="hidden" accept=".jpg,.jpeg" onChange={handleAvatarChange} disabled={avatarLoading} />
+              </label>
+            </div>
+            <p className="text-xs text-[var(--text-3)] mt-2">Permitido: JPG (Max 5MB)</p>
+          </div>
 
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="space-y-1.5">
