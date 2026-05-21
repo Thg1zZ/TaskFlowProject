@@ -1,54 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/lib/axios";
+import useSWR from "swr";
+import { tasksApi, Task } from "@/lib/api/tasks";
 import { AlertCircle, Loader2, CheckSquare } from "lucide-react";
 import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
 
-interface TaskStats {
-  total: number;
-  todo: number;
-  inProgress: number;
-  done: number;
-  overdue: number;
-}
-
 export default function DashboardPage() {
-  const [stats, setStats] = useState<TaskStats | null>(null);
-  const [recentTasks, setRecentTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data: tasks, error, isLoading } = useSWR<Task[]>("/tasks", tasksApi.getAll);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  const stats = tasks ? {
+    total: tasks.length,
+    todo: tasks.filter((t) => t.status === "TODO").length,
+    inProgress: tasks.filter((t) => t.status === "IN_PROGRESS").length,
+    done: tasks.filter((t) => t.status === "DONE").length,
+    overdue: tasks.filter((t) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date()).length
+  } : null;
 
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/tasks");
-      const tasks = res.data;
-      
-      const calcStats = {
-        total: tasks.length,
-        todo: tasks.filter((t: any) => t.status === "TODO").length,
-        inProgress: tasks.filter((t: any) => t.status === "IN_PROGRESS").length,
-        done: tasks.filter((t: any) => t.status === "DONE").length,
-        overdue: tasks.filter((t: any) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date()).length
-      };
-      setStats(calcStats);
-      // Pega as 5 mais recentes que não estão concluídas
-      const pending = tasks.filter((t: any) => t.status !== "DONE");
-      setRecentTasks(pending.slice(0, 5));
-    } catch (err: any) {
-      console.error(err);
-      setError("Erro ao carregar os dados.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const recentTasks = tasks ? tasks.filter((t) => t.status !== "DONE").slice(0, 5) : [];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
@@ -56,11 +26,11 @@ export default function DashboardPage() {
     );
   }
 
-  if (error) {
+  if (error || !stats) {
     return (
       <div className="p-4 bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/20 rounded-[var(--radius)] flex items-center gap-2">
         <AlertCircle className="w-5 h-5" />
-        {error}
+        Erro ao carregar os dados do painel.
       </div>
     );
   }
