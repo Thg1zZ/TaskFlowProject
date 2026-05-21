@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
@@ -8,12 +8,21 @@ import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
+// Gera um nonce aleatório e o armazena para validação
+function generateNonce(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Nonce gerado uma vez por montagem do componente
+  const nonceRef = useRef<string>(generateNonce());
   
   const { login } = useAuth();
   const router = useRouter();
@@ -128,12 +137,16 @@ export default function RegisterPage() {
 
         <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6">
           <GoogleLogin
+            nonce={nonceRef.current}
             onSuccess={async (credentialResponse) => {
               if (credentialResponse.credential) {
                 setLoading(true);
                 setError("");
                 try {
-                  const res = await api.post("/auth/google", { idToken: credentialResponse.credential, nonce: "random-nonce" });
+                  const res = await api.post("/auth/google", {
+                    idToken: credentialResponse.credential,
+                    nonce: nonceRef.current,
+                  });
                   login(res.data.token, res.data.user);
                 } catch (err: any) {
                   setError("Erro na autenticação com o Google.");
