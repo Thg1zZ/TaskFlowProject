@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -22,6 +22,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { theme, setTheme } = useTheme();
 
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
@@ -29,6 +31,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, loading, router]);
 
   if (loading || !user) return null;
+
+  const navLinks = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Minhas Tarefas", href: "/dashboard/tasks", icon: CheckSquare },
+    { name: "Categorias", href: "/dashboard/categories", icon: Folder },
+    { name: "Calendário", href: "/dashboard/calendar", icon: Calendar },
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-2)]">
@@ -46,38 +55,60 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="px-3 space-y-1">
-            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md bg-[var(--color-muted)] text-[var(--accent)]">
-              <LayoutDashboard className="w-4 h-4" />
-              Dashboard
-            </Link>
-            <Link href="/dashboard/tasks" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors">
-              <CheckSquare className="w-4 h-4" />
-              Minhas Tarefas
-            </Link>
-            <Link href="/dashboard/categories" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors">
-              <Folder className="w-4 h-4" />
-              Categorias
-            </Link>
-            <Link href="/dashboard/calendar" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors">
-              <Calendar className="w-4 h-4" />
-              Calendário
-            </Link>
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              const Icon = link.icon;
+              return (
+                <Link 
+                  key={link.href}
+                  href={link.href} 
+                  className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    isActive 
+                      ? "bg-[var(--color-muted)] text-[var(--accent)]" 
+                      : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {link.name}
+                </Link>
+              );
+            })}
+
+            {user.role === "ADMIN" && (
+              <div className="pt-4 mt-4 border-t border-[var(--color-border)]">
+                <p className="px-3 text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider mb-2">Administração</p>
+                <Link 
+                  href="/dashboard/admin" 
+                  className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    pathname === "/dashboard/admin" 
+                      ? "bg-[var(--red)]/10 text-[var(--red)]" 
+                      : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Painel Admin
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
 
-        <div className="p-4 border-t border-[var(--color-border)]">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="p-4 border-t border-[var(--color-border)] flex flex-col gap-2">
+          <Link 
+            href="/dashboard/profile"
+            className="flex items-center gap-3 p-2 rounded-md hover:bg-[var(--bg-3)] transition-colors group"
+          >
             <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold text-sm">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-sm font-medium truncate group-hover:text-[var(--accent)] transition-colors">{user.name}</p>
               <p className="text-xs text-[var(--color-muted-foreground)] truncate">{user.email}</p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-[var(--red)] hover:bg-[var(--red)]/10 transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-[var(--red)] hover:bg-[var(--red)]/10 transition-colors mt-2"
           >
             <LogOut className="w-4 h-4" />
             Sair da conta
