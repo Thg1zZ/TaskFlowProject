@@ -971,6 +971,81 @@ iframe[id^="g_id_"] {
   background: var(--bg-3);
 }
 
+/* --- Painel de Configurações do Pomodoro --- */
+.pomodoro-settings-panel {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeIn 0.2s ease;
+}
+
+.pomodoro-settings-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-2);
+  margin: 0 0 4px 0;
+}
+
+.pomodoro-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pomodoro-settings-row label {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 500;
+  flex: 1;
+}
+
+.pomodoro-dur-input {
+  width: 60px;
+  background: var(--bg-4);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Space Mono', monospace;
+  padding: 5px 8px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pomodoro-dur-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.pomodoro-settings-save-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.pomodoro-settings-save-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
 /* Responsividade Mobile do Widget */
 @media (max-width: 560px) {
   .pomodoro-widget {

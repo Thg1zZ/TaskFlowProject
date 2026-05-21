@@ -430,7 +430,25 @@ let timerMode = 'pomodoro'; // 'pomodoro', 'short', 'long'
 let timerTask = null; // { id, title }
 let isTimerRunning = false;
 
+// Durações personalizadas (em minutos), lidas do localStorage
+let customDurations = {
+    pomodoro: parseInt(localStorage.getItem('tf_dur_pomodoro'), 10) || 25,
+    short:    parseInt(localStorage.getItem('tf_dur_short'), 10)    || 5,
+    long:     parseInt(localStorage.getItem('tf_dur_long'), 10)     || 15,
+};
+
+function saveCustomDurations() {
+    localStorage.setItem('tf_dur_pomodoro', customDurations.pomodoro);
+    localStorage.setItem('tf_dur_short',    customDurations.short);
+    localStorage.setItem('tf_dur_long',     customDurations.long);
+}
+
 function loadTimerState() {
+    // Recarrega durações personalizadas
+    customDurations.pomodoro = parseInt(localStorage.getItem('tf_dur_pomodoro'), 10) || 25;
+    customDurations.short    = parseInt(localStorage.getItem('tf_dur_short'), 10)    || 5;
+    customDurations.long     = parseInt(localStorage.getItem('tf_dur_long'), 10)     || 15;
+
     const stateStr = localStorage.getItem('tf_pomodoro_state');
     if (!stateStr) return;
 
@@ -440,7 +458,7 @@ function loadTimerState() {
         timerTask = state.timerTask || null;
         isTimerRunning = state.isTimerRunning || false;
         
-        const savedSeconds = state.timerSeconds !== undefined ? state.timerSeconds : (25 * 60);
+        const savedSeconds = state.timerSeconds !== undefined ? state.timerSeconds : (getModeDefaultTime('pomodoro') * 60);
         const lastTick = state.lastTickTimestamp || Date.now();
         const gap = Math.floor((Date.now() - lastTick) / 1000);
 
@@ -470,9 +488,9 @@ function saveTimerState() {
 }
 
 function getModeDefaultTime(mode) {
-    if (mode === 'short') return 5;
-    if (mode === 'long') return 15;
-    return 25;
+    if (mode === 'short') return customDurations.short;
+    if (mode === 'long')  return customDurations.long;
+    return customDurations.pomodoro;
 }
 
 function formatClockTime(sec) {
@@ -551,14 +569,15 @@ function initializePomodoroWidget() {
             <div class="pomodoro-header">
                 <span class="pomodoro-title">⏱️ Pomodoro</span>
                 <div class="pomodoro-control-top">
+                    <button id="pomodoroBtnSettings" class="pomodoro-btn-close" title="Configurações">⚙️</button>
                     <button id="pomodoroBtnToggleCollapse" class="pomodoro-btn-close" title="Minimizar">➖</button>
                 </div>
             </div>
             <div id="pomodoroTaskBadge" class="pomodoro-task-badge">Nenhuma tarefa focada</div>
             <div class="pomodoro-modes">
-                <button class="pomodoro-mode-btn" data-mode="pomodoro">Foco (25m)</button>
-                <button class="pomodoro-mode-btn" data-mode="short">Pausa Curta</button>
-                <button class="pomodoro-mode-btn" data-mode="long">Pausa Longa</button>
+                <button class="pomodoro-mode-btn" data-mode="pomodoro">Foco (${customDurations.pomodoro}m)</button>
+                <button class="pomodoro-mode-btn" data-mode="short">Pausa Curta (${customDurations.short}m)</button>
+                <button class="pomodoro-mode-btn" data-mode="long">Pausa Longa (${customDurations.long}m)</button>
             </div>
             <div class="pomodoro-timer-display">
                 <div id="pomodoroClock" class="pomodoro-clock">25:00</div>
@@ -567,6 +586,22 @@ function initializePomodoroWidget() {
                 <button id="pomodoroBtnReset" class="pomodoro-btn-round" title="Reiniciar">🔄</button>
                 <button id="pomodoroBtnPlayPause" class="pomodoro-btn-round play-pause" title="Iniciar">▶️</button>
                 <button id="pomodoroBtnSkip" class="pomodoro-btn-round" title="Pular">⏭️</button>
+            </div>
+            <div id="pomodoroSettingsPanel" class="pomodoro-settings-panel hidden">
+                <p class="pomodoro-settings-title">⚙️ Personalizar Durações</p>
+                <div class="pomodoro-settings-row">
+                    <label>🎯 Foco (min)</label>
+                    <input type="number" id="inputDurPomodoro" class="pomodoro-dur-input" min="1" max="120" value="${customDurations.pomodoro}">
+                </div>
+                <div class="pomodoro-settings-row">
+                    <label>☕ Pausa Curta (min)</label>
+                    <input type="number" id="inputDurShort" class="pomodoro-dur-input" min="1" max="60" value="${customDurations.short}">
+                </div>
+                <div class="pomodoro-settings-row">
+                    <label>🛌 Pausa Longa (min)</label>
+                    <input type="number" id="inputDurLong" class="pomodoro-dur-input" min="1" max="120" value="${customDurations.long}">
+                </div>
+                <button id="btnSavePomodoroSettings" class="pomodoro-settings-save-btn">Salvar</button>
             </div>
         </div>
     `;
@@ -581,6 +616,8 @@ function initializePomodoroWidget() {
     const resetBtn = widget.querySelector('#pomodoroBtnReset');
     const skipBtn = widget.querySelector('#pomodoroBtnSkip');
     const collapseBtn = widget.querySelector('#pomodoroBtnToggleCollapse');
+    const settingsBtn = widget.querySelector('#pomodoroBtnSettings');
+    const settingsPanel = widget.querySelector('#pomodoroSettingsPanel');
     const modeBtns = widget.querySelectorAll('.pomodoro-mode-btn');
 
     // Restaura layout colapsado/expandido do sessionStorage
@@ -603,7 +640,43 @@ function initializePomodoroWidget() {
         e.stopPropagation();
         widget.classList.add('collapsed');
         expandedContent.classList.add('hidden');
+        settingsPanel.classList.add('hidden');
         sessionStorage.setItem('tf_pomodoro_expanded', 'false');
+    });
+
+    // Toggle painel de configurações
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsPanel.classList.toggle('hidden');
+    });
+
+    // Salvar configurações personalizadas
+    widget.querySelector('#btnSavePomodoroSettings').addEventListener('click', () => {
+        const pVal = parseInt(widget.querySelector('#inputDurPomodoro').value, 10);
+        const sVal = parseInt(widget.querySelector('#inputDurShort').value, 10);
+        const lVal = parseInt(widget.querySelector('#inputDurLong').value, 10);
+
+        if (!pVal || pVal < 1 || pVal > 120) { toast('Foco: insira entre 1 e 120 min.', 'error'); return; }
+        if (!sVal || sVal < 1 || sVal > 60)  { toast('Pausa Curta: insira entre 1 e 60 min.', 'error'); return; }
+        if (!lVal || lVal < 1 || lVal > 120) { toast('Pausa Longa: insira entre 1 e 120 min.', 'error'); return; }
+
+        customDurations.pomodoro = pVal;
+        customDurations.short    = sVal;
+        customDurations.long     = lVal;
+        saveCustomDurations();
+
+        // Atualiza os labels dos botões de modo
+        updateModeBtnLabels();
+
+        // Se o timer não está rodando, atualiza o timer atual para a nova duração
+        if (!isTimerRunning) {
+            timerSeconds = getModeDefaultTime(timerMode) * 60;
+            saveTimerState();
+        }
+
+        updateWidgetView();
+        settingsPanel.classList.add('hidden');
+        toast('✅ Durações salvas com sucesso!', 'success');
     });
 
     // Atualiza View do Estado Inicial
@@ -641,16 +714,21 @@ function initializePomodoroWidget() {
         skipTimer();
     });
 
+    function updateModeBtnLabels() {
+        modeBtns.forEach(btn => {
+            const m = btn.dataset.mode;
+            if (m === 'pomodoro') btn.textContent = `Foco (${customDurations.pomodoro}m)`;
+            if (m === 'short')    btn.textContent = `Pausa Curta (${customDurations.short}m)`;
+            if (m === 'long')     btn.textContent = `Pausa Longa (${customDurations.long}m)`;
+        });
+    }
+
     function updateWidgetView() {
         clockEl.textContent = formatClockTime(timerSeconds);
         
-        // Atualiza botões de modo
+        // Atualiza botões de modo (active state)
         modeBtns.forEach(btn => {
-            if (btn.dataset.mode === timerMode) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            btn.classList.toggle('active', btn.dataset.mode === timerMode);
         });
 
         // Nome da Tarefa
@@ -669,13 +747,7 @@ function initializePomodoroWidget() {
 
         // Badge flutuante colapsado
         const badge = widget.querySelector('#pomodoroCollapsedBadge');
-        if (badge) {
-            if (isTimerRunning) {
-                badge.classList.add('running');
-            } else {
-                badge.classList.remove('running');
-            }
-        }
+        if (badge) badge.classList.toggle('running', isTimerRunning);
     }
 
     function switchMode(newMode) {
