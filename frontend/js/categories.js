@@ -23,7 +23,6 @@ const SUGGESTED_CATEGORIES = [
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
     buildColorPresets();
-    renderSuggestedCategories();
 
     document.getElementById('catColorPicker').addEventListener('input', e => {
         document.getElementById('catColor').value = e.target.value;
@@ -63,12 +62,30 @@ function selectColor(color) {
     document.getElementById('catColorPicker').value = color;
 }
 
-function renderSuggestedCategories() {
+function normalizeCategoryName(name) {
+    return String(name || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function renderSuggestedCategories(existingCategories = []) {
     const grid = document.getElementById('suggestedCatGrid');
     if (!grid) return;
     grid.replaceChildren();
 
-    SUGGESTED_CATEGORIES.forEach(cat => {
+    const section = grid.closest('.suggested-cats');
+    const existingNames = new Set(existingCategories.map(cat => normalizeCategoryName(cat.name)));
+    const remainingSuggestions = SUGGESTED_CATEGORIES.filter(
+        cat => !existingNames.has(normalizeCategoryName(cat.name))
+    );
+
+    if (section) {
+        section.classList.toggle('hidden', remainingSuggestions.length === 0);
+    }
+
+    remainingSuggestions.forEach(cat => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'suggested-cat-btn';
@@ -106,6 +123,7 @@ async function loadCategories() {
         const cats = await api('GET', '/categories');
         catMap.clear();
         (cats || []).forEach(c => catMap.set(c.id, c));
+        renderSuggestedCategories(cats || []);
         renderCategories(cats || []);
     } catch {
         toast('Erro ao carregar categorias', 'error');
