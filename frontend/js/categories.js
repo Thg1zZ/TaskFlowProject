@@ -75,15 +75,12 @@ function renderSuggestedCategories(existingCategories = []) {
     if (!grid) return;
     grid.replaceChildren();
 
-    const existingNames = new Set(existingCategories.map(cat => normalizeCategoryName(cat.name)));
-
     SUGGESTED_CATEGORIES.forEach(cat => {
-        const alreadyCreated = existingNames.has(normalizeCategoryName(cat.name));
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'suggested-cat-btn';
         btn.style.setProperty('--cat-color', cat.color);
-        btn.title = alreadyCreated ? 'Categoria já criada' : `Criar categoria ${cat.name}`;
+        btn.title = `Categoria fixa: ${cat.name}`;
 
         const icon = document.createElement('span');
         icon.textContent = cat.icon;
@@ -93,27 +90,10 @@ function renderSuggestedCategories(existingCategories = []) {
         btn.appendChild(icon);
         btn.appendChild(name);
         btn.addEventListener('click', () => {
-            if (alreadyCreated) {
-                toast(`Categoria "${cat.name}" já existe`, 'info');
-                return;
-            }
-            createSuggestedCategory(cat, btn);
+            toast(`Categoria fixa "${cat.name}" disponível no dashboard`, 'info');
         });
         grid.appendChild(btn);
     });
-}
-
-async function createSuggestedCategory(cat, btn) {
-    btn.disabled = true;
-    try {
-        await api('POST', '/categories', cat);
-        toast(`Categoria "${cat.name}" criada!`, 'success');
-        await loadCategories();
-    } catch (err) {
-        toast(err.message || 'Categoria já existe ou não pôde ser criada', 'warning');
-    } finally {
-        btn.disabled = false;
-    }
 }
 
 // --- Carregamento -----------------------------------------------
@@ -133,8 +113,9 @@ async function loadCategories() {
 function renderCategories(cats) {
     const grid  = document.getElementById('catGrid');
     const empty = document.getElementById('catEmpty');
+    const customCats = (cats || []).filter(cat => !isDefaultCategoryName(cat.name));
 
-    if (!cats.length) {
+    if (!customCats.length) {
         grid.replaceChildren();
         empty.classList.remove('hidden');
         return;
@@ -142,7 +123,7 @@ function renderCategories(cats) {
     empty.classList.add('hidden');
     grid.replaceChildren();
 
-    cats.forEach(cat => {
+    customCats.forEach(cat => {
         const card = buildCatCard(cat);
         grid.appendChild(card);
     });

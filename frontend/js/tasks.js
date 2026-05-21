@@ -110,7 +110,7 @@ function updateOverdueStat() {
 
 async function loadCatsForFilter() {
     try {
-        allCategories = await fetchUserCategories({ ensureDefaults: true });
+        allCategories = await fetchUserCategories();
         const sel = document.getElementById('catFilter');
         if (!sel) return;
 
@@ -129,7 +129,7 @@ async function loadCatsForFilter() {
         });
 
         await loadCategoriesIntoSelect('taskCategory', {
-            ensureDefaults: true,
+            includeFixedCategories: true,
             includeManageOption: true,
         });
     } catch { /* categorias são opcionais */ }
@@ -489,7 +489,7 @@ async function openEditModal(id) {
     document.getElementById('taskEstimate').value = task.estimatedMinutes || '';
     setTaskPrazoMode(inferPrazoModeFromTask(task));
     await loadCategoriesIntoSelect('taskCategory', {
-        ensureDefaults: true,
+        includeFixedCategories: true,
         includeManageOption: true,
     });
     if (task.categoryId) document.getElementById('taskCategory').value = task.categoryId;
@@ -508,7 +508,7 @@ function resetTaskModal() {
     document.getElementById('taskTitleError').textContent = '';
     document.getElementById('modalAlert').classList.add('hidden');
     loadCategoriesIntoSelect('taskCategory', {
-        ensureDefaults: true,
+        includeFixedCategories: true,
         includeManageOption: true,
     });
     setTaskPrazoMode('none');
@@ -556,6 +556,7 @@ async function handleTaskSubmit(e) {
         return;
     }
     const { startDate, endDate } = dates;
+    const categoryId = await resolveCategorySelectValue(catVal);
 
     const body = {
         title,
@@ -565,7 +566,7 @@ async function handleTaskSubmit(e) {
         startDate,
         endDate,
         dueDate:          endDate,
-        categoryId:       catVal ? Number(catVal) : null,
+        categoryId,
         estimatedMinutes: Number.isFinite(estVal) && estVal > 0 ? estVal : null,
     };
 

@@ -228,18 +228,44 @@ const DEFAULT_CATEGORY_PRESETS = [
     { name: 'Financeiro', icon: '💰', color: '#f59e0b' },
 ];
 
-async function fetchUserCategories({ ensureDefaults = false } = {}) {
+function normalizeCategoryName(name) {
+    return String(name || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function isDefaultCategoryName(name) {
+    const normalized = normalizeCategoryName(name);
+    return DEFAULT_CATEGORY_PRESETS.some(cat => normalizeCategoryName(cat.name) === normalized);
+}
+
+async function fetchUserCategories() {
     let cats = await api('GET', '/categories');
-    cats = Array.isArray(cats) ? cats : [];
+    return Array.isArray(cats) ? cats : [];
+}
 
-    if (!ensureDefaults || cats.length > 0) return cats;
+async function resolveCategorySelectValue(value) {
+    if (!value) return null;
 
-    await Promise.allSettled(
-        DEFAULT_CATEGORY_PRESETS.map(cat => api('POST', '/categories', cat))
+    const rawValue = String(value);
+    if (!rawValue.startsWith('preset:')) {
+        return Number(rawValue);
+    }
+
+    const presetName = decodeURIComponent(rawValue.replace('preset:', ''));
+    const preset = DEFAULT_CATEGORY_PRESETS.find(cat =>
+        normalizeCategoryName(cat.name) === normalizeCategoryName(presetName)
     );
+    if (!preset) return null;
 
-    const refreshed = await api('GET', '/categories');
-    return Array.isArray(refreshed) ? refreshed : [];
+    const cats = await fetchUserCategories();
+    const existing = cats.find(cat => normalizeCategoryName(cat.name) === normalizeCategoryName(preset.name));
+    if (existing) return Number(existing.id);
+
+    const created = await api('POST', '/categories', preset);
+    return created && created.id ? Number(created.id) : null;
 }
 
 async function loadCategoriesIntoSelect(selectId, options = {}) {
@@ -247,14 +273,14 @@ async function loadCategoriesIntoSelect(selectId, options = {}) {
     if (!sel) return;
 
     const {
-        ensureDefaults = true,
         includeManageOption = false,
+        includeFixedCategories = false,
         manageOptionLabel = 'Personalizar categorias...',
         emptyLabel = 'Nenhuma',
     } = options;
 
     try {
-        const cats = await fetchUserCategories({ ensureDefaults });
+        const cats = await fetchUserCategories();
         sel.replaceChildren();
 
         const blank = document.createElement('option');
@@ -262,7 +288,18 @@ async function loadCategoriesIntoSelect(selectId, options = {}) {
         blank.textContent = emptyLabel;
         sel.appendChild(blank);
 
-        cats.forEach(c => {
+        if (includeFixedCategories) {
+            const catsByName = new Map(cats.map(c => [normalizeCategoryName(c.name), c]));
+            DEFAULT_CATEGORY_PRESETS.forEach(cat => {
+                const existing = catsByName.get(normalizeCategoryName(cat.name));
+                const opt = document.createElement('option');
+                opt.value = existing ? existing.id : `preset:${encodeURIComponent(cat.name)}`;
+                opt.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.name;
+                sel.appendChild(opt);
+            });
+        }
+
+        cats.filter(c => !isDefaultCategoryName(c.name)).forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name; // textContent — XSS-safe
