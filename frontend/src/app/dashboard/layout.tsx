@@ -48,12 +48,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 bg-[var(--bg)] border-r border-[var(--color-border)] flex flex-col transition-all">
         <div className="h-16 flex items-center px-6 border-b border-[var(--color-border)]">
-          <div className="flex items-center gap-2 font-bold text-lg">
+          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center">
               TF
             </div>
             TaskFlow
-          </div>
+          </Link>
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
@@ -144,7 +144,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            <button className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors relative">
+            <button 
+              onClick={() => alert("Você não possui novas notificações no momento.")}
+              className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors relative"
+              title="Notificações"
+            >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full border border-[var(--bg)]"></span>
             </button>
