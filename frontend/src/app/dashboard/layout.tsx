@@ -16,7 +16,8 @@ import {
   Sun, 
   Moon,
   Search,
-  Bell
+  Bell,
+  PieChart
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Minhas Tarefas", href: "/dashboard/tasks", icon: CheckSquare },
     { name: "Categorias", href: "/dashboard/categories", icon: Folder },
     { name: "Calendário", href: "/dashboard/calendar", icon: Calendar },
+    { name: "Estatísticas", href: "/dashboard/statistics", icon: PieChart },
   ];
 
   return (
