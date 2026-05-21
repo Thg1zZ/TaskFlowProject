@@ -211,7 +211,7 @@ export default function StatisticsPage() {
           </div>
         </div>
 
-        <div className="flex-1 w-full h-[400px]">
+        <div className="w-full h-[400px] relative" style={{ minHeight: "400px" }}>
           <ChartRenderer type={chartType} data={chartData} barHorizontal={barHorizontal} />
         </div>
         

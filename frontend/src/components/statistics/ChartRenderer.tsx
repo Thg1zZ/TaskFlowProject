@@ -144,7 +144,7 @@ export default function ChartRenderer({ type, data, barHorizontal = false }: Cha
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={400}>
       {renderChartContent()}
     </ResponsiveContainer>
   );
