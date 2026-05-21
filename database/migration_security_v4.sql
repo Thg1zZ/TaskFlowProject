@@ -17,7 +17,7 @@ ALTER TABLE password_reset_tokens
     DROP COLUMN IF EXISTS token;
 
 ALTER TABLE password_reset_tokens
-    ADD COLUMN token_hash CHAR(64) NOT NULL DEFAULT '' UNIQUE;
+    ADD COLUMN token_hash VARCHAR(64) NOT NULL DEFAULT '' UNIQUE;
 
 -- Remove o DEFAULT temporário usado apenas para o ADD COLUMN
 ALTER TABLE password_reset_tokens

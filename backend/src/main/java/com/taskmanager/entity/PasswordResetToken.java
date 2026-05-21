@@ -26,7 +26,7 @@ public class PasswordResetToken {
      * Assim, um atacante com acesso ao banco não pode reutilizar os valores para reset.
      * ASVS 2.5.4 / CWE-312 (Cleartext Storage of Sensitive Information)
      */
-    @Column(nullable = false, unique = true, name = "token_hash")
+    @Column(nullable = false, unique = true, name = "token_hash", length = 64)
     private String tokenHash;
 
     @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER)

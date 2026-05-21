@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+:root {
+  --bg: #ffffff;
+  --bg-2: #fafafa;
+  --bg-3: #f4f4f5;
+  --bg-4: #e4e4e7;
+  
+  --border: rgba(0, 0, 0, 0.08);
+  --border-glow: rgba(0, 0, 0, 0.05);
+  
+  --text: #09090b;
+  --text-2: #3f3f46;
+  --text-3: #71717a;
+
+  --accent: #000000;
+  --accent-foreground: #ffffff;
+  --accent-dim: rgba(0, 0, 0, 0.05);
+
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+
+  --radius: 0.5rem;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.dark {
+  --bg: #09090b;
+  --bg-2: #18181b;
+  --bg-3: #27272a;
+  --bg-4: #3f3f46;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(255, 255, 255, 0.05);
+
+  --text: #fafafa;
+  --text-2: #a1a1aa;
+  --text-3: #71717a;
+
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+  --accent-dim: rgba(255, 255, 255, 0.1);
+
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  
+  --color-muted: var(--bg-2);
+  --color-muted-foreground: var(--text-2);
+
+  --color-border: var(--border);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --radius-md: var(--radius);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(var(--bg-2), 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+/* Base interactive transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}

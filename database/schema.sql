@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     ),
     -- [VULN-09 FIX] Limite superior adicionado: max 43200 min = 30 dias
     estimated_minutes INTEGER        CHECK (estimated_minutes IS NULL OR (estimated_minutes > 0 AND estimated_minutes <= 43200)),
+    time_spent_minutes INTEGER       DEFAULT 0,
     created_at        TIMESTAMP      NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMP      NOT NULL DEFAULT NOW(),
     user_id           BIGINT         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -117,7 +118,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     -- [VULN-07 FIX] Armazena apenas o hash SHA-256 (64 chars hex) do token.
     -- O token plain-text é enviado por e-mail e nunca persistido.
     -- ASVS 2.5.4 / CWE-312 (Cleartext Storage of Sensitive Information)
-    token_hash  CHAR(64)     NOT NULL UNIQUE,
+    token_hash  VARCHAR(64)  NOT NULL UNIQUE,
     user_id     BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expiry_date TIMESTAMP    NOT NULL,
     created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
