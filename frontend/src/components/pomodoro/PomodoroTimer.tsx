@@ -87,7 +87,7 @@ export default function PomodoroTimer() {
       {/* Settings Button */}
       <button 
         onClick={() => setIsSettingsOpen(true)}
-        className="absolute top-4 right-4 p-2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] hover:bg-[var(--bg-3)] rounded-full transition-colors z-10"
+        className="absolute bottom-4 right-4 p-2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] hover:bg-[var(--bg-3)] rounded-full transition-colors z-10"
       >
         <Settings2 className="w-5 h-5" />
       </button>
