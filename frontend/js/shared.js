@@ -218,24 +218,63 @@ function setLoading(btnId, loading) {
 // --- Select de categorias (modal de tarefa) --------------------
 // SEGURANÇA: name e icon inseridos via textContent
 
-async function loadCategoriesIntoSelect(selectId) {
+const DEFAULT_CATEGORY_PRESETS = [
+    { name: 'Trabalho', icon: '💼', color: '#3b82f6' },
+    { name: 'Estudos', icon: '📚', color: '#8b5cf6' },
+    { name: 'Pessoal', icon: '✨', color: '#ec4899' },
+    { name: 'Urgente', icon: '⚡', color: '#ef4444' },
+    { name: 'Casa', icon: '🏠', color: '#22d3a5' },
+    { name: 'Saúde', icon: '💚', color: '#14b8a6' },
+    { name: 'Financeiro', icon: '💰', color: '#f59e0b' },
+];
+
+async function fetchUserCategories({ ensureDefaults = false } = {}) {
+    let cats = await api('GET', '/categories');
+    cats = Array.isArray(cats) ? cats : [];
+
+    if (!ensureDefaults || cats.length > 0) return cats;
+
+    await Promise.allSettled(
+        DEFAULT_CATEGORY_PRESETS.map(cat => api('POST', '/categories', cat))
+    );
+
+    const refreshed = await api('GET', '/categories');
+    return Array.isArray(refreshed) ? refreshed : [];
+}
+
+async function loadCategoriesIntoSelect(selectId, options = {}) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
+
+    const {
+        ensureDefaults = true,
+        includeManageOption = false,
+        manageOptionLabel = 'Personalizar categorias...',
+        emptyLabel = 'Nenhuma',
+    } = options;
+
     try {
-        const cats = await api('GET', '/categories');
+        const cats = await fetchUserCategories({ ensureDefaults });
         sel.replaceChildren();
 
         const blank = document.createElement('option');
         blank.value = '';
-        blank.textContent = 'Nenhuma';
+        blank.textContent = emptyLabel;
         sel.appendChild(blank);
 
-        (cats || []).forEach(c => {
+        cats.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.textContent = (c.icon ? c.icon + ' ' : '') + c.name; // textContent — XSS-safe
             sel.appendChild(opt);
         });
+
+        if (includeManageOption) {
+            const manage = document.createElement('option');
+            manage.value = '__manage_categories__';
+            manage.textContent = manageOptionLabel;
+            sel.appendChild(manage);
+        }
     } catch (_) { /* categorias são opcionais — falha silenciosa */ }
 }
 

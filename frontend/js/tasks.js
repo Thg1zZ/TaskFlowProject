@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([loadTasks(), loadStats(), loadCatsForFilter()]);
     document.getElementById('taskForm').addEventListener('submit', handleTaskSubmit);
     setupTaskPrazoModeListeners();
+    setupTaskCategorySelect();
     setupKeyboardShortcuts();
 
     const commentAvatar = document.getElementById('commentAvatar');
@@ -109,7 +110,7 @@ function updateOverdueStat() {
 
 async function loadCatsForFilter() {
     try {
-        allCategories = await api('GET', '/categories') || [];
+        allCategories = await fetchUserCategories({ ensureDefaults: true });
         const sel = document.getElementById('catFilter');
         if (!sel) return;
 
@@ -127,7 +128,10 @@ async function loadCatsForFilter() {
             sel.appendChild(opt);
         });
 
-        await loadCategoriesIntoSelect('taskCategory');
+        await loadCategoriesIntoSelect('taskCategory', {
+            ensureDefaults: true,
+            includeManageOption: true,
+        });
     } catch { /* categorias são opcionais */ }
 }
 
@@ -484,7 +488,10 @@ async function openEditModal(id) {
     document.getElementById('taskEndDate').value   = taskEndDate(task) || '';
     document.getElementById('taskEstimate').value = task.estimatedMinutes || '';
     setTaskPrazoMode(inferPrazoModeFromTask(task));
-    await loadCategoriesIntoSelect('taskCategory');
+    await loadCategoriesIntoSelect('taskCategory', {
+        ensureDefaults: true,
+        includeManageOption: true,
+    });
     if (task.categoryId) document.getElementById('taskCategory').value = task.categoryId;
     document.getElementById('modalTitle').textContent = 'Editar Tarefa';
     document.getElementById('saveTaskBtn').querySelector('.btn-text').textContent = 'Atualizar';
@@ -500,8 +507,22 @@ function resetTaskModal() {
     document.getElementById('taskPriority').value = 'MEDIUM';
     document.getElementById('taskTitleError').textContent = '';
     document.getElementById('modalAlert').classList.add('hidden');
-    loadCategoriesIntoSelect('taskCategory');
+    loadCategoriesIntoSelect('taskCategory', {
+        ensureDefaults: true,
+        includeManageOption: true,
+    });
     setTaskPrazoMode('none');
+}
+
+function setupTaskCategorySelect() {
+    const select = document.getElementById('taskCategory');
+    if (!select || select.dataset.manageBound === '1') return;
+
+    select.dataset.manageBound = '1';
+    select.addEventListener('change', () => {
+        if (select.value !== '__manage_categories__') return;
+        window.location.href = 'categories.html';
+    });
 }
 
 function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
@@ -521,6 +542,10 @@ async function handleTaskSubmit(e) {
     }
 
     const catVal = document.getElementById('taskCategory').value;
+    if (catVal === '__manage_categories__') {
+        window.location.href = 'categories.html';
+        return;
+    }
     const estVal = parseInt(document.getElementById('taskEstimate').value, 10);
     const dates = validateAndGetTaskDates();
     if (!dates.ok) {
