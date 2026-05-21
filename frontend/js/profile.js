@@ -81,10 +81,10 @@ function setupProfileImageInput() {
         if (!file) return;
 
         // Validar formato
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        const validTypes = ['image/jpeg', 'image/jpg'];
         if (!validTypes.includes(file.type)) {
             input.value = '';
-            err.textContent = 'Formato inválido. Use JPG, PNG ou WebP.';
+            err.textContent = 'Formato inválido. Use apenas JPG ou JPEG.';
             return;
         }
 

@@ -26,8 +26,8 @@ public class UserProfileRequest {
      */
     @Size(max = 50000, message = "Imagem muito grande. Use uma imagem menor (máx. ~37 KB).")
     @Pattern(
-        regexp = "^(data:image/(jpeg|png|gif|webp|svg\\+xml);base64,[A-Za-z0-9+/=]+)?$",
-        message = "Formato de imagem inválido. Use JPEG, PNG, GIF ou WebP em Base64."
+        regexp = "^(data:image/(jpeg|jpg);base64,[A-Za-z0-9+/=]+)?$",
+        message = "Formato de imagem inválido. Use apenas JPG ou JPEG em Base64."
     )
     private String profileImage;
 }
