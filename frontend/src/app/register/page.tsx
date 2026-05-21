@@ -34,7 +34,13 @@ export default function RegisterPage() {
 
     try {
       const res = await api.post("/auth/register", { name, email, password });
-      login(res.data.token, res.data.user);
+      const userData = {
+        id: res.data.userId,
+        name: res.data.name,
+        email: res.data.email,
+        role: res.data.role,
+      };
+      login(res.data.token, userData);
     } catch (err: any) {
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0) {
         setError(err.response.data.errors[0].defaultMessage);

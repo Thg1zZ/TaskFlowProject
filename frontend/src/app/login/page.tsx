@@ -33,7 +33,13 @@ export default function LoginPage() {
 
     try {
       const res = await api.post("/auth/login", { email, password });
-      login(res.data.token, res.data.user);
+      const userData = {
+        id: res.data.userId,
+        name: res.data.name,
+        email: res.data.email,
+        role: res.data.role,
+      };
+      login(res.data.token, userData);
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao efetuar login. Verifique as credenciais.");
     } finally {
