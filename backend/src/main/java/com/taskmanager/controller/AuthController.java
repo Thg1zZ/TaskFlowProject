@@ -37,7 +37,7 @@ public class AuthController {
                 .secure(false) // Use true in production if HTTPS
                 .path("/")
                 .maxAge(jwtExpiration / 1000)
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -50,7 +50,7 @@ public class AuthController {
                 .secure(false)
                 .path("/")
                 .maxAge(0) // Expira imediatamente
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, cookie.toString());

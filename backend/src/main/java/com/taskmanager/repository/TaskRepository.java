@@ -35,4 +35,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            "(LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Task> searchByUserIdAndKeyword(@Param("userId") Long userId, @Param("keyword") String keyword, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Task t WHERE t.id = :id AND t.user.id = :userId")
+    Optional<Task> findByIdAndUserIdForUpdate(@Param("id") Long id, @Param("userId") Long userId);
 }

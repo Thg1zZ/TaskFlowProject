@@ -126,7 +126,7 @@ public class TaskService {
     @Transactional(readOnly = false)
     public TaskResponse incrementTaskTime(Long id, Integer minutes) {
         User user = securityService.getCurrentUser();
-        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+        Task task = taskRepository.findByIdAndUserIdForUpdate(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
         if (minutes == null || minutes < 1) {

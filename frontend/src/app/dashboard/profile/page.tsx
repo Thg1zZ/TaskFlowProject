@@ -5,6 +5,7 @@ import { usersApi } from "@/lib/api/users";
 import { useAuth } from "@/context/AuthContext";
 import { User, Mail, Lock, ShieldCheck, Loader2, Camera } from "lucide-react";
 import Image from "next/image";
+import AvatarCropModal from "@/components/profile/AvatarCropModal";
 
 export default function ProfilePage() {
   const { user, login } = useAuth();
@@ -21,6 +22,10 @@ export default function ProfilePage() {
   
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Crop states
+  const [isCropOpen, setIsCropOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -48,23 +53,38 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "image/jpeg" && file.type !== "image/jpg") {
-      setProfileMessage("Por favor, selecione apenas imagens JPG ou JPEG.");
+    if (file.type !== "image/jpeg" && file.type !== "image/jpg" && file.type !== "image/png" && file.type !== "image/webp") {
+      setProfileMessage("Por favor, selecione uma imagem válida (JPG, PNG ou WebP).");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setProfileMessage("A imagem não pode ultrapassar 5MB.");
+    if (file.size > 10 * 1024 * 1024) { // Increase initial limit since we will compress it anyway
+      setProfileMessage("A imagem não pode ultrapassar 10MB.");
       return;
     }
+
+    // Convert file to temporary URL for the cropper
+    const imageUrl = URL.createObjectURL(file);
+    setSelectedImageSrc(imageUrl);
+    setIsCropOpen(true);
+    
+    // Reset input so the same file can be selected again if needed
+    e.target.value = "";
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setIsCropOpen(false);
+    setAvatarLoading(true);
+    setProfileMessage("");
+
+    // Create a File object from the Blob
+    const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
 
     try {
-      setAvatarLoading(true);
-      setProfileMessage("");
       const updatedProfile = await usersApi.uploadAvatar(file);
       setAvatarPreview(updatedProfile.profileImage);
       setProfileMessage("Foto de perfil atualizada com sucesso! A alteração será visível globalmente no próximo login ou recarregamento.");
@@ -72,6 +92,11 @@ export default function ProfilePage() {
       setProfileMessage(err.response?.data?.message || "Erro ao fazer upload da imagem.");
     } finally {
       setAvatarLoading(false);
+      // Clean up the temporary URL
+      if (selectedImageSrc) {
+        URL.revokeObjectURL(selectedImageSrc);
+        setSelectedImageSrc(null);
+      }
     }
   };
 
@@ -128,10 +153,10 @@ export default function ProfilePage() {
               </div>
               <label className="absolute bottom-0 right-0 p-2 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-full cursor-pointer hover:opacity-90 transition-opacity shadow-md">
                 {avatarLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                <input type="file" className="hidden" accept=".jpg,.jpeg" onChange={handleAvatarChange} disabled={avatarLoading} />
+                <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={avatarLoading} />
               </label>
             </div>
-            <p className="text-xs text-[var(--text-3)] mt-2">Permitido: JPG (Max 5MB)</p>
+            <p className="text-xs text-[var(--text-3)] mt-2">Permitido: JPG/PNG/WebP (Max 10MB)</p>
           </div>
 
           <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -227,6 +252,16 @@ export default function ProfilePage() {
         </div>
 
       </div>
+
+      <AvatarCropModal
+        isOpen={isCropOpen}
+        onClose={() => {
+          setIsCropOpen(false);
+          if (selectedImageSrc) URL.revokeObjectURL(selectedImageSrc);
+        }}
+        imageSrc={selectedImageSrc}
+        onComplete={handleCropComplete}
+      />
     </div>
   );
 }

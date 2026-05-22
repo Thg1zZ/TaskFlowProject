@@ -93,14 +93,32 @@ public class UserService {
     }
 
     /**
-     * Extrai e revoga o JWT da requisição atual.
+     * Extrai e revoga o JWT da requisição atual (seja do Header Authorization ou do Cookie).
      * Isso garante que um atacante com token capturado perca acesso
      * imediatamente após a vítima trocar a senha.
      */
     private void revokeCurrentToken() {
-        String bearerToken = httpServletRequest.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7);
+        String token = null;
+
+        // Tenta pegar do Cookie "token"
+        if (httpServletRequest.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : httpServletRequest.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // Tenta pegar do Header se não achou no cookie
+        if (token == null || token.isBlank()) {
+            String bearerToken = httpServletRequest.getHeader("Authorization");
+            if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+                token = bearerToken.substring(7);
+            }
+        }
+
+        if (token != null && !token.isBlank()) {
             jwtTokenProvider.revokeToken(token);
         }
     }
@@ -111,26 +129,57 @@ public class UserService {
             throw new IllegalArgumentException("O arquivo de imagem não pode estar vazio.");
         }
 
-        // Validação de Tamanho (Max 5MB) -> Já coberto parcialmente pelo Spring, mas reforçamos
-        if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("A imagem não pode ultrapassar 5MB.");
-        }
-
-        // Validação de Mime Type
+        // 1. Validação do Header MIME (não confiamos apenas nisso)
         String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/jpg"))) {
-            throw new IllegalArgumentException("Formato de imagem inválido. Apenas JPG/JPEG são permitidos.");
+        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png") && !contentType.equals("image/webp"))) {
+            throw new IllegalArgumentException("Formato não suportado. Use JPG, PNG ou WebP.");
         }
 
         try {
-            User u = securityService.getCurrentUser();
-            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
-            String dataUri = "data:" + contentType + ";base64," + base64Image;
+            // 2. Leitura Segura via ImageIO (validação de Magic Bytes e estrutura de imagem)
+            java.awt.image.BufferedImage originalImage = javax.imageio.ImageIO.read(file.getInputStream());
+            if (originalImage == null) {
+                throw new IllegalArgumentException("Arquivo inválido ou corrompido.");
+            }
+
+            // 3. Redimensionamento e Sanitização (Strip EXIF & Malicious Payloads)
+            // Limitamos a resolução máxima para avatares (ex: 512x512)
+            int targetWidth = Math.min(originalImage.getWidth(), 512);
+            int targetHeight = Math.min(originalImage.getHeight(), 512);
             
+            java.awt.image.BufferedImage sanitizedImage = new java.awt.image.BufferedImage(
+                    targetWidth, targetHeight, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            
+            java.awt.Graphics2D g2d = sanitizedImage.createGraphics();
+            // Fundo branco caso a imagem original tenha transparência (evita artefatos no JPEG)
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, targetWidth, targetHeight);
+            
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+            g2d.dispose();
+
+            // 4. Compressão controlada para JPEG
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(sanitizedImage, "jpg", baos);
+            byte[] imageBytes = baos.toByteArray();
+            
+            // Verificação de segurança (não salvar se for gigantesco, embora o redimensionamento já cuide disso)
+            if (imageBytes.length > 500 * 1024) { // Max 500KB processado
+                 throw new IllegalArgumentException("Imagem final resultante muito pesada.");
+            }
+
+            // 5. Salvar como Base64 Data URI (Seguro contra Path Traversal)
+            String base64Image = java.util.Base64.getEncoder().encodeToString(imageBytes);
+            String dataUri = "data:image/jpeg;base64," + base64Image;
+            
+            User u = securityService.getCurrentUser();
             u.setProfileImage(dataUri);
             userRepo.save(u);
             
             return getProfile();
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Erro ao processar o upload da imagem.", e);
         }
