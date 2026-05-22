@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 import { X, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react";
 
 export interface Point {
@@ -117,7 +118,7 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
         </div>
 
         {/* Cropper Container */}
-        <div className="relative w-full h-80 sm:h-96 bg-[var(--bg-3)]">
+        <div className="relative w-full h-[400px] bg-[var(--bg-3)]">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -128,10 +129,6 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
             onCropChange={setCrop}
             onCropComplete={onCropComplete}
             onZoomChange={setZoom}
-            classes={{
-              containerClassName: "absolute inset-0",
-              mediaClassName: "opacity-100", // ensure full opacity
-            }}
           />
         </div>
 
