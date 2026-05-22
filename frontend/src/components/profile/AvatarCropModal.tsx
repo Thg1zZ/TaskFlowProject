@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
-import Cropper from "react-easy-crop";
-import "react-easy-crop/react-easy-crop.css";
+import dynamic from "next/dynamic";
 import { X, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react";
+
+const Cropper = dynamic(() => import("react-easy-crop"), { ssr: false });
 
 export interface Point {
   x: number;

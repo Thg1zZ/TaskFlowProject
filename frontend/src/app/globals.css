@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-easy-crop/react-easy-crop.css";
 
 @plugin "tailwindcss-animate";
 
@@ -82,4 +83,10 @@ body {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
   transition-duration: 150ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Desabilita transições globais para o Cropper, evitando lag e travamento de renderização */
+.reactEasyCrop_Container,
+.reactEasyCrop_Container * {
+  transition: none !important;
 }
