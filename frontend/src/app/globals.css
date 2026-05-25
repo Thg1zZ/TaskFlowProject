@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "react-easy-crop/react-easy-crop.css";
+@import "../../node_modules/react-easy-crop/react-easy-crop.css";
+
 
 @plugin "tailwindcss-animate";
 

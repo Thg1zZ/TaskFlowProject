@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
@@ -21,11 +21,16 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   // Nonce gerado uma vez por montagem do componente
   const nonceRef = useRef<string>(generateNonce());
   
   const { login } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,38 +146,40 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6">
-          <GoogleLogin
-            nonce={nonceRef.current}
-            onSuccess={async (credentialResponse) => {
-              if (credentialResponse.credential) {
-                setLoading(true);
-                setError("");
-                try {
-                  const res = await api.post("/auth/google", {
-                    idToken: credentialResponse.credential,
-                    nonce: nonceRef.current,
-                  });
-                  login({
-                    id: res.data.id,
-                    name: res.data.name,
-                    email: res.data.email,
-                    role: res.data.role
-                  });
-                } catch (err: any) {
-                  setError("Erro na autenticação com o Google.");
-                  setLoading(false);
+        <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6 min-h-[40px]">
+          {mounted && (
+            <GoogleLogin
+              nonce={nonceRef.current}
+              onSuccess={async (credentialResponse) => {
+                if (credentialResponse.credential) {
+                  setLoading(true);
+                  setError("");
+                  try {
+                    const res = await api.post("/auth/google", {
+                      idToken: credentialResponse.credential,
+                      nonce: nonceRef.current,
+                    });
+                    login({
+                      id: res.data.id,
+                      name: res.data.name,
+                      email: res.data.email,
+                      role: res.data.role
+                    });
+                  } catch (err: any) {
+                    setError("Erro na autenticação com o Google.");
+                    setLoading(false);
+                  }
                 }
-              }
-            }}
-            onError={() => {
-              setError("Login com o Google falhou.");
-            }}
-            useOneTap
-            theme="outline"
-            text="signup_with"
-            shape="rectangular"
-          />
+              }}
+              onError={() => {
+                setError("Login com o Google falhou.");
+              }}
+              useOneTap
+              theme="outline"
+              text="signup_with"
+              shape="rectangular"
+            />
+          )}
         </div>
       </div>
     </div>
