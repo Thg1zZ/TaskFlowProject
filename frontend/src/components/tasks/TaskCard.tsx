@@ -45,8 +45,10 @@ export default function TaskCard({ task, onClick, onStatusChange, selected, onSe
         className={clsx(
           "absolute top-0 left-0 bottom-0 w-1.5 transition-all duration-300",
           isOverdue 
-            ? "bg-[var(--red)] animate-[pulse_1.5s_infinite_ease-in-out] shadow-[2px_0_12px_rgba(239,68,68,0.8)] z-10" 
-            : priorityColors[task.priority]
+            ? "bg-[var(--red)] animate-[pulse_2.5s_infinite_ease-in-out] shadow-[2px_0_12px_rgba(239,68,68,0.8)] z-10" 
+            : task.status === "DONE"
+              ? "bg-[var(--green)] shadow-[2px_0_8px_rgba(16,185,129,0.4)]"
+              : priorityColors[task.priority]
         )} 
       />
 
