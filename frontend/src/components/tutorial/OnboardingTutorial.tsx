@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
+import { Joyride, Step, STATUS } from "react-joyride";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi } from "@/lib/api/users";
 import { useTheme } from "next-themes";
@@ -22,7 +22,6 @@ export default function OnboardingTutorial() {
       target: "body",
       content: "Bem-vindo ao TaskFlow! Vamos fazer um tour rápido para você conhecer a plataforma.",
       placement: "center",
-      disableBeacon: true,
     },
     {
       target: "aside nav",
@@ -41,7 +40,7 @@ export default function OnboardingTutorial() {
     },
   ];
 
-  const handleJoyrideCallback = async (data: CallBackProps) => {
+  const handleJoyrideCallback = async (data: any) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
@@ -66,17 +65,7 @@ export default function OnboardingTutorial() {
       run={run}
       continuous
       scrollToFirstStep
-      showProgress
-      showSkipButton
-      callback={handleJoyrideCallback}
-      styles={{
-        options: {
-          zIndex: 10000,
-          primaryColor: 'var(--accent)',
-          backgroundColor: theme === 'dark' ? 'var(--bg-2)' : '#ffffff',
-          textColor: theme === 'dark' ? '#f8fafc' : '#0f172a',
-        },
-      }}
+      onEvent={handleJoyrideCallback}
       locale={{
         back: 'Voltar',
         close: 'Fechar',
