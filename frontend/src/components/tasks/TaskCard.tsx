@@ -28,7 +28,15 @@ const statusConfig = {
 
 export default function TaskCard({ task, onClick, onStatusChange, selected, onSelect }: TaskCardProps) {
   const endDateStr = task.endDate || task.dueDate;
-  const isOverdue = endDateStr && task.status !== "DONE" && isPast(new Date(endDateStr)) && !isToday(new Date(endDateStr));
+  
+  // Parse seguro em fuso horário local para evitar retrocesso de data
+  const parseLocalCalendarDate = (dateStr: string): Date => {
+    const parts = dateStr.split("T")[0].split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  };
+  
+  const parsedDate = endDateStr ? parseLocalCalendarDate(endDateStr) : null;
+  const isOverdue = parsedDate && task.status !== "DONE" && isPast(parsedDate) && !isToday(parsedDate);
   
   const StatusIcon = statusConfig[task.status].icon;
 
@@ -120,14 +128,13 @@ export default function TaskCard({ task, onClick, onStatusChange, selected, onSe
             </span>
           )}
 
-          {/* Date */}
-          {endDateStr && (
+          {endDateStr && parsedDate && (
             <span className={clsx(
               "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full",
               isOverdue ? "bg-[var(--red)]/10 text-[var(--red)]" : "bg-[var(--bg-3)] text-[var(--text-2)]"
             )}>
               {isOverdue ? <AlertTriangle className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
-              {format(new Date(endDateStr), "dd MMM", { locale: ptBR })}
+              {format(parsedDate, "dd MMM", { locale: ptBR })}
             </span>
           )}
 

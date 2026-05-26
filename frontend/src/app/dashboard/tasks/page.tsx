@@ -45,7 +45,13 @@ export default function TasksPage() {
     const taskDateStr = task.endDate || task.dueDate || task.startDate;
     if (taskDateStr) {
       try {
-        const dateObj = new Date(taskDateStr);
+        // Parse seguro em fuso horário local para evitar retrocesso de data em fusos horários negativos (UTC-3 / Brasil)
+        const parts = taskDateStr.split("T")[0].split("-");
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const dateObj = new Date(year, month, day);
+
         // Gera representações em múltiplos formatos de data usados no Brasil
         const formattedSlashLong = format(dateObj, "dd/MM/yyyy");
         const formattedSlashShort = format(dateObj, "dd/MM");
