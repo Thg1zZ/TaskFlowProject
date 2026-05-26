@@ -29,7 +29,7 @@ export default function OnboardingTutorial() {
       placement: "right",
     },
     {
-      target: "header button:last-child",
+      target: "header button.bg-\\[var\\(--accent\\)\\]",
       content: "Use este botão para criar rapidamente uma nova tarefa de qualquer lugar da plataforma.",
       placement: "bottom-end",
     },
