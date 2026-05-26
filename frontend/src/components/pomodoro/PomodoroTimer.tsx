@@ -1,65 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Play, Pause, RotateCcw, Settings2, X } from "lucide-react";
 import clsx from "clsx";
-
-type Mode = "focus" | "shortBreak" | "longBreak";
-
-const DEFAULT_SETTINGS = {
-  focus: 25,
-  shortBreak: 5,
-  longBreak: 15,
-  soundEnabled: true,
-};
+import { usePomodoro, PomodoroMode } from "@/context/PomodoroContext";
 
 export default function PomodoroTimer() {
-  const [mode, setMode] = useState<Mode>("focus");
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_SETTINGS.focus * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const {
+    mode,
+    timeLeft,
+    isActive,
+    settings,
+    setMode,
+    toggleTimer,
+    resetTimer,
+    updateSettings,
+  } = usePomodoro();
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Initialize timer
-  useEffect(() => {
-    setTimeLeft(settings[mode] * 60);
-    setIsActive(false);
-  }, [mode, settings]);
-
-  // Timer interval
-  useEffect(() => {
-    if (isActive && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-      // Dispara um áudio se estiver habilitado
-      if (settings.soundEnabled && typeof window !== "undefined") {
-        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-        audio.volume = 0.5;
-        audio.play().catch(() => {}); // catch para navegadores que bloqueiam autoplay
-      }
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isActive, timeLeft]);
-
-  const toggleTimer = () => setIsActive(!isActive);
-
-  const resetTimer = () => {
-    setIsActive(false);
-    setTimeLeft(settings[mode] * 60);
-  };
 
   const saveSettings = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    setSettings({
+    updateSettings({
       focus: Number(formData.get("focus")),
       shortBreak: Number(formData.get("shortBreak")),
       longBreak: Number(formData.get("longBreak")),
@@ -140,10 +103,10 @@ export default function PomodoroTimer() {
 
       {/* Mode Selector */}
       <div className="flex bg-[var(--bg-3)] p-1 rounded-full mb-8 z-10">
-        {(["focus", "shortBreak", "longBreak"] as Mode[]).map((m) => (
+        {(["focus", "shortBreak", "longBreak"] as PomodoroMode[]).map((m) => (
           <button
             key={m}
-            onClick={() => { setMode(m); setIsActive(false); }}
+            onClick={() => setMode(m)}
             className={clsx(
               "px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
               mode === m 
