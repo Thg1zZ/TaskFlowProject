@@ -140,7 +140,11 @@ export default function DashboardPage() {
                     {task.description || "Sem descrição"}
                   </p>
                   
-                  <span className="text-xs font-medium px-2 py-1 rounded bg-[var(--bg-3)] text-[var(--text-2)] flex-shrink-0 whitespace-nowrap">
+                  <span className={`text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24 ${
+                    task.status === 'TODO' 
+                      ? 'bg-[var(--bg-3)] text-[var(--text-2)]' 
+                      : 'bg-[var(--yellow)]/10 text-[var(--yellow)] border border-[var(--yellow)]/20'
+                  }`}>
                     {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
                   </span>
                 </div>
