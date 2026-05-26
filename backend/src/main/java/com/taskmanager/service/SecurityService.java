@@ -2,8 +2,10 @@ package com.taskmanager.service;
 
 import com.taskmanager.entity.User;
 import com.taskmanager.exception.ResourceNotFoundException;
+import com.taskmanager.exception.UnauthorizedException;
 import com.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 

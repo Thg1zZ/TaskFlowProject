@@ -5,6 +5,7 @@ import com.taskmanager.entity.Task;
 import com.taskmanager.entity.TaskParticipant;
 import com.taskmanager.repository.TaskParticipantRepository;
 import com.taskmanager.repository.TaskRepository;
+import com.taskmanager.service.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

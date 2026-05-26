@@ -4,7 +4,7 @@ import com.taskmanager.entity.Notification;
 import com.taskmanager.entity.User;
 import com.taskmanager.repository.NotificationRepository;
 import com.taskmanager.repository.UserRepository;
-import com.taskmanager.security.SecurityService;
+import com.taskmanager.service.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
