@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN has_completed_onboarding BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN receive_notifications BOOLEAN NOT NULL DEFAULT TRUE;
