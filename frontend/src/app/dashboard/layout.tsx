@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { mutate } from "swr";
 import TaskModal from "@/components/tasks/TaskModal";
+import OnboardingTutorial from "@/components/tutorial/OnboardingTutorial";
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -224,6 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         onClose={() => setIsNewTaskModalOpen(false)} 
         onSuccess={() => mutate("/tasks")} 
       />
+      <OnboardingTutorial />
     </div>
   );
 }

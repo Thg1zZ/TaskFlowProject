@@ -13,6 +13,7 @@ export default function ProfilePage() {
   
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [receiveNotifications, setReceiveNotifications] = useState(user?.receiveNotifications ?? true);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function ProfilePage() {
       if (user.profileImage) {
         setAvatarPreview(user.profileImage);
       }
+      setReceiveNotifications(user.receiveNotifications ?? true);
     }
   }, [user]);
 
@@ -46,9 +48,8 @@ export default function ProfilePage() {
     setProfileLoading(true);
     setProfileMessage("");
     try {
-      const res = await usersApi.updateProfile({ name, email });
-      // Update local storage context token with new data (the backend usually returns the updated user inside a token payload if needed, or we just rely on next login. The backend UserController returns the Map.)
-      // Assuming it returns updated fields, we update AuthContext if necessary, or just show success.
+      const res = await usersApi.updateProfile({ name, email, receiveNotifications });
+      login({ ...user!, name, email, receiveNotifications, profileImage: avatarPreview || user?.profileImage });
       setProfileMessage("Perfil atualizado com sucesso!");
     } catch (err: any) {
       setProfileMessage(err.response?.data?.message || "Erro ao atualizar perfil.");
@@ -281,6 +282,22 @@ export default function ProfilePage() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 border border-[var(--color-border)] rounded-[var(--radius)] bg-[var(--bg)]">
+              <div>
+                <label className="text-sm font-medium">Notificações da Plataforma</label>
+                <p className="text-xs text-[var(--text-3)] mt-0.5">Receba alertas importantes e avisos.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={receiveNotifications}
+                  onChange={(e) => setReceiveNotifications(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-[var(--bg-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent)]"></div>
+              </label>
             </div>
 
             <button

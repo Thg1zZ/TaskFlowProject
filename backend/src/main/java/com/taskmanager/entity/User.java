@@ -80,6 +80,14 @@ public class User {
     @Column(name = "terms_version", length = 10)
     private String termsVersion;
 
+    @Column(name = "has_completed_onboarding", nullable = false)
+    @Builder.Default
+    private Boolean hasCompletedOnboarding = false;
+
+    @Column(name = "receive_notifications", nullable = false)
+    @Builder.Default
+    private Boolean receiveNotifications = true;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

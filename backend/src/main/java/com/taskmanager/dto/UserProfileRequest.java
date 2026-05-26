@@ -30,4 +30,6 @@ public class UserProfileRequest {
         message = "Formato de imagem inválido. Use apenas JPG ou JPEG em Base64."
     )
     private String profileImage;
+
+    private Boolean receiveNotifications;
 }

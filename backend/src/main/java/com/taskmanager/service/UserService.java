@@ -68,6 +68,8 @@ public class UserService {
         profile.setProfileImage(u.getProfileImage());
         profile.setCreatedAt(u.getCreatedAt());
         profile.setRole(u.getRole().name());
+        profile.setHasCompletedOnboarding(u.getHasCompletedOnboarding());
+        profile.setReceiveNotifications(u.getReceiveNotifications());
         profile.setStats(stats);
 
         return profile;
@@ -79,6 +81,9 @@ public class UserService {
         u.setName(req.getName().trim());
         u.setBio(req.getBio() != null ? req.getBio().trim() : null);
         u.setJobTitle(req.getJobTitle() != null ? req.getJobTitle().trim() : null);
+        if (req.getReceiveNotifications() != null) {
+            u.setReceiveNotifications(req.getReceiveNotifications());
+        }
         u.setProfileImage(req.getProfileImage() != null && !req.getProfileImage().isBlank()
                 ? req.getProfileImage()
                 : null);
@@ -218,5 +223,13 @@ public class UserService {
         SecurityContextHolder.clearContext();
 
         logger.info("Conta do usuário {} excluída com sucesso.", u.getEmail());
+    }
+
+    @Transactional
+    public UserProfileResponse completeOnboarding() {
+        User u = securityService.getCurrentUser();
+        u.setHasCompletedOnboarding(true);
+        userRepo.save(u);
+        return getProfile();
     }
 }

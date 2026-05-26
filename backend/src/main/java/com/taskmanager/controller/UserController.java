@@ -44,4 +44,9 @@ public class UserController {
         userService.deleteAccount(request);
         return ResponseEntity.ok(Map.of("message", "Sua conta foi excluída com sucesso."));
     }
+
+    @PostMapping("/me/onboarding")
+    public ResponseEntity<UserProfileResponse> completeOnboarding() {
+        return ResponseEntity.ok(userService.completeOnboarding());
+    }
 }

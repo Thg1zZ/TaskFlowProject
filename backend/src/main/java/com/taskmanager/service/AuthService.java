@@ -105,7 +105,7 @@ public class AuthService {
         User saved = userRepository.save(user);
         defaultCategorySeeder.seedForNewUser(saved);
         String token = tokenProvider.generateToken(saved.getEmail());
-        return new AuthResponse(token, saved.getId(), saved.getName(), saved.getEmail(), saved.getRole());
+        return new AuthResponse(token, saved.getId(), saved.getName(), saved.getEmail(), saved.getRole(), saved.getHasCompletedOnboarding(), saved.getReceiveNotifications());
     }
 
     @Transactional
@@ -125,7 +125,7 @@ public class AuthService {
         // [LGPD] Registra acesso com hash do IP — IP real nunca é persistido
         recordAccessLog(user);
 
-        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getHasCompletedOnboarding(), user.getReceiveNotifications());
     }
 
     public void logout(String token) {
@@ -231,7 +231,7 @@ public class AuthService {
 
             // Gerar token nativo do TaskFlow para a sessão
             String appToken = tokenProvider.generateToken(user.getEmail());
-            return new AuthResponse(appToken, user.getId(), user.getName(), user.getEmail(), user.getRole());
+            return new AuthResponse(appToken, user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getHasCompletedOnboarding(), user.getReceiveNotifications());
 
         } catch (IllegalArgumentException e) {
             throw e;

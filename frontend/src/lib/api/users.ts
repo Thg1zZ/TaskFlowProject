@@ -6,9 +6,14 @@ export const usersApi = {
     return res.data;
   },
 
-  updateProfile: async (data: { name: string; email: string; bio?: string; jobTitle?: string }) => {
+  updateProfile: async (data: { name: string; email: string; bio?: string; jobTitle?: string; receiveNotifications?: boolean }) => {
     const response = await api.put("/users/me", data);
     return response.data;
+  },
+
+  completeOnboarding: async () => {
+    const res = await api.post("/users/me/onboarding");
+    return res.data;
   },
 
   uploadAvatar: async (file: File) => {

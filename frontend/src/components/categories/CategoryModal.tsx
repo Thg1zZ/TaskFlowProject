@@ -11,44 +11,14 @@ interface CategoryModalProps {
   onSuccess: () => void;
 }
 
-// ─── Biblioteca de Emojis Inline (zero dependências) ─────────────────────────
-const EMOJI_CATEGORIES = [
-  {
-    label: "💼 Trabalho",
-    emojis: ["💼", "📊", "📈", "📉", "🗂️", "📋", "✅", "🎯", "⚙️", "🔧", "💡", "🖥️", "📝", "📌", "🔑", "🏆", "💰", "📦", "🤝", "📣"],
-  },
-  {
-    label: "📚 Estudos",
-    emojis: ["📚", "🎓", "✏️", "📖", "🔬", "🧪", "🧠", "📐", "📏", "🖊️", "🏫", "💡", "🔭", "🧮", "📜", "🗒️", "🎒", "📓", "🖋️", "🔍"],
-  },
-  {
-    label: "🏠 Casa & Vida",
-    emojis: ["🏠", "🛋️", "🍳", "🧹", "🪴", "🛒", "🔑", "🪟", "🛏️", "🧺", "🪣", "🔌", "💡", "🚿", "🧴", "🪥", "🍽️", "🏡", "🛠️", "🗑️"],
-  },
-  {
-    label: "❤️ Saúde",
-    emojis: ["❤️", "🏃", "🧘", "💪", "🥗", "💊", "🩺", "🏋️", "🧬", "🩹", "🍎", "🥦", "💧", "😴", "🧘‍♀️", "🏊", "🚴", "🧠", "⚕️", "🌡️"],
-  },
-  {
-    label: "💰 Finanças",
-    emojis: ["💰", "💳", "📊", "🏦", "💵", "💹", "🪙", "📈", "🏧", "💸", "🧾", "📑", "💎", "🤑", "📉", "💴", "💶", "💷", "🔐", "🏪"],
-  },
-  {
-    label: "🎉 Lazer",
-    emojis: ["🎉", "🎮", "🎬", "🎵", "🏖️", "🎨", "📷", "🎭", "🎲", "⚽", "🎸", "🏕️", "🎪", "🎠", "🏄", "🎻", "🎯", "🪁", "🎳", "🎱"],
-  },
-  {
-    label: "🌟 Símbolos",
-    emojis: ["⭐", "🌟", "✨", "🔥", "💥", "🎯", "🚀", "⚡", "🌈", "💫", "🔮", "🎁", "🏅", "🥇", "🎖️", "🔔", "⚠️", "🚩", "🏷️", "📍"],
-  },
-];
-// ─────────────────────────────────────────────────────────────────────────────
+import EmojiPicker, { Theme } from 'emoji-picker-react';
+import { useTheme } from "next-themes";
 
 export default function CategoryModal({ isOpen, onClose, category, onSuccess }: CategoryModalProps) {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const [activeCategoryIdx, setActiveCategoryIdx] = useState(0);
 
   const [formData, setFormData] = useState<CategoryInput>({
     name: "",
@@ -69,7 +39,6 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
       }
       setError("");
       setIsEmojiPickerOpen(false);
-      setActiveCategoryIdx(0);
     }
   }, [isOpen, category]);
 
@@ -185,49 +154,15 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
 
             {/* ── Emoji Picker Expandido ── */}
             {isEmojiPickerOpen && (
-              <div className="border border-[var(--color-border)] rounded-[var(--radius-lg)] overflow-hidden bg-[var(--bg-2)] shadow-inner">
-                {/* Abas de categorias */}
-                <div className="flex overflow-x-auto border-b border-[var(--color-border)] bg-[var(--bg)]">
-                  {EMOJI_CATEGORIES.map((cat, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setActiveCategoryIdx(idx)}
-                      title={cat.label}
-                      className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap ${
-                        activeCategoryIdx === idx
-                          ? "border-b-2 border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/5"
-                          : "text-[var(--text-2)] hover:bg-[var(--bg-3)]"
-                      }`}
-                    >
-                      {cat.label.split(" ")[0]}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Grid de emojis */}
-                <div className="p-3 grid grid-cols-10 gap-1 max-h-40 overflow-y-auto">
-                  {EMOJI_CATEGORIES[activeCategoryIdx].emojis.map((emoji, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleEmojiSelect(emoji)}
-                      title={emoji}
-                      className={`w-8 h-8 flex items-center justify-center text-xl rounded-md transition-all hover:bg-[var(--accent)]/10 hover:scale-110 ${
-                        formData.icon === emoji ? "bg-[var(--accent)]/20 ring-1 ring-[var(--accent)]" : ""
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Pré-visualização do selecionado */}
-                <div className="px-3 py-2 border-t border-[var(--color-border)] flex items-center gap-2 text-xs text-[var(--text-2)]">
-                  <span>Selecionado:</span>
-                  <span className="text-xl">{formData.icon}</span>
-                  <span className="font-mono text-[var(--text-3)]">{formData.icon}</span>
-                </div>
+              <div className="flex justify-center mt-2">
+                <EmojiPicker
+                  onEmojiClick={(emojiData) => handleEmojiSelect(emojiData.emoji)}
+                  theme={theme === 'dark' ? Theme.DARK : Theme.LIGHT}
+                  searchPlaceHolder="Buscar emoji..."
+                  skinTonesDisabled
+                  lazyLoadEmojis
+                  width="100%"
+                />
               </div>
             )}
           </form>

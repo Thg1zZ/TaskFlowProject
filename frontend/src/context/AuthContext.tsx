@@ -10,6 +10,8 @@ interface User {
   email: string;
   role: "ROLE_ADMIN" | "ROLE_USER" | "ROLE_SUPER_ADMIN";
   profileImage?: string;
+  hasCompletedOnboarding?: boolean;
+  receiveNotifications?: boolean;
 }
 
 interface AuthContextType {

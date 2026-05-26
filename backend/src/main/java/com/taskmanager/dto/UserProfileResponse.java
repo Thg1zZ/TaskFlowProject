@@ -11,6 +11,8 @@ public class UserProfileResponse {
     private String profileImage;
     private LocalDateTime createdAt;
     private String role;
+    private Boolean hasCompletedOnboarding;
+    private Boolean receiveNotifications;
     private UserStatsDTO stats;
 
     public static class UserStatsDTO {
@@ -60,6 +62,10 @@ public class UserProfileResponse {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+    public Boolean getHasCompletedOnboarding() { return hasCompletedOnboarding; }
+    public void setHasCompletedOnboarding(Boolean hasCompletedOnboarding) { this.hasCompletedOnboarding = hasCompletedOnboarding; }
+    public Boolean getReceiveNotifications() { return receiveNotifications; }
+    public void setReceiveNotifications(Boolean receiveNotifications) { this.receiveNotifications = receiveNotifications; }
     public UserStatsDTO getStats() { return stats; }
     public void setStats(UserStatsDTO stats) { this.stats = stats; }
 }

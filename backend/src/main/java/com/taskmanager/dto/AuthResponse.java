@@ -19,12 +19,17 @@ public class AuthResponse {
     private String email;
 
     private UserRole role;
+    
+    private Boolean hasCompletedOnboarding;
+    private Boolean receiveNotifications;
 
-    public AuthResponse(String token, Long userId, String name, String email, com.taskmanager.entity.UserRole role) {
+    public AuthResponse(String token, Long userId, String name, String email, com.taskmanager.entity.UserRole role, Boolean hasCompletedOnboarding, Boolean receiveNotifications) {
         this.token = token;
         this.userId = userId;
         this.name = name;
         this.email = email;
         this.role = role;
+        this.hasCompletedOnboarding = hasCompletedOnboarding;
+        this.receiveNotifications = receiveNotifications;
     }
 }
