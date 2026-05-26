@@ -9,6 +9,17 @@ export function useTasks(filter: "ALL" | TaskStatus = "ALL") {
   const updateTaskStatus = async (taskId: number, newStatus: TaskStatus) => {
     if (!tasks) return;
     
+    // Toca som de conclusão se o status mudar para DONE (Concluída)
+    if (newStatus === "DONE") {
+      try {
+        const audio = new Audio("https://actions.google.com/sounds/v1/ui/ucreate_pop.ogg");
+        audio.volume = 0.4;
+        audio.play().catch((e) => console.log("Autoplay bloqueado pelo navegador:", e));
+      } catch (e) {
+        console.error("Falha ao tocar áudio:", e);
+      }
+    }
+
     // Optimistic Update
     mutate(
       tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),

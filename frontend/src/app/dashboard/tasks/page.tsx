@@ -8,6 +8,8 @@ import TaskModal from "@/components/tasks/TaskModal";
 import { LayoutGrid, List, KanbanSquare, Plus, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { useTasks } from "@/hooks/useTasks";
+import { useSearchParams } from "next/navigation";
+
 
 type ViewMode = "grid" | "list" | "kanban";
 type FilterStatus = "ALL" | TaskStatus;
@@ -20,6 +22,25 @@ export default function TasksPage() {
 
   // Lógica delegada para o custom hook (Clean Code)
   const { tasks, filteredTasks, error, isLoading, updateTaskStatus, revalidate } = useTasks(filter);
+
+  const searchParams = useSearchParams();
+  const search = searchParams.get("search") || "";
+
+  // 1. Filtra as tarefas de acordo com a busca de forma global
+  const searchFilteredTasks = (tasks || []).filter((task) => {
+    if (!search) return true;
+    const query = search.toLowerCase().trim();
+    return (
+      task.title.toLowerCase().includes(query) ||
+      (task.description && task.description.toLowerCase().includes(query)) ||
+      (task.categoryName && task.categoryName.toLowerCase().includes(query))
+    );
+  });
+
+  // 2. Filtra de acordo com a aba de status selecionada (só para Grid e List)
+  const displayedTasks = searchFilteredTasks.filter(
+    (t) => filter === "ALL" || t.status === filter
+  );
 
   const handleCreateNew = () => {
     setSelectedTask(null);
@@ -126,20 +147,28 @@ export default function TasksPage() {
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
           </div>
-        ) : filteredTasks.length === 0 && viewMode !== "kanban" ? (
-          <div className="flex-1 flex flex-col items-center justify-center glass rounded-[var(--radius-lg)] border-dashed border-2">
+        ) : displayedTasks.length === 0 && viewMode !== "kanban" ? (
+          <div className="flex-1 flex flex-col items-center justify-center glass rounded-[var(--radius-lg)] border-dashed border-2 p-6 text-center">
             <div className="w-16 h-16 bg-[var(--bg-3)] rounded-full flex items-center justify-center mb-4 text-[var(--text-3)]">
               <LayoutGrid className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-medium">Nenhuma tarefa encontrada</h3>
-            <p className="text-[var(--text-2)] text-sm mb-4">Crie sua primeira tarefa para começar.</p>
-            <button onClick={handleCreateNew} className="text-[var(--accent)] hover:underline text-sm font-medium">
-              + Criar Tarefa
-            </button>
+            <h3 className="text-lg font-medium">
+              {search ? "Nenhuma tarefa correspondente" : "Nenhuma tarefa encontrada"}
+            </h3>
+            <p className="text-[var(--text-2)] text-sm mb-4 max-w-sm">
+              {search 
+                ? `Não encontramos tarefas que correspondam a "${search}". Tente buscar por outro termo.` 
+                : "Crie sua primeira tarefa para começar."}
+            </p>
+            {!search && (
+              <button onClick={handleCreateNew} className="text-[var(--accent)] hover:underline text-sm font-medium">
+                + Criar Tarefa
+              </button>
+            )}
           </div>
         ) : viewMode === "kanban" ? (
           <KanbanBoard 
-            tasks={tasks || []} 
+            tasks={searchFilteredTasks} 
             onTaskMove={updateTaskStatus} 
             onTaskClick={handleEdit} 
             isLoading={isLoading} 
@@ -150,7 +179,7 @@ export default function TasksPage() {
               "gap-4 pb-4",
               viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max" : "flex flex-col space-y-3"
             )}>
-              {filteredTasks.map((task) => (
+              {displayedTasks.map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}

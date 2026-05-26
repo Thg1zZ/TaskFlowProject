@@ -99,11 +99,24 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
         dueDate: formData.endDate || null, // dueDate is aliased to endDate
       };
 
+      const isCompleted = payload.status === "DONE" && (!task || task.status !== "DONE");
+
       if (task) {
         await tasksApi.update(task.id, payload);
       } else {
         await tasksApi.create(payload);
       }
+
+      if (isCompleted) {
+        try {
+          const audio = new Audio("https://actions.google.com/sounds/v1/ui/ucreate_pop.ogg");
+          audio.volume = 0.4;
+          audio.play().catch((e) => console.log("Autoplay bloqueado pelo navegador:", e));
+        } catch (e) {
+          console.error("Falha ao tocar áudio:", e);
+        }
+      }
+
       onSuccess();
       onClose();
     } catch (err: any) {

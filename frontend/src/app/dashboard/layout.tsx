@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -161,14 +161,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="w-full max-w-md relative hidden sm:block">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
-              <input 
-                type="text" 
-                placeholder="Buscar tarefas..." 
-                className="w-full pl-9 pr-4 py-2 bg-[var(--bg-3)] border-transparent rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
-              />
-            </div>
+            <Suspense fallback={
+              <div className="w-full max-w-md relative hidden sm:block h-9 bg-[var(--bg-3)] rounded-[var(--radius)] animate-pulse" />
+            }>
+              <SearchBar />
+            </Suspense>
           </div>
           <div className="flex items-center gap-4">
             <button 
@@ -230,3 +227,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+
+function SearchBar() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [searchVal, setSearchVal] = useState(searchParams.get("search") || "");
+
+  useEffect(() => {
+    setSearchVal(searchParams.get("search") || "");
+  }, [searchParams]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchVal(val);
+    if (val.trim()) {
+      router.push(`/dashboard/tasks?search=${encodeURIComponent(val)}`);
+    } else {
+      router.push("/dashboard/tasks");
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md relative hidden sm:block">
+      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+      <input 
+        type="text" 
+        placeholder="Buscar tarefas..." 
+        value={searchVal}
+        onChange={(e) => handleSearchChange(e.target.value)}
+        className="w-full pl-9 pr-4 py-2 bg-[var(--bg-3)] border-transparent rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
+      />
+    </div>
+  );
+}
+

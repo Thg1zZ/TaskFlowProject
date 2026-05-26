@@ -34,10 +34,13 @@ public class AuthController {
     @Value("${app.jwt.expiration:86400000}")
     private long jwtExpiration;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
     private HttpHeaders createCookieHeader(String token) {
         ResponseCookie cookie = ResponseCookie.from("token", token)
                 .httpOnly(true)
-                .secure(false) // Use true in production if HTTPS
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(jwtExpiration / 1000)
                 .sameSite("Strict")
@@ -50,7 +53,7 @@ public class AuthController {
     private HttpHeaders createLogoutCookie() {
         ResponseCookie cookie = ResponseCookie.from("token", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0) // Expira imediatamente
                 .sameSite("Strict")
