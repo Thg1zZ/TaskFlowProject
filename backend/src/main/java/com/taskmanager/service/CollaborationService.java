@@ -26,6 +26,7 @@ public class CollaborationService {
     private final UserRepository userRepository;
     private final SecurityService securityService;
     private final RealTimeSseService sseService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ShareLink generateShareLink(Long taskId, ParticipantRole role, Integer expireInHours) {
@@ -81,9 +82,17 @@ public class CollaborationService {
                     
                     TaskParticipant saved = participantRepository.save(newParticipant);
                     
-                    // Notifica em tempo real
+                    // Notifica em tempo real (SSE)
                     sseService.broadcastToTask(link.getTask().getId(), "USER_JOINED_TASK", 
                         currentUser.getName() + " ingressou na tarefa.");
+                        
+                    // Cria notificação no banco de dados para o Dono da tarefa
+                    notificationService.createNotification(
+                        link.getTask().getUser().getId(),
+                        "COLLABORATION",
+                        currentUser.getName() + " aceitou o convite e ingressou na tarefa: " + link.getTask().getTitle(),
+                        "/dashboard/tasks"
+                    );
                         
                     return saved;
                 });
@@ -104,8 +113,16 @@ public class CollaborationService {
 
         participantRepository.deleteByTaskIdAndUserId(taskId, participantUserId);
 
-        // Notifica em tempo real
-        sseService.broadcastToTask(taskId, "USER_LEFT_TASK", "Um usuário saiu da tarefa.");
+        // Notifica em tempo real a sala (SSE)
+        sseService.broadcastToTask(taskId, "USER_LEFT_TASK", "Um usuário foi removido da tarefa.");
+
+        // Notifica o usuário que foi removido (Banco de Dados + SSE Direto)
+        notificationService.createNotification(
+            participantUserId,
+            "COLLABORATION",
+            "Você foi removido da tarefa: " + task.getTitle(),
+            "/dashboard"
+        );
     }
 
     @Transactional(readOnly = true)
