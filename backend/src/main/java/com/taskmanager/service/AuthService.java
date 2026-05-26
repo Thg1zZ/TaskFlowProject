@@ -8,6 +8,7 @@ import com.taskmanager.entity.User;
 import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.PasswordResetTokenRepository;
 import com.taskmanager.repository.UserRepository;
+import com.taskmanager.repository.BlacklistedEmailRepository;
 import com.taskmanager.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +35,7 @@ public class AuthService {
     @Autowired private DefaultCategorySeeder defaultCategorySeeder;
     @Autowired private PasswordResetTokenRepository tokenRepository;
     @Autowired private EmailService emailService;
+    @Autowired private BlacklistedEmailRepository blacklistedEmailRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -53,15 +55,25 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // Mensagem genérica — não revelar se email já existe (user enumeration)
-        if (userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
+        String emailNormalized = request.getEmail().toLowerCase().trim();
+
+        // 1. Verificar se o e-mail está na blacklist de contas excluídas
+        if (blacklistedEmailRepository.existsByEmailIgnoreCase(emailNormalized)) {
+            throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
+        }
+
+        // 2. Evitar revelação se o e-mail já existe (User Enumeration)
+        if (userRepository.existsByEmailIgnoreCase(emailNormalized)) {
             throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
         }
 
         User user = User.builder()
                 .name(request.getName().trim())
-                .email(request.getEmail().toLowerCase().trim())
+                .email(emailNormalized)
                 .password(passwordEncoder.encode(request.getPassword()))
+                .acceptedTerms(true)
+                .acceptedAt(LocalDateTime.now())
+                .termsVersion("1.0")
                 .build();
 
         User saved = userRepository.save(user);

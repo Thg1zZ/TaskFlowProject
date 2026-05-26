@@ -38,4 +38,10 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(userService.uploadAvatar(file));
     }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Map<String, String>> deleteAccount(@Valid @RequestBody com.taskmanager.dto.DeleteAccountRequest request) {
+        userService.deleteAccount(request);
+        return ResponseEntity.ok(Map.of("message", "Sua conta foi excluída com sucesso."));
+    }
 }

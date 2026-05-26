@@ -18,6 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.taskmanager.dto.DeleteAccountRequest;
+import com.taskmanager.entity.BlacklistedEmail;
+import com.taskmanager.repository.BlacklistedEmailRepository;
+import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,12 +31,15 @@ import java.util.Map;
 @Service
 public class UserService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
     @Autowired private UserRepository userRepo;
     @Autowired private TaskRepository taskRepo;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtTokenProvider jwtTokenProvider;
     @Autowired private HttpServletRequest httpServletRequest;
     @Autowired private SecurityService securityService;
+    @Autowired private BlacklistedEmailRepository blacklistedEmailRepository;
 
     public UserProfileResponse getProfile() {
         User u = securityService.getCurrentUser();
@@ -183,5 +192,37 @@ public class UserService {
         } catch (Exception e) {
             throw new RuntimeException("Erro ao processar o upload da imagem.", e);
         }
+    }
+
+    @Transactional
+    public void deleteAccount(DeleteAccountRequest req) {
+        User u = securityService.getCurrentUser();
+
+        // 1. Validar a senha fornecida
+        if (!passwordEncoder.matches(req.getPassword(), u.getPassword())) {
+            logger.warn("Tentativa de exclusão de conta falhou para o usuário {}: senha incorreta", u.getEmail());
+            throw new IllegalArgumentException("Senha atual incorreta");
+        }
+
+        logger.info("Iniciando exclusão da conta do usuário ID: {}, Email: {}", u.getId(), u.getEmail());
+
+        // 2. Adicionar o e-mail na blacklist de contas excluídas
+        BlacklistedEmail blacklisted = BlacklistedEmail.builder()
+                .email(u.getEmail().toLowerCase().trim())
+                .deletedAt(LocalDateTime.now())
+                .reason("Conta excluída pelo próprio usuário")
+                .build();
+        blacklistedEmailRepository.save(blacklisted);
+
+        // 3. Revogar o token atual
+        revokeCurrentToken();
+
+        // 4. Excluir o usuário e cascade limpar dados relacionados
+        userRepo.delete(u);
+
+        // 5. Invalidar o contexto de segurança local
+        SecurityContextHolder.clearContext();
+
+        logger.info("Conta do usuário {} excluída com sucesso.", u.getEmail());
     }
 }

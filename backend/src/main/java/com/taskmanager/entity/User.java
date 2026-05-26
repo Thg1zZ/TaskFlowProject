@@ -61,6 +61,25 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Task> tasks;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Category> categories;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<TaskComment> comments;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<PasswordResetToken> passwordResetTokens;
+
+    @Column(name = "accepted_terms", nullable = false)
+    @Builder.Default
+    private Boolean acceptedTerms = false;
+
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    @Column(name = "terms_version", length = 10)
+    private String termsVersion;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

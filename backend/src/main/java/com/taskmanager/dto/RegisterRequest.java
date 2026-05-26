@@ -28,4 +28,8 @@ public class RegisterRequest {
         message = "Senha deve conter maiúsculas, minúsculas, números e um caractere especial"
     )
     private String password;
+
+    @jakarta.validation.constraints.NotNull(message = "Você deve aceitar os termos de uso e a política de privacidade")
+    @jakarta.validation.constraints.AssertTrue(message = "Você deve aceitar os termos de uso e a política de privacidade")
+    private Boolean acceptedTerms;
 }
