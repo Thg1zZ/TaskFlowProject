@@ -4,15 +4,26 @@ import { useState } from "react";
 import useSWR from "swr";
 import { tasksApi, Task } from "@/lib/api/tasks";
 import TaskModal from "@/components/tasks/TaskModal";
-import { AlertCircle, Loader2, CheckSquare } from "lucide-react";
+import { AlertCircle, Loader2, CheckSquare, Settings } from "lucide-react";
 import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import ColorSettingsModal, { defaultColors } from "@/components/dashboard/ColorSettingsModal";
 
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isColorModalOpen, setIsColorModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  let colors = defaultColors;
+  if (user?.themePreferences) {
+    try {
+      colors = { ...defaultColors, ...JSON.parse(user.themePreferences) };
+    } catch (e) {}
+  }
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -48,45 +59,54 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Visão Geral</h1>
-        <p className="text-[var(--color-muted-foreground)]">Acompanhe o progresso das suas atividades.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Visão Geral</h1>
+          <p className="text-[var(--color-muted-foreground)]">Acompanhe o progresso das suas atividades.</p>
+        </div>
+        <button 
+          onClick={() => setIsColorModalOpen(true)}
+          className="p-2 rounded-full hover:bg-[var(--bg-3)] text-[var(--color-muted-foreground)] transition-colors"
+          title="Personalizar Cores"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Card */}
-        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer hover:border-[var(--accent)] transition-colors">
+        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.total} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
           <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Total de Tarefas</p>
           <p className="text-3xl font-bold">{stats?.total || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[var(--accent)] h-full w-full" />
+            <div className="h-full w-full" style={{ backgroundColor: colors.total }} />
           </div>
         </div>
 
         {/* TODO Card */}
-        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer hover:border-[var(--color-border)] transition-colors">
+        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.todo} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
           <p className="text-sm font-medium text-[var(--color-muted-foreground)]">A Fazer</p>
           <p className="text-3xl font-bold">{stats?.todo || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[var(--text-3)] h-full transition-all" style={{ width: `${stats?.total ? (stats.todo / stats.total) * 100 : 0}%` }} />
+            <div className="h-full transition-all" style={{ backgroundColor: colors.todo, width: `${stats?.total ? (stats.todo / stats.total) * 100 : 0}%` }} />
           </div>
         </div>
 
         {/* In Progress Card */}
-        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer hover:border-[var(--yellow)]/50 transition-colors">
+        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.inProgress} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
           <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Em Progresso</p>
           <p className="text-3xl font-bold">{stats?.inProgress || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[var(--yellow)] h-full transition-all" style={{ width: `${stats?.total ? (stats.inProgress / stats.total) * 100 : 0}%` }} />
+            <div className="h-full transition-all" style={{ backgroundColor: colors.inProgress, width: `${stats?.total ? (stats.inProgress / stats.total) * 100 : 0}%` }} />
           </div>
         </div>
 
         {/* Done Card */}
-        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer hover:border-[var(--green)]/50 transition-colors">
+        <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.done} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
           <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Concluídas</p>
           <p className="text-3xl font-bold">{stats?.done || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[var(--green)] h-full transition-all" style={{ width: `${stats?.total ? (stats.done / stats.total) * 100 : 0}%` }} />
+            <div className="h-full transition-all" style={{ backgroundColor: colors.done, width: `${stats?.total ? (stats.done / stats.total) * 100 : 0}%` }} />
           </div>
         </div>
       </div>
@@ -130,7 +150,10 @@ export default function DashboardPage() {
                   onClick={() => handleTaskClick(task)}
                   className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center gap-4 cursor-pointer group w-full"
                 >
-                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${task.status === 'TODO' ? 'bg-[var(--text-3)]' : 'bg-[var(--yellow)]'}`} />
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                    style={{ backgroundColor: task.status === 'TODO' ? colors.todo : colors.inProgress }}
+                  />
                   
                   <p className="font-medium text-[var(--text)] text-sm w-32 sm:w-48 truncate flex-shrink-0">
                     {task.title}
@@ -140,11 +163,13 @@ export default function DashboardPage() {
                     {task.description || "Sem descrição"}
                   </p>
                   
-                  <span className={`text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24 ${
-                    task.status === 'TODO' 
-                      ? 'bg-[var(--bg-3)] text-[var(--text-2)]' 
-                      : 'bg-[var(--yellow)]/10 text-[var(--yellow)] border border-[var(--yellow)]/20'
-                  }`}>
+                  <span 
+                    className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24"
+                    style={task.status === 'TODO' 
+                      ? { backgroundColor: 'var(--bg-3)', color: colors.todo }
+                      : { backgroundColor: `${colors.inProgress}20`, color: colors.inProgress, border: `1px solid ${colors.inProgress}40` }
+                    }
+                  >
                     {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
                   </span>
                 </div>
@@ -165,6 +190,11 @@ export default function DashboardPage() {
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
         onSuccess={() => mutate()}
+      />
+
+      <ColorSettingsModal 
+        isOpen={isColorModalOpen} 
+        onClose={() => setIsColorModalOpen(false)} 
       />
     </div>
   );

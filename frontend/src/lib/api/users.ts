@@ -28,5 +28,10 @@ export const usersApi = {
   changePassword: async (data: { currentPassword?: string; newPassword?: string }) => {
     const res = await api.patch("/users/me/password", data);
     return res.data;
+  },
+
+  updatePreferences: async (themePreferences: string) => {
+    const res = await api.patch("/users/me/preferences", { themePreferences });
+    return res.data;
   }
 };

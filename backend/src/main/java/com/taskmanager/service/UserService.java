@@ -70,6 +70,7 @@ public class UserService {
         profile.setRole(u.getRole().name());
         profile.setHasCompletedOnboarding(u.getHasCompletedOnboarding());
         profile.setReceiveNotifications(u.getReceiveNotifications());
+        profile.setThemePreferences(u.getThemePreferences());
         profile.setStats(stats);
 
         return profile;
@@ -231,5 +232,12 @@ public class UserService {
         u.setHasCompletedOnboarding(true);
         userRepo.save(u);
         return getProfile();
+    }
+
+    @Transactional
+    public void updateThemePreferences(String themePreferences) {
+        User u = securityService.getCurrentUser();
+        u.setThemePreferences(themePreferences);
+        userRepo.save(u);
     }
 }

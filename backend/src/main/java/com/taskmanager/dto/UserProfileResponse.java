@@ -13,6 +13,7 @@ public class UserProfileResponse {
     private String role;
     private Boolean hasCompletedOnboarding;
     private Boolean receiveNotifications;
+    private String themePreferences;
     private UserStatsDTO stats;
 
     public static class UserStatsDTO {
@@ -68,4 +69,6 @@ public class UserProfileResponse {
     public void setReceiveNotifications(Boolean receiveNotifications) { this.receiveNotifications = receiveNotifications; }
     public UserStatsDTO getStats() { return stats; }
     public void setStats(UserStatsDTO stats) { this.stats = stats; }
+    public String getThemePreferences() { return themePreferences; }
+    public void setThemePreferences(String themePreferences) { this.themePreferences = themePreferences; }
 }

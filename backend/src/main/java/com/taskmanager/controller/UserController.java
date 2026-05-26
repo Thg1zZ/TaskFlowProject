@@ -49,4 +49,10 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> completeOnboarding() {
         return ResponseEntity.ok(userService.completeOnboarding());
     }
+
+    @PatchMapping("/me/preferences")
+    public ResponseEntity<Map<String, String>> updateThemePreferences(@RequestBody Map<String, String> request) {
+        userService.updateThemePreferences(request.get("themePreferences"));
+        return ResponseEntity.ok(Map.of("message", "Preferências atualizadas com sucesso"));
+    }
 }

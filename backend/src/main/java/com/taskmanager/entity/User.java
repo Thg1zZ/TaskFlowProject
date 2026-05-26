@@ -88,6 +88,9 @@ public class User {
     @Builder.Default
     private Boolean receiveNotifications = true;
 
+    @Column(name = "theme_preferences", columnDefinition = "TEXT")
+    private String themePreferences;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

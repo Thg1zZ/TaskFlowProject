@@ -22,8 +22,9 @@ public class AuthResponse {
     
     private Boolean hasCompletedOnboarding;
     private Boolean receiveNotifications;
+    private String themePreferences;
 
-    public AuthResponse(String token, Long userId, String name, String email, com.taskmanager.entity.UserRole role, Boolean hasCompletedOnboarding, Boolean receiveNotifications) {
+    public AuthResponse(String token, Long userId, String name, String email, com.taskmanager.entity.UserRole role, Boolean hasCompletedOnboarding, Boolean receiveNotifications, String themePreferences) {
         this.token = token;
         this.userId = userId;
         this.name = name;
@@ -31,5 +32,6 @@ public class AuthResponse {
         this.role = role;
         this.hasCompletedOnboarding = hasCompletedOnboarding;
         this.receiveNotifications = receiveNotifications;
+        this.themePreferences = themePreferences;
     }
 }

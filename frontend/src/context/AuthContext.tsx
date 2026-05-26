@@ -12,6 +12,7 @@ interface User {
   profileImage?: string;
   hasCompletedOnboarding?: boolean;
   receiveNotifications?: boolean;
+  themePreferences?: string;
 }
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
   login: (user: User) => void;
   logout: () => void;
   loading: boolean;
+  updateContextUser?: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,9 +45,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (userData: User) => {
+    // Preserve preferences when storing in localStorage if needed, usually we don't store full obj or rely on state.
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     router.push('/dashboard');
+  };
+
+  const updateContextUser = (updates: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const logout = async () => {
@@ -60,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, updateContextUser }}>
       {children}
     </AuthContext.Provider>
   );
