@@ -1,14 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { tasksApi, Task } from "@/lib/api/tasks";
+import TaskModal from "@/components/tasks/TaskModal";
 import { AlertCircle, Loader2, CheckSquare } from "lucide-react";
 import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
 import Link from "next/link";
 
 
 export default function DashboardPage() {
-  const { data: tasks, error, isLoading } = useSWR<Task[]>("/tasks", tasksApi.getAll);
+  const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
 
   const stats = tasks ? {
     total: tasks.length,
@@ -116,7 +125,11 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3 overflow-y-auto pr-2">
               {recentTasks.map((task) => (
-                <div key={task.id} className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center justify-between">
+                <div 
+                  key={task.id} 
+                  onClick={() => handleTaskClick(task)}
+                  className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center justify-between cursor-pointer group"
+                >
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${task.priority === 'HIGH' ? 'bg-[var(--red)]' : task.priority === 'MEDIUM' ? 'bg-[var(--yellow)]' : 'bg-[var(--blue)]'}`} />
                     <div>
@@ -137,8 +150,15 @@ export default function DashboardPage() {
         <div className="lg:col-span-1">
           <PomodoroTimer />
         </div>
-        
       </div>
+
+      {/* Task Modal for details / edit */}
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        task={selectedTask}
+        onSuccess={() => mutate()}
+      />
     </div>
   );
 }
