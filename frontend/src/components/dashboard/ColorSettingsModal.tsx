@@ -150,7 +150,7 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
             <button 
               onClick={handleSave}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] hover:opacity-90 text-white rounded-[var(--radius)] transition-opacity disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] hover:opacity-90 text-[var(--accent-foreground)] rounded-[var(--radius)] transition-opacity disabled:opacity-50"
             >
               {loading ? "Salvando..." : "Salvar Cores"}
             </button>
