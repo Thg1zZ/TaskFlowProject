@@ -18,8 +18,9 @@ public class AdminUserResponse {
     private UserRole role;
     private LocalDateTime createdAt;
     private long taskCount;
+    private long accessCount;
 
-    public static AdminUserResponse fromEntity(User user, long taskCount) {
+    public static AdminUserResponse fromEntity(User user, long taskCount, long accessCount) {
         return AdminUserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -29,6 +30,8 @@ public class AdminUserResponse {
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .taskCount(taskCount)
+                .accessCount(accessCount)
                 .build();
     }
 }
+

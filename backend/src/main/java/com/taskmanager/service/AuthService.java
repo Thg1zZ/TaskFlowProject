@@ -5,12 +5,17 @@ import com.taskmanager.dto.LoginRequest;
 import com.taskmanager.dto.RegisterRequest;
 import com.taskmanager.entity.PasswordResetToken;
 import com.taskmanager.entity.User;
+import com.taskmanager.entity.UserAccessLog;
 import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.PasswordResetTokenRepository;
+import com.taskmanager.repository.UserAccessLogRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.repository.BlacklistedEmailRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import com.taskmanager.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,6 +41,7 @@ public class AuthService {
     @Autowired private PasswordResetTokenRepository tokenRepository;
     @Autowired private EmailService emailService;
     @Autowired private BlacklistedEmailRepository blacklistedEmailRepository;
+    @Autowired private UserAccessLogRepository accessLogRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -82,6 +88,7 @@ public class AuthService {
         return new AuthResponse(token, saved.getId(), saved.getName(), saved.getEmail(), saved.getRole());
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -94,6 +101,9 @@ public class AuthService {
 
         User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        // [LGPD] Registra acesso com hash do IP — IP real nunca é persistido
+        recordAccessLog(user);
 
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
@@ -148,6 +158,34 @@ public class AuthService {
     }
 
     /**
+     * [LGPD] Registra log de acesso com hash do IP (não o IP em texto puro).
+     */
+    private void recordAccessLog(User user) {
+        try {
+            String ipHash = null;
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest req = attrs.getRequest();
+                String ip = req.getHeader("X-Forwarded-For");
+                if (ip == null || ip.isBlank()) ip = req.getRemoteAddr();
+                if (ip != null && !ip.isBlank()) {
+                    // Pega apenas o primeiro IP se for lista (X-Forwarded-For pode conter vários)
+                    ip = ip.split(",")[0].trim();
+                    ipHash = hashToken(ip);
+                }
+            }
+            UserAccessLog log = UserAccessLog.builder()
+                    .user(user)
+                    .ipHash(ipHash)
+                    .build();
+            accessLogRepository.save(log);
+        } catch (Exception e) {
+            // Log de acesso nunca deve impedir o login
+            System.err.println("[WARN] Falha ao registrar access log: " + e.getMessage());
+        }
+    }
+
+    /**
      * [VULN-07 FIX] Gera hash SHA-256 do token para armazenamento seguro.
      * ASVS 2.5.4 / CWE-312
      */
@@ -182,6 +220,9 @@ public class AuthService {
             }
 
             User user = syncSocialUser(payload);
+
+            // [LGPD] Registra acesso via Google OAuth
+            recordAccessLog(user);
 
             // Gerar token nativo do TaskFlow para a sessão
             String appToken = tokenProvider.generateToken(user.getEmail());

@@ -8,7 +8,7 @@ interface User {
   id: number;
   name: string;
   email: string;
-  role: "ADMIN" | "USER";
+  role: "ROLE_ADMIN" | "ROLE_USER";
   profileImage?: string;
 }
 

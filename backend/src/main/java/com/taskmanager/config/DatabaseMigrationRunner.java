@@ -55,6 +55,18 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                 jdbcTemplate.execute("ALTER TABLE tasks ADD CONSTRAINT tasks_time_spent_minutes_check CHECK (time_spent_minutes >= 0 AND time_spent_minutes <= 43200)");
             } catch (Exception ignored) {}
 
+            // 8. Tabela de logs de acesso para o painel admin
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS user_access_logs (" +
+                "  id BIGSERIAL PRIMARY KEY, " +
+                "  user_id BIGINT REFERENCES users(id) ON DELETE CASCADE, " +
+                "  ip_hash VARCHAR(64), " +
+                "  accessed_at TIMESTAMP NOT NULL DEFAULT NOW()" +
+                ")"
+            );
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_access_logs_user ON user_access_logs(user_id)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_access_logs_date ON user_access_logs(accessed_at)");
+
             System.out.println("====== AUTO MIGRATION EXECUTADA COM SUCESSO ======");
         } catch (Exception e) {
             System.err.println("Aviso na execução de Auto Migration (pode já estar aplicada): " + e.getMessage());
