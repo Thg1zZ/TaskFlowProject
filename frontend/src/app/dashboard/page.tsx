@@ -130,7 +130,7 @@ export default function DashboardPage() {
                   onClick={() => handleTaskClick(task)}
                   className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center gap-4 cursor-pointer group w-full"
                 >
-                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${task.priority === 'HIGH' ? 'bg-[var(--red)]' : task.priority === 'MEDIUM' ? 'bg-[var(--yellow)]' : 'bg-[var(--blue)]'}`} />
+                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${task.status === 'TODO' ? 'bg-[var(--text-3)]' : 'bg-[var(--yellow)]'}`} />
                   
                   <p className="font-medium text-[var(--text)] text-sm w-32 sm:w-48 truncate flex-shrink-0">
                     {task.title}
