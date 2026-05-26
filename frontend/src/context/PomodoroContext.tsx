@@ -121,7 +121,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       // Toca áudio de alerta se habilitado
       if (settings.soundEnabled && typeof window !== "undefined") {
         try {
-          const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+          const audio = new Audio("/complete.ogg");
           audio.volume = 0.5;
           audio.play().catch((e) => console.log("Erro de autoplay no Pomodoro:", e));
         } catch (e) {

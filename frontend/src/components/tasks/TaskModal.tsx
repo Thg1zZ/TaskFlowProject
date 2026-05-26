@@ -109,7 +109,7 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
 
       if (isCompleted) {
         try {
-          const audio = new Audio("https://actions.google.com/sounds/v1/ui/ucreate_pop.ogg");
+          const audio = new Audio("/pop.ogg");
           audio.volume = 0.4;
           audio.play().catch((e) => console.log("Autoplay bloqueado pelo navegador:", e));
         } catch (e) {

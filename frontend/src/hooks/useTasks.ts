@@ -12,7 +12,7 @@ export function useTasks(filter: "ALL" | TaskStatus = "ALL") {
     // Toca som de conclusão se o status mudar para DONE (Concluída)
     if (newStatus === "DONE") {
       try {
-        const audio = new Audio("https://actions.google.com/sounds/v1/ui/ucreate_pop.ogg");
+        const audio = new Audio("/pop.ogg");
         audio.volume = 0.4;
         audio.play().catch((e) => console.log("Autoplay bloqueado pelo navegador:", e));
       } catch (e) {

@@ -9,6 +9,8 @@ import { LayoutGrid, List, KanbanSquare, Plus, Loader2, AlertCircle } from "luci
 import clsx from "clsx";
 import { useTasks } from "@/hooks/useTasks";
 import { useSearchParams } from "next/navigation";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 
 type ViewMode = "grid" | "list" | "kanban";
@@ -30,11 +32,40 @@ export default function TasksPage() {
   const searchFilteredTasks = (tasks || []).filter((task) => {
     if (!search) return true;
     const query = search.toLowerCase().trim();
-    return (
+
+    // A. Verifica correspondência básica de texto (título, descrição, categoria)
+    const textMatch =
       task.title.toLowerCase().includes(query) ||
       (task.description && task.description.toLowerCase().includes(query)) ||
-      (task.categoryName && task.categoryName.toLowerCase().includes(query))
-    );
+      (task.categoryName && task.categoryName.toLowerCase().includes(query));
+
+    if (textMatch) return true;
+
+    // B. Verifica correspondência por data de vencimento/conclusão
+    const taskDateStr = task.endDate || task.dueDate || task.startDate;
+    if (taskDateStr) {
+      try {
+        const dateObj = new Date(taskDateStr);
+        // Gera representações em múltiplos formatos de data usados no Brasil
+        const formattedSlashLong = format(dateObj, "dd/MM/yyyy");
+        const formattedSlashShort = format(dateObj, "dd/MM");
+        const formattedHyphen = format(dateObj, "yyyy-MM-dd");
+        const formattedText = format(dateObj, "d 'de' MMMM", { locale: ptBR }).toLowerCase();
+        const formattedTextShort = format(dateObj, "dd MMM", { locale: ptBR }).toLowerCase();
+
+        return (
+          formattedSlashLong.includes(query) ||
+          formattedSlashShort.includes(query) ||
+          formattedHyphen.includes(query) ||
+          formattedText.includes(query) ||
+          formattedTextShort.includes(query)
+        );
+      } catch (e) {
+        console.error("Erro ao analisar data na busca:", e);
+      }
+    }
+
+    return false;
   });
 
   // 2. Filtra de acordo com a aba de status selecionada (só para Grid e List)
