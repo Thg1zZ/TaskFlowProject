@@ -15,6 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.taskmanager.entity.RevokedToken;
 import com.taskmanager.repository.RevokedTokenRepository;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.util.StringUtils;
+
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -119,6 +123,48 @@ public class JwtTokenProvider {
     public void purgeExpiredJtis() {
         revokedTokenRepository.deleteExpiredTokens(new Date());
         logger.info("Tokens expirados removidos da blacklist.");
+    }
+
+    /**
+     * [DUP-01] Extrai o JWT da requisição HTTP de forma centralizada.
+     *
+     * ANTES: a lógica de "pegar token do cookie, senão do header Authorization" estava
+     * copiada em JwtAuthenticationFilter.getJwtFromRequest() e UserService.revokeCurrentToken().
+     *
+     * ORDEM DE PRIORIDADE:
+     *  1. Cookie HttpOnly "token" — mais seguro (inacessível ao JavaScript/XSS)
+     *  2. Header Authorization "Bearer <token>" — retrocompatibilidade
+     *
+     * [SEC-02] Quando ambos estão presentes, o cookie tem prioridade.
+     * Isso é logado em debug para auditoria de comportamento.
+     *
+     * @return o token JWT ou null se não encontrado
+     */
+    public String extractTokenFromRequest(HttpServletRequest request) {
+        String cookieToken = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("token".equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                    cookieToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        String headerToken = null;
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            headerToken = bearerToken.substring(7);
+        }
+
+        // [SEC-02] Log quando ambos estão presentes — cookie tem prioridade
+        if (cookieToken != null && headerToken != null) {
+            logger.debug("[JWT] Cookie e header Authorization presentes — usando cookie (prioridade).");
+        }
+
+        if (cookieToken != null) return cookieToken;
+        return headerToken;
     }
 
     public String getEmailFromToken(String token) {

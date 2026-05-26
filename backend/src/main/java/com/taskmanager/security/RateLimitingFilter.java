@@ -45,8 +45,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final long LOGIN_WINDOW_MS            = 15 * 60 * 1000L;  // 15 min
     private static final int  REGISTER_MAX_ATTEMPTS      = 5;
     private static final long REGISTER_WINDOW_MS         = 60 * 60 * 1000L;  // 1 hora
-    private static final int  FORGOT_PWD_MAX_ATTEMPTS    = 3;                 // [VULN-05 FIX]
+    private static final int  FORGOT_PWD_MAX_ATTEMPTS    = 3;
     private static final long FORGOT_PWD_WINDOW_MS       = 60 * 60 * 1000L;  // 1 hora
+    // [ADMIN HARDENING] Endpoints administrativos têm limite próprio mais restrito
+    private static final int  ADMIN_MAX_ATTEMPTS         = 20;
+    private static final long ADMIN_WINDOW_MS            = 60 * 1000L;        // 1 minuto
 
     /** [VULN-01 FIX] IPs de proxies reversos confiáveis (ex: nginx, load balancer). */
     @Value("${app.security.trusted-proxies:}")
@@ -56,7 +59,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     @Override
     protected void initFilterBean() {
-        // Inicializa a lista de proxies confiáveis uma única vez
         if (trustedProxiesRaw != null && !trustedProxiesRaw.isBlank()) {
             trustedProxies = Arrays.stream(trustedProxiesRaw.split(","))
                     .map(String::trim)
@@ -74,6 +76,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private final ConcurrentHashMap<String, BucketEntry> loginBuckets      = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> registerBuckets   = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> forgotPwdBuckets  = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, BucketEntry> adminBuckets      = new ConcurrentHashMap<>();
 
     private static final Map<String, long[]> PATH_LIMITS = Map.of(
         "/api/auth/login",           new long[]{ LOGIN_MAX_ATTEMPTS,      LOGIN_WINDOW_MS      },
@@ -81,9 +84,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         "/api/auth/forgot-password", new long[]{ FORGOT_PWD_MAX_ATTEMPTS, FORGOT_PWD_WINDOW_MS }
     );
 
+    private static final String ADMIN_PATH_PREFIX = "/api/admin";
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !PATH_LIMITS.containsKey(request.getRequestURI());
+        String uri = request.getRequestURI();
+        // Aplica rate limit em rotas de auth E rotas de admin
+        return !PATH_LIMITS.containsKey(uri) && !uri.startsWith(ADMIN_PATH_PREFIX);
     }
 
     @Override
@@ -94,7 +101,18 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String ip   = extractClientIp(request);
         String path = request.getRequestURI();
 
-        long[] limits   = PATH_LIMITS.get(path);
+        // Rotas admin têm limite próprio
+        if (path.startsWith(ADMIN_PATH_PREFIX)) {
+            if (isRateLimited(ip, adminBuckets, ADMIN_MAX_ATTEMPTS, ADMIN_WINDOW_MS)) {
+                log.warn("[SECURITY] Rate limit ADMIN atingido para IP={} em path={}", maskIp(ip), path);
+                sendTooManyRequests(response, ADMIN_WINDOW_MS);
+                return;
+            }
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        long[] limits    = PATH_LIMITS.get(path);
         int  maxAttempts = (int) limits[0];
         long windowMs    = limits[1];
         var  buckets     = getBucketsForPath(path);

@@ -39,4 +39,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Task t WHERE t.id = :id AND t.user.id = :userId")
     Optional<Task> findByIdAndUserIdForUpdate(@Param("id") Long id, @Param("userId") Long userId);
+
+    /**
+     * [REF-10] Conta tarefas por status em uma única query GROUP BY,
+     * eliminando o N+1 implícito de 4 queries separadas no TaskService.getStats().
+     *
+     * Retorna lista de Object[] onde: [0] = TaskStatus, [1] = Long count
+     */
+    @Query("SELECT t.status, COUNT(t) FROM Task t WHERE t.user.id = :userId GROUP BY t.status")
+    List<Object[]> countByUserIdGroupByStatus(@Param("userId") Long userId);
 }

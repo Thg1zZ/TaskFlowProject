@@ -11,22 +11,29 @@ import com.taskmanager.repository.UserRepository;
 import com.taskmanager.security.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.taskmanager.dto.DeleteAccountRequest;
 import com.taskmanager.entity.BlacklistedEmail;
 import com.taskmanager.repository.BlacklistedEmailRepository;
-import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
 
 @Service
 public class UserService {
@@ -102,31 +109,16 @@ public class UserService {
     }
 
     /**
-     * Extrai e revoga o JWT da requisição atual (seja do Header Authorization ou do Cookie).
-     * Isso garante que um atacante com token capturado perca acesso
-     * imediatamente após a vítima trocar a senha.
+     * [DUP-01 FIX] Extrai e revoga o JWT da requisição atual.
+     *
+     * ANTES: duplicava a lógica de "cookie → header Authorization" que já existe em
+     * JwtTokenProvider.extractTokenFromRequest(). Qualquer mudança nessa lógica
+     * precisava ser replicada em 3 lugares.
+     *
+     * AGORA: delega para o método centralizado no JwtTokenProvider.
      */
     private void revokeCurrentToken() {
-        String token = null;
-
-        // Tenta pegar do Cookie "token"
-        if (httpServletRequest.getCookies() != null) {
-            for (jakarta.servlet.http.Cookie cookie : httpServletRequest.getCookies()) {
-                if ("token".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
-        // Tenta pegar do Header se não achou no cookie
-        if (token == null || token.isBlank()) {
-            String bearerToken = httpServletRequest.getHeader("Authorization");
-            if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-                token = bearerToken.substring(7);
-            }
-        }
-
+        String token = jwtTokenProvider.extractTokenFromRequest(httpServletRequest);
         if (token != null && !token.isBlank()) {
             jwtTokenProvider.revokeToken(token);
         }
@@ -145,41 +137,38 @@ public class UserService {
         }
 
         try {
-            // 2. Leitura Segura via ImageIO (validação de Magic Bytes e estrutura de imagem)
-            java.awt.image.BufferedImage originalImage = javax.imageio.ImageIO.read(file.getInputStream());
+            // 2. Leitura Segura via ImageIO (validação de Magic Bytes e estrutura)
+            // [REF-06] Importações de AWT/ImageIO movidas para o topo do arquivo
+            BufferedImage originalImage = ImageIO.read(file.getInputStream());
             if (originalImage == null) {
                 throw new IllegalArgumentException("Arquivo inválido ou corrompido.");
             }
 
-            // 3. Redimensionamento e Sanitização (Strip EXIF & Malicious Payloads)
-            // Limitamos a resolução máxima para avatares (ex: 512x512)
-            int targetWidth = Math.min(originalImage.getWidth(), 512);
+            int targetWidth  = Math.min(originalImage.getWidth(), 512);
             int targetHeight = Math.min(originalImage.getHeight(), 512);
-            
-            java.awt.image.BufferedImage sanitizedImage = new java.awt.image.BufferedImage(
-                    targetWidth, targetHeight, java.awt.image.BufferedImage.TYPE_INT_RGB);
-            
-            java.awt.Graphics2D g2d = sanitizedImage.createGraphics();
-            // Fundo branco caso a imagem original tenha transparência (evita artefatos no JPEG)
-            g2d.setColor(java.awt.Color.WHITE);
+
+            BufferedImage sanitizedImage = new BufferedImage(
+                    targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+
+            Graphics2D g2d = sanitizedImage.createGraphics();
+            g2d.setColor(Color.WHITE);
             g2d.fillRect(0, 0, targetWidth, targetHeight);
-            
-            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                                 RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
             g2d.dispose();
 
             // 4. Compressão controlada para JPEG
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            javax.imageio.ImageIO.write(sanitizedImage, "jpg", baos);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(sanitizedImage, "jpg", baos);
             byte[] imageBytes = baos.toByteArray();
-            
-            // Verificação de segurança (não salvar se for gigantesco, embora o redimensionamento já cuide disso)
-            if (imageBytes.length > 500 * 1024) { // Max 500KB processado
-                 throw new IllegalArgumentException("Imagem final resultante muito pesada.");
+
+            if (imageBytes.length > 500 * 1024) {
+                throw new IllegalArgumentException("Imagem final resultante muito pesada.");
             }
 
             // 5. Salvar como Base64 Data URI (Seguro contra Path Traversal)
-            String base64Image = java.util.Base64.getEncoder().encodeToString(imageBytes);
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
             String dataUri = "data:image/jpeg;base64," + base64Image;
             
             User u = securityService.getCurrentUser();

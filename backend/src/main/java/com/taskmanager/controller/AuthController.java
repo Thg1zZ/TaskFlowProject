@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.taskmanager.dto.GoogleTokenRequest;
 import java.util.Map;
-import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,25 +36,23 @@ public class AuthController {
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
 
-    private HttpHeaders createCookieHeader(String token) {
-        ResponseCookie cookie = ResponseCookie.from("token", token)
+    /**
+     * [REF-03] Método unificado para criar/invalidar o cookie JWT.
+     *
+     * ANTES: createCookieHeader(token) e createLogoutCookie() duplicavam todos os
+     * atributos do cookie (httpOnly, secure, path, sameSite). Qualquer mudança
+     * precisava ser feita em dois lugares.
+     *
+     * AGORA: um único método com parâmetros value e maxAge:
+     *   - Login:  buildTokenCookieHeaders(token, jwtExpiration / 1000)
+     *   - Logout: buildTokenCookieHeaders("", 0)
+     */
+    private HttpHeaders buildTokenCookieHeaders(String value, long maxAge) {
+        ResponseCookie cookie = ResponseCookie.from("token", value)
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/")
-                .maxAge(jwtExpiration / 1000)
-                .sameSite("Strict")
-                .build();
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
-        return headers;
-    }
-
-    private HttpHeaders createLogoutCookie() {
-        ResponseCookie cookie = ResponseCookie.from("token", "")
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .path("/")
-                .maxAge(0) // Expira imediatamente
+                .maxAge(maxAge)
                 .sameSite("Strict")
                 .build();
         HttpHeaders headers = new HttpHeaders();
@@ -67,7 +64,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .headers(createCookieHeader(response.getToken()))
+                .headers(buildTokenCookieHeaders(response.getToken(), jwtExpiration / 1000))
                 .body(response);
     }
 
@@ -75,7 +72,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok()
-                .headers(createCookieHeader(response.getToken()))
+                .headers(buildTokenCookieHeaders(response.getToken(), jwtExpiration / 1000))
                 .body(response);
     }
 
@@ -85,7 +82,7 @@ public class AuthController {
             authService.logout(token);
         }
         return ResponseEntity.ok()
-                .headers(createLogoutCookie())
+                .headers(buildTokenCookieHeaders("", 0))
                 .build();
     }
 
@@ -106,16 +103,16 @@ public class AuthController {
     public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleTokenRequest request) {
         AuthResponse response = authService.loginWithGoogle(request.getIdToken(), request.getNonce());
         return ResponseEntity.ok()
-                .headers(createCookieHeader(response.getToken()))
+                .headers(buildTokenCookieHeaders(response.getToken(), jwtExpiration / 1000))
                 .body(response);
     }
 
     @GetMapping("/keep-alive")
     public ResponseEntity<Map<String, String>> keepAlive() {
-        Map<String, String> status = new HashMap<>();
-        status.put("status", "UP");
-        status.put("message", "Backend is awake and operational");
-        return ResponseEntity.ok(status);
+        // [REF-08] Map.of() imutável e conciso — substituiu new HashMap<>() + 2x put()
+        return ResponseEntity.ok(Map.of(
+            "status",  "UP",
+            "message", "Backend is awake and operational"
+        ));
     }
 }
-

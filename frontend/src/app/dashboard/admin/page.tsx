@@ -2,17 +2,28 @@
 
 import { useAuth } from "@/context/AuthContext";
 import useSWR from "swr";
-import { adminApi, AdminUser, AdminStats } from "@/lib/api/admin";
+import {
+  adminApi,
+  AdminUser,
+  AdminStats,
+  AuditLog,
+  AuditLogPage,
+} from "@/lib/api/admin";
 import {
   ShieldAlert, Users, Trash2, Loader2, AlertCircle,
   BarChart3, LockKeyhole, UserCog, Mail, TrendingUp,
-  Activity, LogIn, X, Check, Shield, ShieldOff
+  Activity, LogIn, X, Check, Shield, ShieldOff,
+  ScrollText, ChevronLeft, ChevronRight, CheckCircle2,
+  Ban, AlertTriangle,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
-// ── Modal de edição de e-mail ───────────────────────────────────────────────
+// ── Tipos de aba ─────────────────────────────────────────────────────────────
+type Tab = "users" | "audit";
+
+// ── Modal de edição de e-mail ─────────────────────────────────────────────────
 function ChangeEmailModal({
   user,
   onClose,
@@ -103,7 +114,7 @@ function ChangeEmailModal({
   );
 }
 
-// ── Stat Card Component ─────────────────────────────────────────────────────
+// ── Stat Card ─────────────────────────────────────────────────────────────────
 function StatCard({
   icon: Icon,
   label,
@@ -135,25 +146,187 @@ function StatCard({
   );
 }
 
-// ── Main Page ───────────────────────────────────────────────────────────────
-export default function AdminPage() {
-  const { user: currentUser } = useAuth();
-  const [emailModalUser, setEmailModalUser] = useState<AdminUser | null>(null);
-  const [roleLoadingId, setRoleLoadingId] = useState<number | null>(null);
-
-  if (currentUser?.role !== "ROLE_ADMIN" && currentUser?.role !== "ROLE_SUPER_ADMIN") {
+// ── Badge de resultado de auditoria ───────────────────────────────────────────
+function ResultBadge({ result }: { result: AuditLog["result"] }) {
+  if (result === "SUCCESS") {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <div className="w-20 h-20 bg-[var(--red)]/10 rounded-full flex items-center justify-center mb-6 text-[var(--red)]">
-          <ShieldAlert className="w-10 h-10" />
-        </div>
-        <h1 className="text-3xl font-bold text-[var(--text)] mb-2">Acesso Negado</h1>
-        <p className="text-[var(--text-2)] text-center max-w-md">
-          Você não possui privilégios de Administrador para acessar esta área.
-        </p>
-      </div>
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-green-500/10 text-green-500 ring-1 ring-green-500/20">
+        <CheckCircle2 className="w-3 h-3" /> Sucesso
+      </span>
     );
   }
+  if (result === "BLOCKED") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-500/10 text-orange-500 ring-1 ring-orange-500/20">
+        <Ban className="w-3 h-3" /> Bloqueado
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-[var(--red)]/10 text-[var(--red)] ring-1 ring-[var(--red)]/20">
+      <AlertTriangle className="w-3 h-3" /> Falhou
+    </span>
+  );
+}
+
+// ── Aba de auditoria ──────────────────────────────────────────────────────────
+function AuditTab() {
+  const [page, setPage] = useState(0);
+
+  const fetchAuditLogs = useCallback(
+    () => adminApi.getAuditLogs(page),
+    [page]
+  );
+
+  const {
+    data,
+    isLoading,
+    error,
+  } = useSWR<AuditLogPage>(["/admin/audit-logs", page], fetchAuditLogs, {
+    revalidateOnFocus: false,
+  });
+
+  const actionLabel: Record<string, string> = {
+    GET_USERS:      "Listou usuários",
+    DELETE_USER:    "Excluiu usuário",
+    CHANGE_EMAIL:   "Alterou e-mail",
+    CHANGE_ROLE:    "Alterou role",
+    GET_STATS:      "Consultou estatísticas",
+    GET_AUDIT_LOGS: "Consultou logs de auditoria",
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Cabeçalho da aba */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <ScrollText className="w-4 h-4 text-[var(--text-2)]" />
+          <h2 className="text-base font-semibold">Log de Auditoria</h2>
+          {data && (
+            <span className="text-xs text-[var(--text-2)] bg-[var(--bg-3)] px-2 py-0.5 rounded-full">
+              {data.totalElements} registro{data.totalElements !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-[var(--text-3)]">
+          Todas as ações administrativas — incluindo tentativas bloqueadas — são registradas de forma imutável.
+        </p>
+      </div>
+
+      {/* Tabela */}
+      <div className="glass rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          {error ? (
+            <div className="p-8 flex items-center justify-center gap-2 text-[var(--red)]">
+              <AlertCircle className="w-5 h-5" />
+              Erro ao carregar o log de auditoria.
+            </div>
+          ) : isLoading ? (
+            <div className="p-12 flex justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+            </div>
+          ) : !data?.content?.length ? (
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-[var(--text-3)]">
+              <ScrollText className="w-10 h-10 opacity-30" />
+              <p className="text-sm">Nenhuma ação registrada ainda.</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs uppercase bg-[var(--bg-2)] text-[var(--text-2)]">
+                <tr>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Quando</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Admin</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Ação</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Alvo</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Detalhes</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">Resultado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {data.content.map((log) => (
+                  <tr key={log.id} className={`hover:bg-[var(--bg-3)]/50 transition-colors ${log.result === "BLOCKED" ? "bg-orange-500/5" : log.result === "FAILED" ? "bg-[var(--red)]/5" : ""}`}>
+                    <td className="px-4 py-3 text-xs text-[var(--text-3)] whitespace-nowrap font-mono">
+                      {format(parseISO(log.performedAt), "dd/MM/yy HH:mm:ss", { locale: ptBR })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-[var(--text)] truncate max-w-[140px]">
+                          {log.adminEmail}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-3)]">
+                          {log.adminRole === "ROLE_SUPER_ADMIN" ? "👑 Master" : "🛡 Admin"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-medium text-[var(--text)]">
+                        {actionLabel[log.action] ?? log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {log.targetUserEmail ? (
+                        <span className="text-xs text-[var(--text-2)] truncate max-w-[140px] block">
+                          {log.targetUserEmail}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--text-3)] italic">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 max-w-[200px]">
+                      {log.details ? (
+                        <span className="text-xs text-[var(--text-2)] line-clamp-2" title={log.details}>
+                          {log.details}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--text-3)] italic">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <ResultBadge result={log.result} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Paginação */}
+        {data && data.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--color-border)] bg-[var(--bg-2)]/40">
+            <p className="text-xs text-[var(--text-3)]">
+              Página {data.number + 1} de {data.totalPages} &middot; {data.totalElements} registros
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={data.number === 0}
+                className="p-1.5 rounded-md hover:bg-[var(--bg-3)] disabled:opacity-30 transition-colors"
+                title="Página anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs px-2 font-mono">{data.number + 1}</span>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={data.number >= data.totalPages - 1}
+                className="p-1.5 rounded-md hover:bg-[var(--bg-3)] disabled:opacity-30 transition-colors"
+                title="Próxima página"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Aba de usuários ───────────────────────────────────────────────────────────
+function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }) {
+  const [emailModalUser, setEmailModalUser] = useState<AdminUser | null>(null);
+  const [roleLoadingId, setRoleLoadingId] = useState<number | null>(null);
 
   const {
     data: users,
@@ -201,17 +374,6 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-[var(--red)]/10 text-[var(--red)] rounded-lg">
-          <LockKeyhole className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Painel Administrativo</h1>
-          <p className="text-[var(--text-2)] text-sm">Controle e monitoramento do sistema.</p>
-        </div>
-      </div>
-
       {/* ── Stats Grid ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <StatCard
@@ -344,7 +506,7 @@ export default function AdminPage() {
                       {format(new Date(u.createdAt), "dd MMM yyyy", { locale: ptBR })}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {currentUser?.id !== u.id && u.role !== "ROLE_SUPER_ADMIN" && (
+                      {currentUser.id !== u.id && u.role !== "ROLE_SUPER_ADMIN" && (
                         <div className="flex items-center justify-end gap-1">
                           {/* Alterar e-mail */}
                           <button
@@ -356,7 +518,7 @@ export default function AdminPage() {
                           </button>
 
                           {/* Alternar role */}
-                          {u.role !== "ROLE_ADMIN" || currentUser?.role === "ROLE_ADMIN" ? (
+                          {u.role !== "ROLE_ADMIN" || currentUser.role === "ROLE_ADMIN" ? (
                             <button
                               onClick={() => handleToggleRole(u)}
                               disabled={roleLoadingId === u.id}
@@ -405,6 +567,72 @@ export default function AdminPage() {
           onClose={() => setEmailModalUser(null)}
           onSuccess={handleEmailSuccess}
         />
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+export default function AdminPage() {
+  const { user: currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>("users");
+
+  // [FRONTEND] Proteção visual — a real acontece no backend com JWT + RBAC
+  if (currentUser?.role !== "ROLE_ADMIN" && currentUser?.role !== "ROLE_SUPER_ADMIN") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh]">
+        <div className="w-20 h-20 bg-[var(--red)]/10 rounded-full flex items-center justify-center mb-6 text-[var(--red)]">
+          <ShieldAlert className="w-10 h-10" />
+        </div>
+        <h1 className="text-3xl font-bold text-[var(--text)] mb-2">Acesso Negado</h1>
+        <p className="text-[var(--text-2)] text-center max-w-md">
+          Você não possui privilégios de Administrador para acessar esta área.
+        </p>
+      </div>
+    );
+  }
+
+  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: "users",  label: "Usuários",  icon: Users      },
+    { id: "audit",  label: "Auditoria", icon: ScrollText },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-[var(--red)]/10 text-[var(--red)] rounded-lg">
+          <LockKeyhole className="w-6 h-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Painel Administrativo</h1>
+          <p className="text-[var(--text-2)] text-sm">Controle e monitoramento do sistema.</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-[var(--bg-2)] rounded-[var(--radius-lg)] w-fit border border-[var(--color-border)]">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-[var(--radius)] transition-all ${
+              activeTab === id
+                ? "bg-[var(--bg)] text-[var(--text)] shadow-sm border border-[var(--color-border)]"
+                : "text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--bg-3)]"
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Conteúdo da aba ativa */}
+      {activeTab === "users" ? (
+        <UsersTab currentUser={{ id: currentUser.id, role: currentUser.role }} />
+      ) : (
+        <AuditTab />
       )}
     </div>
   );

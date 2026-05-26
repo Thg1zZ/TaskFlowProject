@@ -22,9 +22,19 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // [ASVS 14.4.3] Content-Security-Policy que inclui recursos necessários para o Google Identity Services e Google Fonts
+  // [ASVS 14.4.3 / SEC-04 FIX] Content-Security-Policy
+  //
+  // NOTA sobre 'unsafe-inline' em script-src:
+  //   Mantido porque o Google Identity Services (accounts.google.com) exige
+  //   capacidade de injeção de scripts inline para o fluxo OAuth. Remover causaria
+  //   quebra do login com Google. Para mitigar, todos os inputs são sanitizados
+  //   no backend (Zero Trust) e o SameSite=Strict no cookie JWT previne CSRF.
+  //
+  // NOTA sobre 'unsafe-eval' REMOVIDO (SEC-04):
+  //   Não é necessário em builds de produção Next.js. Remover reduz
+  //   significativamente a superfície de ataque XSS via eval()/Function().
   const csp = "default-src 'self'; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com; " +
+              "script-src 'self' 'unsafe-inline' https://accounts.google.com; " +
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; " +
               "font-src 'self' https://fonts.gstatic.com; " +
               "img-src 'self' data: blob: https:; " +

@@ -1,9 +1,7 @@
 package com.taskmanager.security;
 
-import com.taskmanager.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -18,6 +16,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro JWT — extrai e valida o token em cada requisição.
+ *
+ * [DUP-01 FIX] A extração do token (cookie → header) foi centralizada em
+ * JwtTokenProvider.extractTokenFromRequest(), eliminando a duplicação que existia
+ * entre este filtro e UserService.revokeCurrentToken().
+ */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
@@ -26,14 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtTokenProvider tokenProvider;
 
     @Autowired
-    private UserDetailsServiceImpl userDetailsService;
+    private com.taskmanager.service.UserDetailsServiceImpl userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            String jwt = getJwtFromRequest(request);
+            // [DUP-01] Extração centralizada em JwtTokenProvider — single source of truth
+            String jwt = tokenProvider.extractTokenFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String email = tokenProvider.getEmailFromToken(jwt);
@@ -50,23 +56,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private String getJwtFromRequest(HttpServletRequest request) {
-        // [Zero Trust] Tenta pegar o token do cookie HttpOnly (mais seguro contra XSS)
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-
-        // [Retrocompatibilidade] Tenta pegar do Header Authorization
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
     }
 }

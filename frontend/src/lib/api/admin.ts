@@ -22,6 +22,30 @@ export interface AdminStats {
   accessesLast30Days: number;
 }
 
+/** Registro individual de auditoria — reflete AdminAuditLog.java */
+export interface AuditLog {
+  id: number;
+  adminId: number;
+  adminEmail: string;
+  adminRole: string;
+  targetUserId: number | null;
+  targetUserEmail: string | null;
+  action: string;
+  details: string | null;
+  result: "SUCCESS" | "BLOCKED" | "FAILED";
+  ipHash: string | null;
+  performedAt: string; // ISO-8601
+}
+
+/** Página retornada pelo Spring Data Page<AdminAuditLog> */
+export interface AuditLogPage {
+  content: AuditLog[];
+  totalElements: number;
+  totalPages: number;
+  number: number; // página atual (0-indexed)
+  size: number;
+}
+
 export const adminApi = {
   getUsers: async (): Promise<AdminUser[]> => {
     const res = await api.get<AdminUser[]>("/admin/users");
@@ -42,8 +66,20 @@ export const adminApi = {
     return res.data;
   },
 
-  changeUserRole: async (id: number, role: "ROLE_ADMIN" | "ROLE_USER" | "ROLE_SUPER_ADMIN"): Promise<AdminUser> => {
+  changeUserRole: async (
+    id: number,
+    role: "ROLE_ADMIN" | "ROLE_USER" | "ROLE_SUPER_ADMIN"
+  ): Promise<AdminUser> => {
     const res = await api.patch<AdminUser>(`/admin/users/${id}/role`, { role });
+    return res.data;
+  },
+
+  /**
+   * Retorna o log de auditoria paginado (50 entradas por página).
+   * Apenas ADMIN e SUPER_ADMIN têm acesso — validado no backend.
+   */
+  getAuditLogs: async (page = 0): Promise<AuditLogPage> => {
+    const res = await api.get<AuditLogPage>("/admin/audit-logs", { params: { page } });
     return res.data;
   },
 };

@@ -67,6 +67,32 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_access_logs_user ON user_access_logs(user_id)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_access_logs_date ON user_access_logs(accessed_at)");
 
+            // 9. Expandir tamanho da coluna role para suportar ROLE_SUPER_ADMIN
+            try {
+                jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(30)");
+            } catch (Exception ignored) {}
+
+            // 10. Tabela de auditoria imutável de ações administrativas
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS admin_audit_logs (" +
+                "  id BIGSERIAL PRIMARY KEY, " +
+                "  admin_id BIGINT NOT NULL, " +
+                "  admin_email VARCHAR(255) NOT NULL, " +
+                "  admin_role VARCHAR(30) NOT NULL, " +
+                "  target_user_id BIGINT, " +
+                "  target_user_email VARCHAR(255), " +
+                "  action VARCHAR(50) NOT NULL, " +
+                "  details VARCHAR(500), " +
+                "  result VARCHAR(20) NOT NULL, " +
+                "  ip_hash CHAR(64), " +
+                "  performed_at TIMESTAMP NOT NULL DEFAULT NOW()" +
+                ")"
+            );
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_audit_admin  ON admin_audit_logs(admin_id)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_audit_target ON admin_audit_logs(target_user_id)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_audit_time   ON admin_audit_logs(performed_at)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_audit_action ON admin_audit_logs(action)");
+
             System.out.println("====== AUTO MIGRATION EXECUTADA COM SUCESSO ======");
         } catch (Exception e) {
             System.err.println("Aviso na execução de Auto Migration (pode já estar aplicada): " + e.getMessage());

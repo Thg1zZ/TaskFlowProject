@@ -51,7 +51,7 @@ public class User {
      * O padrão para novos usuários cadastrados é sempre ROLE_USER.
      */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)  // [SEC-05] ROLE_SUPER_ADMIN = 16 chars — mínimo 30 para consistência com DDL
     @Builder.Default
     private UserRole role = UserRole.ROLE_USER;
 

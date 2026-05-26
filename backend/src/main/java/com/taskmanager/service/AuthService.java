@@ -1,5 +1,9 @@
 package com.taskmanager.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.taskmanager.dto.AuthResponse;
 import com.taskmanager.dto.LoginRequest;
 import com.taskmanager.dto.RegisterRequest;
@@ -11,11 +15,12 @@ import com.taskmanager.repository.PasswordResetTokenRepository;
 import com.taskmanager.repository.UserAccessLogRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.repository.BlacklistedEmailRepository;
-import jakarta.servlet.http.HttpServletRequest;
 import com.taskmanager.security.JwtTokenProvider;
+import com.taskmanager.util.HashUtils;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,15 +28,29 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 
+/**
+ * Serviço de autenticação e gerenciamento de sessão.
+ *
+ * CORREÇÕES APLICADAS:
+ *  [REF-04] Importações do Google movidas para o topo (sem FQNs dentro dos métodos).
+ *  [REF-07] System.err.println substituído por Logger SLF4J em recordAccessLog().
+ *  [DUP-02] hashToken() removido — substituído por HashUtils.sha256Hex() (utilitário centralizado).
+ *  [SEC-01] recordAccessLog() corrigido para usar HashUtils.hashClientIp() com validação de proxy,
+ *           eliminando o risco de IP spoofing via X-Forwarded-For não validado.
+ */
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired private AuthenticationManager authenticationManager;
     @Autowired private UserRepository userRepository;
@@ -42,6 +61,7 @@ public class AuthService {
     @Autowired private EmailService emailService;
     @Autowired private BlacklistedEmailRepository blacklistedEmailRepository;
     @Autowired private UserAccessLogRepository accessLogRepository;
+    @Autowired private HashUtils hashUtils;  // [DUP-02 / SEC-01]
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -122,8 +142,9 @@ public class AuthService {
             SECURE_RANDOM.nextBytes(randomBytes);
             String tokenPlain = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
-            // [VULN-07 FIX] Salvar apenas o hash SHA-256 — token plain-text nunca é persistido
-            String tokenHash = hashToken(tokenPlain);
+            // [VULN-07 FIX / DUP-02] Salvar apenas o hash SHA-256 via HashUtils.sha256Hex()
+            // Token plain-text nunca é persistido no banco — ASVS 2.5.4 / CWE-312
+            String tokenHash = HashUtils.sha256Hex(tokenPlain);
 
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .tokenHash(tokenHash)
@@ -139,8 +160,8 @@ public class AuthService {
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        // [VULN-07 FIX] Hashear o token recebido antes de buscar no banco
-        String tokenHash = hashToken(token);
+        // [VULN-07 FIX / DUP-02] Hashear o token recebido via HashUtils antes de buscar no banco
+        String tokenHash = HashUtils.sha256Hex(token);
         PasswordResetToken resetToken = tokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new IllegalArgumentException("Token inválido"));
 
@@ -158,62 +179,46 @@ public class AuthService {
     }
 
     /**
-     * [LGPD] Registra log de acesso com hash do IP (não o IP em texto puro).
+     * [LGPD / SEC-01 FIX] Registra log de acesso com hash do IP validado.
+     *
+     * ANTES: lia X-Forwarded-For diretamente sem verificar proxy — qualquer cliente
+     * poderia injetar um IP falso e corromper o audit log (CWE-348).
+     *
+     * AGORA: usa HashUtils.hashClientIp() que valida o proxy antes de aceitar o header.
+     *
+     * [REF-07 FIX] Substituído System.err.println por log.warn() (SLF4J/Logback).
      */
     private void recordAccessLog(User user) {
         try {
             String ipHash = null;
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
-                HttpServletRequest req = attrs.getRequest();
-                String ip = req.getHeader("X-Forwarded-For");
-                if (ip == null || ip.isBlank()) ip = req.getRemoteAddr();
-                if (ip != null && !ip.isBlank()) {
-                    // Pega apenas o primeiro IP se for lista (X-Forwarded-For pode conter vários)
-                    ip = ip.split(",")[0].trim();
-                    ipHash = hashToken(ip);
-                }
+                // [SEC-01] hashClientIp valida proxy antes de usar X-Forwarded-For
+                ipHash = hashUtils.hashClientIp(attrs.getRequest());
             }
-            UserAccessLog log = UserAccessLog.builder()
+            UserAccessLog accessLog = UserAccessLog.builder()
                     .user(user)
                     .ipHash(ipHash)
                     .build();
-            accessLogRepository.save(log);
+            accessLogRepository.save(accessLog);
         } catch (Exception e) {
-            // Log de acesso nunca deve impedir o login
-            System.err.println("[WARN] Falha ao registrar access log: " + e.getMessage());
-        }
-    }
-
-    /**
-     * [VULN-07 FIX] Gera hash SHA-256 do token para armazenamento seguro.
-     * ASVS 2.5.4 / CWE-312
-     */
-    private String hashToken(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hashBytes) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 não disponível", e);
+            // [REF-07] Logger SLF4J em vez de System.err.println
+            log.warn("[ACCESS-LOG] Falha ao registrar access log para usuário {}: {}",
+                user.getEmail(), e.getMessage());
         }
     }
 
     @Transactional
     public AuthResponse loginWithGoogle(String idTokenString, String suppliedNonce) {
         try {
-            com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = verifyGoogleToken(idTokenString);
+            GoogleIdToken.Payload payload = verifyGoogleToken(idTokenString);
 
             // 1. Exigir verificação estrita de e-mail (ASVS 2.1.12)
             if (!payload.getEmailVerified()) {
                 throw new IllegalArgumentException("Email do Google não verificado");
             }
 
-            // 2. Proteção contra CSRF e Replays - Validação estrita de Nonce
+            // 2. Proteção contra CSRF e Replays — Validação estrita de Nonce
             String tokenNonce = (String) payload.get("nonce");
             if (tokenNonce == null || tokenNonce.isBlank() || !tokenNonce.equals(suppliedNonce)) {
                 throw new IllegalArgumentException("Token de estado (Nonce/CSRF) inválido ou expirado");
@@ -235,23 +240,23 @@ public class AuthService {
         }
     }
 
-    private com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload verifyGoogleToken(String idTokenString) throws Exception {
-        com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = 
-            new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
-                    new com.google.api.client.http.javanet.NetHttpTransport(), 
-                    new com.google.api.client.json.gson.GsonFactory())
-                .setAudience(java.util.Collections.singletonList(googleClientId))
-                .setIssuers(java.util.Arrays.asList("accounts.google.com", "https://accounts.google.com"))
-                .build();
+    // [REF-04] FQNs do Google movidos para imports no topo — método agora legível
+    private GoogleIdToken.Payload verifyGoogleToken(String idTokenString) throws Exception {
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(),
+                new GsonFactory())
+            .setAudience(Collections.singletonList(googleClientId))
+            .setIssuers(Arrays.asList("accounts.google.com", "https://accounts.google.com"))
+            .build();
 
-        com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(idTokenString);
+        GoogleIdToken idToken = verifier.verify(idTokenString);
         if (idToken == null) {
             throw new IllegalArgumentException("Assinatura do token do Google inválida ou expirada");
         }
         return idToken.getPayload();
     }
 
-    private User syncSocialUser(com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload) {
+    private User syncSocialUser(GoogleIdToken.Payload payload) {
         String email = payload.getEmail().toLowerCase().trim();
         String name = (String) payload.get("name");
         if (name == null || name.isBlank()) {
@@ -259,10 +264,9 @@ public class AuthService {
         }
 
         User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-        boolean isNewUser = false;
+        boolean isNewUser = (user == null);
 
-        if (user == null) {
-            isNewUser = true;
+        if (isNewUser) {
             // [ASVS 2.4.6] Senha de alta entropia para login social (nunca exposta, impossível adivinhar)
             byte[] randomBytes = new byte[24];
             SECURE_RANDOM.nextBytes(randomBytes);
@@ -276,11 +280,9 @@ public class AuthService {
                     .build();
 
             user = userRepository.save(user);
-        }
-
-        if (isNewUser) {
             defaultCategorySeeder.seedForNewUser(user);
         }
+
         return user;
     }
 }

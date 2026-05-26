@@ -60,9 +60,8 @@ public class TaskService {
 
     public TaskResponse getTaskById(Long id) {
         User user = securityService.getCurrentUser();
-        Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
-        return TaskResponse.fromEntity(task);
+        // [REF-02] findOwnedTaskOrThrow centraliza o orElseThrow repetido
+        return TaskResponse.fromEntity(findOwnedTaskOrThrow(id, user.getId()));
     }
 
     @Transactional(readOnly = false)
@@ -93,8 +92,7 @@ public class TaskService {
     @Transactional(readOnly = false)
     public TaskResponse updateTask(Long id, TaskRequest request) {
         User user = securityService.getCurrentUser();
-        Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+        Task task = findOwnedTaskOrThrow(id, user.getId()); // [REF-02]
 
         Category category = resolveCategory(request.getCategoryId(), user.getId());
         LocalDate endDate = resolveEndDate(request);
@@ -117,8 +115,7 @@ public class TaskService {
     @Transactional(readOnly = false)
     public TaskResponse updateTaskStatus(Long id, TaskStatus status) {
         User user = securityService.getCurrentUser();
-        Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+        Task task = findOwnedTaskOrThrow(id, user.getId()); // [REF-02]
         task.setStatus(status);
         return TaskResponse.fromEntity(taskRepository.save(task));
     }
@@ -136,8 +133,7 @@ public class TaskService {
         int currentSpent = task.getTimeSpentMinutes() != null ? task.getTimeSpentMinutes() : 0;
         int newSpent = currentSpent + minutes;
 
-        // Validação estrita: O backend nunca confia no frontend
-        if (newSpent > 43200) { // Máximo de 30 dias de trabalho contínuo
+        if (newSpent > 43200) {
             throw new IllegalArgumentException("Tempo total gasto não pode exceder 30 dias (43200 minutos)");
         }
 
@@ -148,17 +144,35 @@ public class TaskService {
     @Transactional(readOnly = false)
     public void deleteTask(Long id) {
         User user = securityService.getCurrentUser();
-        Task task = taskRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
-        taskRepository.delete(task);
+        taskRepository.delete(findOwnedTaskOrThrow(id, user.getId())); // [REF-02]
     }
 
+    /**
+     * [REF-10] Estatísticas das tarefas do usuário em uma única query GROUP BY.
+     *
+     * ANTES: 4 queries separadas (total + 3 por status) = N+1 implícito.
+     * AGORA: 1 query GROUP BY + 1 para o total = 2 roundtrips ao banco.
+     */
     public Map<String, Long> getStats() {
         User user = securityService.getCurrentUser();
-        long total      = taskRepository.countByUserId(user.getId());
-        long todo       = taskRepository.countByUserIdAndStatus(user.getId(), TaskStatus.TODO);
-        long inProgress = taskRepository.countByUserIdAndStatus(user.getId(), TaskStatus.IN_PROGRESS);
-        long done       = taskRepository.countByUserIdAndStatus(user.getId(), TaskStatus.DONE);
+        long userId = user.getId();
+
+        // Inicializar com zero (status pode não ter tarefas)
+        long total      = 0L;
+        long todo       = 0L;
+        long inProgress = 0L;
+        long done       = 0L;
+
+        for (Object[] row : taskRepository.countByUserIdGroupByStatus(userId)) {
+            TaskStatus status = (TaskStatus) row[0];
+            long count = (Long) row[1];
+            total += count;
+            switch (status) {
+                case TODO        -> todo       = count;
+                case IN_PROGRESS -> inProgress = count;
+                case DONE        -> done       = count;
+            }
+        }
 
         Map<String, Long> stats = new HashMap<>();
         stats.put("total",      total);
@@ -166,6 +180,16 @@ public class TaskService {
         stats.put("inProgress", inProgress);
         stats.put("done",       done);
         return stats;
+    }
+
+    /**
+     * [REF-02] Helper centralizado que substitui o padrão findByIdAndUserId + orElseThrow
+     * que estava repetido em 5 métodos diferentes (getTaskById, updateTask,
+     * updateTaskStatus, deleteTask — incrementTaskTime usa findForUpdate por precisar de lock).
+     */
+    private Task findOwnedTaskOrThrow(Long id, Long userId) {
+        return taskRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
     }
 
     private Category resolveCategory(Long categoryId, Long userId) {
