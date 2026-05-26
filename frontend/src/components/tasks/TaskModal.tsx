@@ -8,6 +8,7 @@ import { X, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const [formData, setFormData] = useState<TaskInput>({
     title: "",
@@ -65,17 +67,16 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
 
   const handleDelete = async () => {
     if (!task) return;
-    if (confirm("Tem certeza que deseja excluir esta tarefa permanentemente?")) {
-      setLoading(true);
-      try {
-        await tasksApi.delete(task.id);
-        onSuccess();
-        onClose();
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Erro ao excluir a tarefa.");
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      await tasksApi.delete(task.id);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erro ao excluir a tarefa.");
+    } finally {
+      setLoading(false);
+      setIsConfirmOpen(false);
     }
   };
 
@@ -86,6 +87,29 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
     if (!formData.title.trim()) {
       setError("O título é obrigatório.");
       return;
+    }
+
+    if (formData.startDate && formData.endDate) {
+      if (formData.startDate > formData.endDate) {
+        setError("A data de início não pode ser posterior à data de conclusão.");
+        return;
+      }
+    }
+
+    if (formData.startDate) {
+      const start = new Date(formData.startDate + "T00:00:00");
+      if (isNaN(start.getTime())) {
+        setError("Data de início inválida.");
+        return;
+      }
+    }
+
+    if (formData.endDate) {
+      const end = new Date(formData.endDate + "T00:00:00");
+      if (isNaN(end.getTime())) {
+        setError("Data de conclusão inválida.");
+        return;
+      }
     }
 
     setLoading(true);
@@ -334,7 +358,7 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
               {task && (
                 <button
                   type="button"
-                  onClick={handleDelete}
+                  onClick={() => setIsConfirmOpen(true)}
                   disabled={loading}
                   className="text-[var(--red)] hover:bg-[var(--red)]/10 px-4 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors disabled:opacity-50"
                 >
@@ -380,6 +404,16 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Excluir Tarefa"
+        message="Tem certeza que deseja excluir esta tarefa permanentemente?"
+        confirmText="Excluir"
+        isDestructive={true}
+      />
     </div>
   );
 }

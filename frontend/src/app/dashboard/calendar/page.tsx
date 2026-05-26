@@ -57,31 +57,37 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-[var(--color-border)] bg-[var(--bg)]/50 backdrop-blur-sm z-10 sticky top-0">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text)] capitalize">
-            {format(currentDate, "MMMM yyyy", { locale: ptBR })}
+          <h1 className="text-2xl font-bold text-[var(--text)] capitalize flex items-center gap-2">
+            Calendário
           </h1>
           <p className="text-[var(--text-2)] text-sm">Visão geral de vencimentos.</p>
         </div>
         
-        <div className="flex items-center gap-2 bg-[var(--bg-2)] p-1 rounded-lg border border-[var(--color-border)]">
-          <button 
-            onClick={handlePrevMonth}
-            className="p-1.5 hover:bg-[var(--bg)] rounded-md transition-colors text-[var(--text-2)] hover:text-[var(--text)]"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => setCurrentDate(new Date())}
-            className="px-3 py-1.5 text-sm font-medium hover:bg-[var(--bg)] rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-[var(--bg-2)] hover:bg-[var(--bg-3)] border border-[var(--color-border)] rounded-[var(--radius)] transition-colors"
           >
             Hoje
           </button>
-          <button 
-            onClick={handleNextMonth}
-            className="p-1.5 hover:bg-[var(--bg)] rounded-md transition-colors text-[var(--text-2)] hover:text-[var(--text)]"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-1 bg-[var(--bg-2)] p-1 rounded-lg border border-[var(--color-border)]">
+            <button 
+              onClick={handlePrevMonth}
+              className="p-1.5 hover:bg-[var(--bg)] rounded-md transition-colors text-[var(--text-2)] hover:text-[var(--text)]"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="min-w-[120px] text-center text-sm font-medium capitalize">
+              {format(currentDate, "MMMM yyyy", { locale: ptBR })}
+            </span>
+            <button 
+              onClick={handleNextMonth}
+              className="p-1.5 hover:bg-[var(--bg)] rounded-md transition-colors text-[var(--text-2)] hover:text-[var(--text)]"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 

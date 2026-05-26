@@ -19,6 +19,8 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState, useCallback } from "react";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 
 // ── Tipos de aba ─────────────────────────────────────────────────────────────
 type Tab = "users" | "audit";
@@ -327,6 +329,10 @@ function AuditTab() {
 function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }) {
   const [emailModalUser, setEmailModalUser] = useState<AdminUser | null>(null);
   const [roleLoadingId, setRoleLoadingId] = useState<number | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; action: () => void; title: string; message: string; isDestructive?: boolean }>({
+    isOpen: false, action: () => {}, title: "", message: ""
+  });
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; message: string; type?: "error" | "success" }>({ isOpen: false, message: "" });
 
   const {
     data: users,
@@ -340,31 +346,47 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
     isLoading: statsLoading,
   } = useSWR<AdminStats>("/admin/stats", adminApi.getStats);
 
-  const handleDeleteUser = async (id: number) => {
-    if (confirm("ATENÇÃO: Isso excluirá permanentemente o usuário e todas as suas tarefas. Deseja continuar?")) {
-      try {
-        await adminApi.deleteUser(id);
-        mutateUsers();
-      } catch {
-        alert("Erro ao excluir usuário.");
-      }
+  const executeDelete = async (id: number) => {
+    try {
+      await adminApi.deleteUser(id);
+      mutateUsers();
+    } catch {
+      setAlertModal({ isOpen: true, message: "Erro ao excluir usuário.", type: "error" });
     }
   };
 
-  const handleToggleRole = async (u: AdminUser) => {
-    const newRole = u.role === "ROLE_ADMIN" ? "ROLE_USER" : "ROLE_ADMIN";
-    const action = newRole === "ROLE_ADMIN" ? "PROMOVER" : "REBAIXAR";
-    if (!confirm(`Tem certeza que deseja ${action} o usuário "${u.name}" para ${newRole}?`)) return;
+  const handleDeleteUser = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Excluir Usuário",
+      message: "ATENÇÃO: Isso excluirá permanentemente o usuário e todas as suas tarefas. Deseja continuar?",
+      isDestructive: true,
+      action: () => executeDelete(id)
+    });
+  };
 
+  const executeToggleRole = async (u: AdminUser, newRole: "ROLE_ADMIN" | "ROLE_USER" | "ROLE_SUPER_ADMIN") => {
     setRoleLoadingId(u.id);
     try {
       const updated = await adminApi.changeUserRole(u.id, newRole);
       mutateUsers((prev) => prev?.map((x) => (x.id === updated.id ? updated : x)));
     } catch (err: any) {
-      alert(err.response?.data?.message || "Erro ao alterar role.");
+      setAlertModal({ isOpen: true, message: err.response?.data?.message || "Erro ao alterar role.", type: "error" });
     } finally {
       setRoleLoadingId(null);
     }
+  };
+
+  const handleToggleRole = (u: AdminUser) => {
+    const newRole = u.role === "ROLE_ADMIN" ? "ROLE_USER" : "ROLE_ADMIN";
+    const actionStr = newRole === "ROLE_ADMIN" ? "promover" : "rebaixar";
+    
+    setConfirmModal({
+      isOpen: true,
+      title: "Alterar Papel",
+      message: `Tem certeza que deseja ${actionStr} o usuário "${u.name}" para ${newRole}?`,
+      action: () => executeToggleRole(u, newRole)
+    });
   };
 
   const handleEmailSuccess = (updated: AdminUser) => {
@@ -568,6 +590,24 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
           onSuccess={handleEmailSuccess}
         />
       )}
+
+      {/* Confirm and Alert Modals */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.action}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        isDestructive={confirmModal.isDestructive}
+      />
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.type === "error" ? "Erro" : "Aviso"}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }

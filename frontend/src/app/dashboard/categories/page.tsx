@@ -4,6 +4,8 @@ import { useState } from "react";
 import useSWR from "swr";
 import { categoriesApi, Category } from "@/lib/api/categories";
 import CategoryModal from "@/components/categories/CategoryModal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 import { Plus, Loader2, AlertCircle, Trash2, Edit2 } from "lucide-react";
 
 const FIXED_CATEGORIES = ["Trabalho", "Pessoal", "Estudos", "Saúde", "Finanças", "Casa", "Lazer", "Outros"];
@@ -11,6 +13,8 @@ const FIXED_CATEGORIES = ["Trabalho", "Pessoal", "Estudos", "Saúde", "Finanças
 export default function CategoriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [confirmData, setConfirmData] = useState<{ isOpen: boolean; categoryId: number | null }>({ isOpen: false, categoryId: null });
+  const [alertData, setAlertData] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
 
   // Data fetching via SWR
   const { data: categories, error, isLoading, mutate } = useSWR<Category[]>("/categories", categoriesApi.getAll);
@@ -25,15 +29,20 @@ export default function CategoriesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Tem certeza que deseja excluir esta categoria? Tarefas associadas perderão o vínculo.")) {
-      try {
-        await categoriesApi.delete(id);
-        mutate();
-      } catch (err) {
-        alert("Erro ao excluir a categoria.");
-      }
+  const executeDelete = async () => {
+    if (!confirmData.categoryId) return;
+    try {
+      await categoriesApi.delete(confirmData.categoryId);
+      mutate();
+    } catch (err) {
+      setAlertData({ isOpen: true, message: "Erro ao excluir a categoria." });
+    } finally {
+      setConfirmData({ isOpen: false, categoryId: null });
     }
+  };
+
+  const handleDelete = (id: number) => {
+    setConfirmData({ isOpen: true, categoryId: id });
   };
 
   return (
@@ -123,6 +132,24 @@ export default function CategoriesPage() {
         onClose={() => setIsModalOpen(false)}
         category={selectedCategory}
         onSuccess={() => mutate()}
+      />
+
+      <ConfirmModal
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ isOpen: false, categoryId: null })}
+        onConfirm={executeDelete}
+        title="Excluir Categoria"
+        message="Tem certeza que deseja excluir esta categoria? Tarefas associadas perderão o vínculo."
+        confirmText="Excluir"
+        isDestructive={true}
+      />
+
+      <AlertModal
+        isOpen={alertData.isOpen}
+        onClose={() => setAlertData({ isOpen: false, message: "" })}
+        title="Erro"
+        message={alertData.message}
+        type="error"
       />
     </div>
   );
