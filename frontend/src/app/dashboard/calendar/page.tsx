@@ -53,9 +53,9 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] -m-6">
+    <div className="flex flex-col h-[calc(100vh-64px)] -m-4 sm:-m-6">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)] bg-[var(--bg)]/50 backdrop-blur-sm z-10 sticky top-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-[var(--color-border)] bg-[var(--bg)]/50 backdrop-blur-sm z-10 sticky top-0">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)] capitalize">
             {format(currentDate, "MMMM yyyy", { locale: ptBR })}
@@ -86,7 +86,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Main Calendar Grid */}
-      <div className="flex-1 overflow-hidden flex flex-col p-6 bg-[var(--bg)]">
+      <div className="flex-1 overflow-hidden flex flex-col p-4 sm:p-6 bg-[var(--bg)]">
         {error ? (
           <div className="p-4 bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/20 rounded-[var(--radius-lg)] flex items-center justify-center gap-2">
             <AlertCircle className="w-5 h-5" />
@@ -102,7 +102,8 @@ export default function CalendarPage() {
             <div className="grid grid-cols-7 border-b border-[var(--color-border)] bg-[var(--bg-2)]">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
                 <div key={day} className="py-3 text-center text-sm font-semibold text-[var(--text-2)]">
-                  {day}
+                  <span className="hidden sm:inline">{day}</span>
+                  <span className="inline sm:hidden">{day.charAt(0)}</span>
                 </div>
               ))}
             </div>
@@ -116,7 +117,7 @@ export default function CalendarPage() {
                   <div 
                     key={day.toISOString()}
                     className={clsx(
-                      "min-h-[100px] border-r border-b border-[var(--color-border)]/50 p-2 transition-colors group/day",
+                      "min-h-[70px] sm:min-h-[100px] border-r border-b border-[var(--color-border)]/50 p-1 sm:p-2 transition-colors group/day",
                       !isSameMonth(day, monthStart) && "bg-[var(--bg-2)]/30 opacity-60",
                       isToday(day) && "bg-[var(--accent)]/5"
                     )}
@@ -137,7 +138,8 @@ export default function CalendarPage() {
                       </button>
                     </div>
 
-                    <div className="space-y-1 overflow-y-auto max-h-[80%] pr-1 custom-scrollbar">
+                    {/* Tasks List for Desktop */}
+                    <div className="hidden sm:block space-y-1 overflow-y-auto max-h-[80%] pr-1 custom-scrollbar">
                       {dayTasks.map(task => (
                         <div 
                           key={task.id}
@@ -151,6 +153,21 @@ export default function CalendarPage() {
                         >
                           {task.title}
                         </div>
+                      ))}
+                    </div>
+
+                    {/* Tasks Dots for Mobile */}
+                    <div className="flex sm:hidden flex-wrap gap-1 justify-center mt-1">
+                      {dayTasks.map(task => (
+                        <div 
+                          key={task.id}
+                          onClick={() => handleTaskClick(task)}
+                          className={clsx(
+                            "w-1.5 h-1.5 rounded-full shrink-0",
+                            task.status === "DONE" ? "bg-[var(--green)]" : "bg-[var(--accent)]"
+                          )}
+                          title={task.title}
+                        />
                       ))}
                     </div>
                   </div>

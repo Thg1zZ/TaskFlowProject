@@ -61,7 +61,7 @@ export default function LoginPage() {
         <div className="absolute top-[20%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--border-glow)] blur-[80px]" />
       </div>
 
-      <div className="w-full max-w-md space-y-8 glass p-8 rounded-[var(--radius-lg)] shadow-[var(--shadow)] relative">
+      <div className="w-full max-w-md space-y-8 glass p-6 sm:p-8 rounded-[var(--radius-lg)] shadow-[var(--shadow)] relative">
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="h-10 w-10 text-[var(--accent)]" />

@@ -65,7 +65,7 @@ export default function RegisterPage() {
         <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-[var(--bg-3)] blur-[100px] opacity-50" />
       </div>
 
-      <div className="w-full max-w-md space-y-8 glass p-8 rounded-[var(--radius-lg)] shadow-[var(--shadow)] relative">
+      <div className="w-full max-w-md space-y-8 glass p-6 sm:p-8 rounded-[var(--radius-lg)] shadow-[var(--shadow)] relative">
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="h-10 w-10 text-[var(--accent)]" />

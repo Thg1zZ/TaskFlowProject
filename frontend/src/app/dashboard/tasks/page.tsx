@@ -32,14 +32,14 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] -m-6 p-6">
+    <div className="flex flex-col h-[calc(100vh-64px)] -m-4 sm:-m-6 p-4 sm:p-6">
       {/* Top Header Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-1 bg-[var(--bg-2)] p-1 rounded-lg border border-[var(--color-border)]">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 w-full">
+        <div className="flex items-center gap-1 bg-[var(--bg-2)] p-1 rounded-lg border border-[var(--color-border)] max-w-full overflow-x-auto scrollbar-none shrink-0 w-full md:w-auto">
           <button
             onClick={() => setFilter("ALL")}
             className={clsx(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-all shrink-0 flex-1 md:flex-initial text-center",
               filter === "ALL" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
@@ -48,7 +48,7 @@ export default function TasksPage() {
           <button
             onClick={() => setFilter("TODO")}
             className={clsx(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-all shrink-0 flex-1 md:flex-initial text-center",
               filter === "TODO" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
@@ -57,7 +57,7 @@ export default function TasksPage() {
           <button
             onClick={() => setFilter("IN_PROGRESS")}
             className={clsx(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-all shrink-0 flex-1 md:flex-initial text-center",
               filter === "IN_PROGRESS" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
@@ -66,15 +66,15 @@ export default function TasksPage() {
           <button
             onClick={() => setFilter("DONE")}
             className={clsx(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-all shrink-0 flex-1 md:flex-initial text-center",
               filter === "DONE" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
             Concluídas
           </button>
         </div>
-
-        <div className="flex items-center gap-3">
+ 
+        <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
           <div className="flex items-center bg-[var(--bg-2)] rounded-lg border border-[var(--color-border)] p-1">
             <button
               onClick={() => setViewMode("grid")}
@@ -104,7 +104,7 @@ export default function TasksPage() {
               <KanbanSquare className="w-4 h-4" />
             </button>
           </div>
-
+ 
           <button
             onClick={handleCreateNew}
             className="flex items-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shadow-sm"
