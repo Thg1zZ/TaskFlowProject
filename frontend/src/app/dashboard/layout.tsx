@@ -101,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               );
             })}
 
-            {user.role === "ROLE_ADMIN" && (
+            {(user.role === "ROLE_ADMIN" || user.role === "ROLE_SUPER_ADMIN") && (
               <div className="pt-4 mt-4 border-t border-[var(--color-border)]">
                 <p className="px-3 text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider mb-2">Administração</p>
                 <Link 
@@ -114,7 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  Painel Admin
+                  {user.role === "ROLE_SUPER_ADMIN" ? "👑 Painel Master" : "Painel Admin"}
                 </Link>
               </div>
             )}

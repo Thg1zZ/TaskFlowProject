@@ -141,7 +141,7 @@ export default function AdminPage() {
   const [emailModalUser, setEmailModalUser] = useState<AdminUser | null>(null);
   const [roleLoadingId, setRoleLoadingId] = useState<number | null>(null);
 
-  if (currentUser?.role !== "ROLE_ADMIN") {
+  if (currentUser?.role !== "ROLE_ADMIN" && currentUser?.role !== "ROLE_SUPER_ADMIN") {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh]">
         <div className="w-20 h-20 bg-[var(--red)]/10 rounded-full flex items-center justify-center mb-6 text-[var(--red)]">
@@ -321,17 +321,21 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full ${
-                          u.role === "ROLE_ADMIN"
+                          u.role === "ROLE_SUPER_ADMIN"
+                            ? "bg-yellow-500/10 text-yellow-500 ring-1 ring-yellow-500/30"
+                            : u.role === "ROLE_ADMIN"
                             ? "bg-[var(--red)]/10 text-[var(--red)]"
                             : "bg-[var(--accent)]/10 text-[var(--accent)]"
                         }`}
                       >
-                        {u.role === "ROLE_ADMIN" ? (
+                        {u.role === "ROLE_SUPER_ADMIN" ? (
+                          <span>👑</span>
+                        ) : u.role === "ROLE_ADMIN" ? (
                           <Shield className="w-3 h-3" />
                         ) : (
                           <UserCog className="w-3 h-3" />
                         )}
-                        {u.role === "ROLE_ADMIN" ? "Admin" : "User"}
+                        {u.role === "ROLE_SUPER_ADMIN" ? "Master" : u.role === "ROLE_ADMIN" ? "Admin" : "User"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-[var(--text-2)] font-mono text-xs">{u.taskCount}</td>
@@ -340,7 +344,7 @@ export default function AdminPage() {
                       {format(new Date(u.createdAt), "dd MMM yyyy", { locale: ptBR })}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {currentUser?.id !== u.id && (
+                      {currentUser?.id !== u.id && u.role !== "ROLE_SUPER_ADMIN" && (
                         <div className="flex items-center justify-end gap-1">
                           {/* Alterar e-mail */}
                           <button

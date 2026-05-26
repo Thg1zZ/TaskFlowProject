@@ -198,6 +198,11 @@ public class UserService {
     public void deleteAccount(DeleteAccountRequest req) {
         User u = securityService.getCurrentUser();
 
+        // [SUPER_ADMIN SHIELD] A conta master não pode ser auto-excluída pelo sistema
+        if (u.getRole() == com.taskmanager.entity.UserRole.ROLE_SUPER_ADMIN) {
+            throw new IllegalArgumentException("A conta de administrador master não pode ser excluída pelo painel do sistema.");
+        }
+
         // 1. Validar a senha fornecida
         if (!passwordEncoder.matches(req.getPassword(), u.getPassword())) {
             logger.warn("Tentativa de exclusão de conta falhou para o usuário {}: senha incorreta", u.getEmail());

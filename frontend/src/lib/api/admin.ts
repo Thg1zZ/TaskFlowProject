@@ -4,7 +4,7 @@ export interface AdminUser {
   id: number;
   name: string;
   email: string;
-  role: "ROLE_ADMIN" | "ROLE_USER";
+  role: "ROLE_ADMIN" | "ROLE_USER" | "ROLE_SUPER_ADMIN";
   bio: string | null;
   jobTitle: string | null;
   createdAt: string;
@@ -42,7 +42,7 @@ export const adminApi = {
     return res.data;
   },
 
-  changeUserRole: async (id: number, role: "ROLE_ADMIN" | "ROLE_USER"): Promise<AdminUser> => {
+  changeUserRole: async (id: number, role: "ROLE_ADMIN" | "ROLE_USER" | "ROLE_SUPER_ADMIN"): Promise<AdminUser> => {
     const res = await api.patch<AdminUser>(`/admin/users/${id}/role`, { role });
     return res.data;
   },

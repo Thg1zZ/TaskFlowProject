@@ -34,6 +34,19 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Administrador não encontrado"));
     }
 
+    /**
+     * [ASVS 4.1] Garante que nenhuma ação admin possa afetar o Super Admin.
+     * Esta verificação é a linha de defesa central e deve ser chamada antes
+     * de qualquer operação de modificação/exclusão de usuário.
+     */
+    private void assertNotSuperAdmin(User target) {
+        if (target.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            throw new IllegalArgumentException(
+                "Operação negada: esta conta possui proteção de nível máximo e não pode ser modificada."
+            );
+        }
+    }
+
     public List<AdminUserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(user -> {
@@ -48,7 +61,7 @@ public class AdminService {
     public void deleteUser(Long id) {
         User admin = getCurrentAdmin();
 
-        // [ASVS 4.1.1] Impedir que o administrador delete a si mesmo
+        // [ASVS 4.1.1] Impedir que qualquer admin delete a si mesmo
         if (admin.getId().equals(id)) {
             throw new IllegalArgumentException("Você não pode excluir sua própria conta administradora");
         }
@@ -56,16 +69,14 @@ public class AdminService {
         User userToDelete = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        // Impedir exclusão de outros admins
-        if (userToDelete.getRole() == UserRole.ROLE_ADMIN) {
-            throw new IllegalArgumentException("Não é permitido excluir outros administradores");
-        }
+        // [SUPER_ADMIN SHIELD] Bloqueia exclusão do administrador master
+        assertNotSuperAdmin(userToDelete);
 
         userRepository.delete(userToDelete);
     }
 
     /**
-     * [ASVS 4.1] Troca de e-mail pelo admin com validações de segurança completas.
+     * Troca de e-mail pelo admin com validações de segurança completas.
      * Verifica unicidade, blacklist, e normaliza antes de persistir.
      */
     @Transactional(readOnly = false)
@@ -73,10 +84,15 @@ public class AdminService {
         User admin = getCurrentAdmin();
         String normalized = newEmail.toLowerCase().trim();
 
-        // Impedir que admin altere o próprio e-mail por aqui (usar perfil)
         if (admin.getId().equals(id)) {
             throw new IllegalArgumentException("Use a página de perfil para alterar seu próprio e-mail");
         }
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        // [SUPER_ADMIN SHIELD] Bloqueia alteração de e-mail do administrador master
+        assertNotSuperAdmin(user);
 
         // Verificar blacklist
         if (blacklistedEmailRepository.existsByEmailIgnoreCase(normalized)) {
@@ -88,9 +104,6 @@ public class AdminService {
             throw new IllegalArgumentException("Este e-mail já está em uso por outro usuário");
         }
 
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
         user.setEmail(normalized);
         User saved = userRepository.save(user);
 
@@ -100,8 +113,9 @@ public class AdminService {
     }
 
     /**
-     * [ASVS 4.1] Alteração de role com proteções: não permite auto-promoção
-     * nem rebaixamento de outro admin.
+     * Alteração de role com proteções em cascata:
+     * - SUPER_ADMIN nunca pode ser rebaixado
+     * - Somente o próprio SUPER_ADMIN pode promover outros a SUPER_ADMIN
      */
     @Transactional(readOnly = false)
     public AdminUserResponse changeUserRole(Long id, String roleName) {
@@ -115,11 +129,19 @@ public class AdminService {
         try {
             newRole = UserRole.valueOf(roleName.toUpperCase().trim());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Role inválida. Use ROLE_USER ou ROLE_ADMIN");
+            throw new IllegalArgumentException("Role inválida. Use ROLE_USER, ROLE_ADMIN ou ROLE_SUPER_ADMIN");
         }
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        // [SUPER_ADMIN SHIELD] Bloqueia rebaixamento do administrador master
+        assertNotSuperAdmin(user);
+
+        // Apenas o SUPER_ADMIN pode promover outros a SUPER_ADMIN
+        if (newRole == UserRole.ROLE_SUPER_ADMIN && admin.getRole() != UserRole.ROLE_SUPER_ADMIN) {
+            throw new IllegalArgumentException("Apenas o Super Admin pode promover outros usuários a este nível");
+        }
 
         user.setRole(newRole);
         User saved = userRepository.save(user);
