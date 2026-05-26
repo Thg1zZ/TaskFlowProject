@@ -4,6 +4,8 @@ import useSWR from "swr";
 import { tasksApi, Task } from "@/lib/api/tasks";
 import { AlertCircle, Loader2, CheckSquare } from "lucide-react";
 import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
+import Link from "next/link";
+
 
 export default function DashboardPage() {
   const { data: tasks, error, isLoading } = useSWR<Task[]>("/tasks", tasksApi.getAll);
@@ -90,9 +92,9 @@ export default function DashboardPage() {
               <p className="text-sm text-[var(--red)]/80">Você possui {stats.overdue} tarefa(s) atrasada(s).</p>
             </div>
           </div>
-          <button className="text-sm font-medium text-[var(--red)] hover:underline">
+          <Link href="/dashboard/tasks" className="text-sm font-medium text-[var(--red)] hover:underline">
             Ver tarefas
-          </button>
+          </Link>
         </div>
       )}
 

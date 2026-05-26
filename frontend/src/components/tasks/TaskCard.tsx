@@ -41,7 +41,14 @@ export default function TaskCard({ task, onClick, onStatusChange, selected, onSe
       )}
     >
       {/* Priority Bar */}
-      <div className={clsx("absolute top-0 left-0 bottom-0 w-1.5", priorityColors[task.priority])} />
+      <div 
+        className={clsx(
+          "absolute top-0 left-0 bottom-0 w-1.5 transition-all duration-300",
+          isOverdue 
+            ? "bg-[var(--red)] animate-[pulse_1.5s_infinite_ease-in-out] shadow-[2px_0_12px_rgba(239,68,68,0.8)] z-10" 
+            : priorityColors[task.priority]
+        )} 
+      />
 
       <div className="p-4 pl-5 flex flex-col h-full gap-3">
         {/* Header */}
