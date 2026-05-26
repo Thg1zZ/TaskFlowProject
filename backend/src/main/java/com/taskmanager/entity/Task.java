@@ -13,13 +13,14 @@ import org.hibernate.annotations.Formula;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "tasks")
 @Data
-@EqualsAndHashCode(exclude = {"user", "category", "comments"})
-@ToString(exclude = {"user", "category", "comments"})
+@EqualsAndHashCode(exclude = {"user", "category", "comments", "participants"})
+@ToString(exclude = {"user", "category", "comments", "participants"})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -83,6 +84,16 @@ public class Task {
     @Formula("(select count(*) from task_comments c where c.task_id = id)")
     private long commentCount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "privacy_mode", nullable = false)
+    @Builder.Default
+    private TaskPrivacy privacyMode = TaskPrivacy.PRIVATE;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<TaskParticipant> participants = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -103,5 +114,9 @@ public class Task {
 
     public enum TaskPriority {
         LOW, MEDIUM, HIGH
+    }
+
+    public enum TaskPrivacy {
+        PRIVATE, PUBLIC
     }
 }

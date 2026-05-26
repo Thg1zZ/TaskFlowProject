@@ -21,6 +21,15 @@ export interface Task {
   categoryColor?: string;
   categoryIcon?: string;
   commentCount: number;
+
+  ownerId: number;
+  privacyMode: 'PRIVATE' | 'PUBLIC';
+  participants: {
+    id: number;
+    userId: number;
+    userName: string;
+    role: 'ADMIN' | 'EDITOR' | 'VIEWER';
+  }[];
 }
 
 export interface TaskInput {

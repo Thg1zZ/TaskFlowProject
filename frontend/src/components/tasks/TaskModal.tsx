@@ -9,6 +9,9 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { useAuth } from "@/context/AuthContext";
+import ShareModal from "@/components/collaboration/ShareModal";
+import ParticipantAvatars from "@/components/collaboration/ParticipantAvatars";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -23,6 +26,10 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
   const [error, setError] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [privacyMode, setPrivacyMode] = useState<'PRIVATE'|'PUBLIC'>('PRIVATE');
+
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState<TaskInput>({
     title: "",
@@ -37,7 +44,6 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
 
   const { data: categories } = useSWR<Category[]>("/categories", categoriesApi.getAll);
 
-  // Função para resetar formulário chamada do componente pai via remounting (key) ou quando abre
   useEffect(() => {
     if (isOpen) {
       setFormData(task ? {
@@ -60,7 +66,17 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
         categoryId: null,
       });
       setError("");
-      setIsReadOnly(!!task); // Começa em modo de visualização se for uma tarefa existente
+
+      if (task && user) {
+        setPrivacyMode(task.privacyMode);
+        const isOwner = task.ownerId === user.id;
+        const participant = task.participants?.find((p: any) => p.userId === user.id);
+        const role = isOwner ? 'OWNER' : (participant?.role || 'VIEWER');
+        
+        setIsReadOnly(role === 'VIEWER');
+      } else {
+        setIsReadOnly(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, task, initialDate]);
@@ -112,95 +128,88 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
       }
     }
 
+    if (formData.estimatedMinutes !== null && formData.estimatedMinutes !== undefined && formData.estimatedMinutes < 0) {
+      setError("A estimativa de tempo não pode ser negativa.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const payload: TaskInput = {
-        ...formData,
-        startDate: formData.startDate || null,
-        endDate: formData.endDate || null,
-        dueDate: formData.endDate || null, // dueDate is aliased to endDate
-      };
-
-      const isCompleted = payload.status === "DONE" && (!task || task.status !== "DONE");
-
       if (task) {
-        await tasksApi.update(task.id, payload);
+        await tasksApi.update(task.id, formData);
       } else {
-        await tasksApi.create(payload);
+        await tasksApi.create(formData);
       }
-
-      if (isCompleted) {
-        try {
-          const audio = new Audio("/pop.ogg");
-          audio.volume = 0.4;
-          audio.play().catch((e) => console.log("Autoplay bloqueado pelo navegador:", e));
-        } catch (e) {
-          console.error("Falha ao tocar áudio:", e);
-        }
-      }
-
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao salvar a tarefa.");
+      setError(err.response?.data?.message || "Ocorreu um erro ao salvar a tarefa.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
       <div 
         className="bg-[var(--bg)] w-full max-w-lg rounded-[var(--radius-lg)] shadow-[var(--shadow)] border border-[var(--color-border)] flex flex-col max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-bold">{task ? "Editar Tarefa" : "Nova Tarefa"}</h2>
-          <button 
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-[var(--bg-3)] transition-colors text-[var(--color-muted-foreground)]"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--bg-2)] relative">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-[var(--text)]">
+              {task ? "Detalhes da Tarefa" : "Nova Tarefa"}
+              {isReadOnly && <span className="ml-2 text-xs font-medium px-2 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full">Apenas Visualização</span>}
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {task && (
+              <div className="hidden sm:flex items-center gap-2 mr-2">
+                <ParticipantAvatars participants={task.participants as any} />
+                {user && (task.ownerId === user.id || task.participants?.some((p: any) => p.userId === user.id && p.role === 'ADMIN')) && (
+                  <button
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="text-xs font-medium px-3 py-1.5 rounded bg-[var(--bg-3)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors border border-[var(--color-border)]"
+                  >
+                    Compartilhar
+                  </button>
+                )}
+              </div>
+            )}
+            <button 
+              onClick={onClose}
+              className="p-1 rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--bg-3)] hover:text-[var(--text)] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {error && (
-            <div className="m-4 p-3 text-sm text-[var(--red)] bg-[var(--red)]/10 border border-[var(--red)]/20 rounded-[var(--radius)]">
+            <div className="m-4 p-3 bg-[var(--red)]/10 text-[var(--red)] text-sm rounded-[var(--radius)] border border-[var(--red)]/20">
               {error}
             </div>
           )}
 
           {isReadOnly ? (
-            /* Visualização apenas de Leitura */
             <div className="p-6 space-y-6">
-              {/* Status, Prioridade e Categoria */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={clsx(
-                    "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                    formData.status === "DONE" 
-                      ? "bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/20" 
-                      : formData.status === "IN_PROGRESS" 
-                      ? "bg-[var(--yellow)]/10 text-[var(--yellow)] border border-[var(--yellow)]/20" 
-                      : "bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20"
+                    "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                    formData.status === "DONE" ? "bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/20" : formData.status === "IN_PROGRESS" ? "bg-[var(--yellow)]/10 text-[var(--yellow)] border border-[var(--yellow)]/20" : "bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20"
                   )}>
                     {formData.status === "DONE" ? "Concluída" : formData.status === "IN_PROGRESS" ? "Em Progresso" : "A Fazer"}
                   </span>
-                  
                   <span className={clsx(
                     "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                    formData.priority === "HIGH" 
-                      ? "bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20" 
-                      : formData.priority === "MEDIUM" 
-                      ? "bg-[var(--yellow)]/10 text-[var(--yellow)] border-[var(--yellow)]/20" 
-                      : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                    formData.priority === "HIGH" ? "bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20" : formData.priority === "MEDIUM" ? "bg-[var(--yellow)]/10 text-[var(--yellow)] border-[var(--yellow)]/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20"
                   )}>
                     Prioridade {formData.priority === "HIGH" ? "Alta" : formData.priority === "MEDIUM" ? "Média" : "Baixa"}
                   </span>
-
                   {formData.categoryId && (
                     <span className="bg-[var(--bg-3)] border border-[var(--color-border)] px-2.5 py-0.5 rounded-full text-[10px] font-medium text-[var(--text-2)] flex items-center gap-1">
                       <span>{categories?.find(c => c.id === formData.categoryId)?.icon}</span>
@@ -210,16 +219,12 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
                 </div>
                 <h3 className="text-xl font-bold text-[var(--text)] tracking-tight">{formData.title}</h3>
               </div>
-
-              {/* Descrição */}
               <div className="space-y-1.5">
                 <h4 className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Descrição</h4>
                 <p className="text-sm text-[var(--text-2)] bg-[var(--bg-2)] p-4 rounded-[var(--radius)] whitespace-pre-wrap leading-relaxed border border-[var(--color-border)]">
                   {formData.description || "Nenhuma descrição fornecida."}
                 </p>
               </div>
-
-              {/* Datas e Tempo Estimado */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1 bg-[var(--bg-3)]/50 p-3 rounded-[var(--radius)] border border-[var(--color-border)]/55">
                   <span className="text-[10px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Data de Início</span>
@@ -246,7 +251,6 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
               </div>
             </div>
           ) : (
-            /* Formulário de Edição */
             <form id="task-form" onSubmit={handleSubmit} className="p-4 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Título <span className="text-[var(--red)]">*</span></label>
@@ -351,58 +355,30 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
           )}
         </div>
 
-        {isReadOnly ? (
-          /* Botoes de Visualização */
-          <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex items-center justify-between">
-            <div>
-              {task && (
+        <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex justify-between items-center">
+            {task && !isReadOnly && (
+                <button type="button" onClick={() => setIsConfirmOpen(true)} className="text-sm text-[var(--red)] font-medium hover:underline">Excluir</button>
+            )}
+            <div className="flex gap-3 ml-auto">
                 <button
-                  type="button"
-                  onClick={() => setIsConfirmOpen(true)}
-                  disabled={loading}
-                  className="text-[var(--red)] hover:bg-[var(--red)]/10 px-4 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : "Excluir"}
-                </button>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <button
                 type="button"
-                onClick={onClose}
+                onClick={task ? () => setIsReadOnly(true) : onClose}
                 className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-[var(--radius)] transition-colors"
-              >
-                Fechar
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsReadOnly(false)}
-                className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 transition-opacity shadow-sm"
-              >
-                Editar
-              </button>
+                >
+                {task ? "Voltar" : "Cancelar"}
+                </button>
+                {!isReadOnly && (
+                <button
+                    type="submit"
+                    form="task-form"
+                    disabled={loading}
+                    className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                </button>
+                )}
             </div>
-          </div>
-        ) : (
-          /* Botoes de Edição/Criação */
-          <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={task ? () => setIsReadOnly(true) : onClose}
-              className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-[var(--radius)] transition-colors"
-            >
-              {task ? "Voltar" : "Cancelar"}
-            </button>
-            <button
-              type="submit"
-              form="task-form"
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (task ? "Atualizar" : "Criar Tarefa")}
-            </button>
-          </div>
-        )}
+        </div>
       </div>
 
       <ConfirmModal
@@ -410,10 +386,24 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={handleDelete}
         title="Excluir Tarefa"
-        message="Tem certeza que deseja excluir esta tarefa permanentemente?"
-        confirmText="Excluir"
+        message="Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita."
+        confirmText="Sim, excluir"
+        cancelText="Cancelar"
         isDestructive={true}
       />
+
+      {task && (
+        <ShareModal 
+          taskId={task.id}
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          privacyMode={privacyMode}
+          onPrivacyChange={(newMode) => {
+            setPrivacyMode(newMode);
+            onSuccess();
+          }}
+        />
+      )}
     </div>
   );
 }

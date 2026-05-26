@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +48,7 @@ public class TaskController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@taskSecurity.canView(#id)")
     public ResponseEntity<TaskResponse> getTaskById(@PathVariable Long id) {
         return ResponseEntity.ok(taskService.getTaskById(id));
     }
@@ -57,24 +59,28 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@taskSecurity.canEdit(#id)")
     public ResponseEntity<TaskResponse> updateTask(@PathVariable Long id,
                                                    @Valid @RequestBody TaskRequest request) {
         return ResponseEntity.ok(taskService.updateTask(id, request));
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("@taskSecurity.canEdit(#id)")
     public ResponseEntity<TaskResponse> updateStatus(@PathVariable Long id,
                                                      @Valid @RequestBody UpdateTaskStatusRequest request) {
         return ResponseEntity.ok(taskService.updateTaskStatus(id, request.getStatus()));
     }
 
     @PatchMapping("/{id}/track-time")
+    @PreAuthorize("@taskSecurity.canEdit(#id)")
     public ResponseEntity<TaskResponse> trackTime(@PathVariable Long id,
                                                   @Valid @RequestBody TimeTrackingRequest request) {
         return ResponseEntity.ok(taskService.incrementTaskTime(id, request.getMinutes()));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("@taskSecurity.canShare(#id)") // Only owner/admin can delete
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();

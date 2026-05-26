@@ -23,8 +23,17 @@ public class SecurityService {
      * @throws ResourceNotFoundException se o usuário não for encontrado no banco de dados.
      */
     public User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+
+        String email = authentication.getName();
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+    }
+
+    public Long getCurrentUserId() {
+        return getCurrentUser().getId();
     }
 }

@@ -9,7 +9,7 @@ import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import ColorSettingsModal, { defaultColors } from "@/components/dashboard/ColorSettingsModal";
-
+import ParticipantAvatars from "@/components/collaboration/ParticipantAvatars";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -159,11 +159,17 @@ export default function DashboardPage() {
                     {task.title}
                   </p>
                   
-                  <p className="text-xs text-[var(--color-muted-foreground)] truncate flex-1">
+                  <div className="flex-1 min-w-0 hidden md:block text-xs text-[var(--color-muted-foreground)] truncate">
                     {task.description || "Sem descrição"}
-                  </p>
-                  
-                  <span 
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 flex-shrink-0 ml-auto">
+                    {task.participants && task.participants.length > 0 && (
+                      <div className="hidden sm:block">
+                        <ParticipantAvatars participants={task.participants as any} />
+                      </div>
+                    )}
+                    <span 
                     className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24"
                     style={task.status === 'TODO' 
                       ? { backgroundColor: 'var(--bg-3)', color: colors.todo }
@@ -172,6 +178,7 @@ export default function DashboardPage() {
                   >
                     {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
                   </span>
+                  </div>
                 </div>
               ))}
             </div>

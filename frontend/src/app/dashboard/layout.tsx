@@ -8,6 +8,8 @@ import Link from "next/link";
 import { mutate } from "swr";
 import TaskModal from "@/components/tasks/TaskModal";
 import OnboardingTutorial from "@/components/tutorial/OnboardingTutorial";
+import { useRealtime } from "@/hooks/useRealtime";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -32,6 +34,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const pathname = usePathname();
+
+  useRealtime();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -168,7 +172,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SearchBar />
             </Suspense>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <NotificationBell />
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors"

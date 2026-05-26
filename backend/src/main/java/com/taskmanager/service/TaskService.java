@@ -29,6 +29,7 @@ public class TaskService {
     @Autowired private TaskRepository taskRepository;
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private SecurityService securityService;
+    @Autowired private RealTimeSseService sseService;
 
     private org.springframework.data.domain.Pageable createSafePageable(int page, int size) {
         int safeSize = Math.min(size, 100);
@@ -109,7 +110,10 @@ public class TaskService {
         if (request.getTimeSpentMinutes() != null) task.setTimeSpentMinutes(request.getTimeSpentMinutes());
         task.setCategory(category);
 
-        return TaskResponse.fromEntity(taskRepository.save(task));
+        Task updated = taskRepository.save(task);
+        sseService.broadcastToTask(task.getId(), "TASK_UPDATED", TaskResponse.fromEntity(updated));
+        
+        return TaskResponse.fromEntity(updated);
     }
 
     @Transactional(readOnly = false)
@@ -117,7 +121,10 @@ public class TaskService {
         User user = securityService.getCurrentUser();
         Task task = findOwnedTaskOrThrow(id, user.getId()); // [REF-02]
         task.setStatus(status);
-        return TaskResponse.fromEntity(taskRepository.save(task));
+        Task updated = taskRepository.save(task);
+        sseService.broadcastToTask(task.getId(), "TASK_UPDATED", TaskResponse.fromEntity(updated));
+        
+        return TaskResponse.fromEntity(updated);
     }
 
     @Transactional(readOnly = false)
@@ -138,13 +145,18 @@ public class TaskService {
         }
 
         task.setTimeSpentMinutes(newSpent);
-        return TaskResponse.fromEntity(taskRepository.save(task));
+        Task updated = taskRepository.save(task);
+        sseService.broadcastToTask(task.getId(), "TASK_UPDATED", TaskResponse.fromEntity(updated));
+        
+        return TaskResponse.fromEntity(updated);
     }
 
     @Transactional(readOnly = false)
     public void deleteTask(Long id) {
         User user = securityService.getCurrentUser();
-        taskRepository.delete(findOwnedTaskOrThrow(id, user.getId())); // [REF-02]
+        Task task = findOwnedTaskOrThrow(id, user.getId()); // [REF-02]
+        taskRepository.delete(task);
+        sseService.broadcastToTask(id, "TASK_DELETED", id);
     }
 
     /**

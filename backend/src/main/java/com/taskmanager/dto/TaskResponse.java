@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -37,6 +39,19 @@ public class TaskResponse {
 
     private int commentCount;
 
+    private Long ownerId;
+    private Task.TaskPrivacy privacyMode;
+    private List<ParticipantDto> participants;
+
+    @Data
+    @Builder
+    public static class ParticipantDto {
+        private Long id;
+        private Long userId;
+        private String userName;
+        private String role;
+    }
+
     public static TaskResponse fromEntity(Task task) {
         LocalDate finalEndDate = task.getEndDate() != null ? task.getEndDate() : task.getDueDate();
 
@@ -63,6 +78,20 @@ public class TaskResponse {
         }
 
         r.setCommentCount((int) task.getCommentCount());
+        
+        r.setOwnerId(task.getUser().getId());
+        r.setPrivacyMode(task.getPrivacyMode());
+        
+        if (task.getParticipants() != null) {
+            r.setParticipants(task.getParticipants().stream()
+                .map(p -> ParticipantDto.builder()
+                    .id(p.getId())
+                    .userId(p.getUser().getId())
+                    .userName(p.getUser().getName())
+                    .role(p.getRole().name())
+                    .build())
+                .collect(Collectors.toList()));
+        }
 
         return r;
     }
