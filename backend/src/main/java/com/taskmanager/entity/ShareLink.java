@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "share_links")
@@ -22,6 +24,7 @@ public class ShareLink {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "task_id", nullable = false)
+    @JsonIgnore
     private Task task;
 
     @Column(nullable = false, unique = true)
@@ -40,6 +43,7 @@ public class ShareLink {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonIgnore
     private User createdBy;
 
     @Column(name = "is_active", nullable = false)
