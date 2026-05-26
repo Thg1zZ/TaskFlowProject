@@ -1,7 +1,7 @@
 -- V5: Criação das tabelas de auditoria administrativa e logs de acesso
 
 -- Tabela para rastrear o último acesso dos usuários (usada nas estatísticas do admin)
-CREATE TABLE user_access_logs (
+CREATE TABLE IF NOT EXISTS user_access_logs (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     ip_hash VARCHAR(64),
@@ -10,7 +10,7 @@ CREATE TABLE user_access_logs (
 );
 
 -- Tabela imutável de auditoria de ações administrativas
-CREATE TABLE admin_audit_logs (
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id BIGSERIAL PRIMARY KEY,
     admin_id BIGINT NOT NULL,
     admin_email VARCHAR(255) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE admin_audit_logs (
 );
 
 -- Índices especificados na Entidade JPA para otimização de consultas
-CREATE INDEX idx_audit_admin ON admin_audit_logs(admin_id);
-CREATE INDEX idx_audit_target ON admin_audit_logs(target_user_id);
-CREATE INDEX idx_audit_time ON admin_audit_logs(performed_at);
-CREATE INDEX idx_audit_action ON admin_audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_admin ON admin_audit_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_audit_target ON admin_audit_logs(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_time ON admin_audit_logs(performed_at);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON admin_audit_logs(action);
