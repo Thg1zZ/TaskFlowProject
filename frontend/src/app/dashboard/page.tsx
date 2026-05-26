@@ -128,16 +128,19 @@ export default function DashboardPage() {
                 <div 
                   key={task.id} 
                   onClick={() => handleTaskClick(task)}
-                  className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center justify-between cursor-pointer group"
+                  className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center gap-4 cursor-pointer group w-full"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${task.priority === 'HIGH' ? 'bg-[var(--red)]' : task.priority === 'MEDIUM' ? 'bg-[var(--yellow)]' : 'bg-[var(--blue)]'}`} />
-                    <div>
-                      <p className="font-medium text-[var(--text)] text-sm">{task.title}</p>
-                      <p className="text-xs text-[var(--color-muted-foreground)] line-clamp-1">{task.description || "Sem descrição"}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium px-2 py-1 rounded bg-[var(--bg-3)] text-[var(--text-2)]">
+                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${task.priority === 'HIGH' ? 'bg-[var(--red)]' : task.priority === 'MEDIUM' ? 'bg-[var(--yellow)]' : 'bg-[var(--blue)]'}`} />
+                  
+                  <p className="font-medium text-[var(--text)] text-sm w-32 sm:w-48 truncate flex-shrink-0">
+                    {task.title}
+                  </p>
+                  
+                  <p className="text-xs text-[var(--color-muted-foreground)] truncate flex-1">
+                    {task.description || "Sem descrição"}
+                  </p>
+                  
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-[var(--bg-3)] text-[var(--text-2)] flex-shrink-0 whitespace-nowrap">
                     {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
                   </span>
                 </div>

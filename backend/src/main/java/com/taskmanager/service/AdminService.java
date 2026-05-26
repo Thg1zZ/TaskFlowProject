@@ -71,6 +71,7 @@ public class AdminService {
     private final UserAccessLogRepository accessLogRepository;
     private final BlacklistedEmailRepository blacklistedEmailRepository;
     private final AdminAuditLogRepository auditLogRepository;
+    private final AdminAuditService adminAuditService;
     private final SecurityService securityService;  // [DUP-03] substitui getCurrentAdmin() local
     private final HashUtils hashUtils;              // [DUP-02 / SEC-01] substitui hashCurrentIp()
 
@@ -121,7 +122,7 @@ public class AdminService {
                     .result(result)
                     .ipHash(ipHash)
                     .build();
-            auditLogRepository.save(entry);
+            adminAuditService.saveAuditLog(entry);
             auditFailCount.set(0); // Reset do contador em caso de sucesso
         } catch (Exception e) {
             int fails = auditFailCount.incrementAndGet();
