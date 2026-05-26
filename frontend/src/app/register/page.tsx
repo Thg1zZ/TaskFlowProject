@@ -18,10 +18,22 @@ function generateNonce(): string {
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const passwordRequirements = {
+    minLength: password.length >= 10,
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const isPasswordStrong = Object.values(passwordRequirements).every(Boolean);
   // Nonce gerado uma vez por montagem do componente
   const nonceRef = useRef<string>(generateNonce());
   
@@ -35,6 +47,22 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (email !== confirmEmail) {
+      setError("Os emails fornecidos não coincidem.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("As senhas fornecidas não coincidem.");
+      return;
+    }
+
+    if (!isPasswordStrong) {
+      setError("A senha não atende a todos os requisitos de segurança.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -113,6 +141,22 @@ export default function RegisterPage() {
                 placeholder="seu@email.com"
               />
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="confirmEmail">
+                Confirmar Email
+              </label>
+              <input
+                id="confirmEmail"
+                type="email"
+                required
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
+                placeholder="Confirme seu email"
+              />
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="password">
                 Senha
@@ -124,8 +168,51 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                placeholder="Mínimo 10 caracteres"
-                minLength={10}
+                placeholder="Crie uma senha forte"
+              />
+              
+              {/* Requisitos de senha forte dinâmicos */}
+              {password && (
+                <div className="p-3 bg-[var(--bg-3)] border border-[var(--color-border)] rounded-[var(--radius)] space-y-1.5 text-xs text-left">
+                  <p className="font-semibold text-[var(--text-2)] mb-1">Requisitos para uma senha forte:</p>
+                  <ul className="space-y-1">
+                    <li className={`flex items-center gap-1.5 ${passwordRequirements.minLength ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      Mínimo de 10 caracteres
+                    </li>
+                    <li className={`flex items-center gap-1.5 ${passwordRequirements.hasUpper ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      Pelo menos uma letra maiúscula (A-Z)
+                    </li>
+                    <li className={`flex items-center gap-1.5 ${passwordRequirements.hasLower ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      Pelo menos uma letra minúscula (a-z)
+                    </li>
+                    <li className={`flex items-center gap-1.5 ${passwordRequirements.hasNumber ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      Pelo menos um número (0-9)
+                    </li>
+                    <li className={`flex items-center gap-1.5 ${passwordRequirements.hasSpecial ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      Pelo menos um caractere especial (ex: @, $, !, %, *)
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="confirmPassword">
+                Confirmar Senha
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
+                placeholder="Confirme sua senha"
               />
             </div>
           </div>
