@@ -193,7 +193,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsNotificationsOpen(false)}
                   ></div>
-                  <div className="absolute right-0 mt-2 w-80 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-lg z-20 overflow-hidden">
+                  <div className="fixed top-16 left-4 right-4 sm:absolute sm:top-auto sm:right-0 sm:left-auto sm:mt-2 sm:w-80 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-lg z-50 sm:z-20 overflow-hidden">
                     <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
                       <h3 className="font-semibold text-[var(--text)]">Notificações</h3>
                     </div>
