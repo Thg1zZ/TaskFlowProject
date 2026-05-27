@@ -8,10 +8,8 @@ export const useRealtime = () => {
   const eventSourceRef = useRef<EventSourcePolyfill | null>(null);
 
   useEffect(() => {
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-    
-    // Como a API usa httpOnly cookies (ou JWT), o polyfill com withCredentials envia os cookies/sessões
-    const source = new EventSourcePolyfill(`${baseURL}/stream`, {
+    // Como a API usa httpOnly cookies (ou JWT), o polyfill com com caminho relativo '/api' passa pelo rewrite do Next.js, permitindo o envio automático de cookies de mesmo domínio.
+    const source = new EventSourcePolyfill('/api/stream', {
       withCredentials: true
     });
 

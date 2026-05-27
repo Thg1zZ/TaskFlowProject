@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://task-manager-with-login.onrender.com https://accounts.google.com; img-src 'self' data: blob: https://lh3.googleusercontent.com; frame-src 'self' https://accounts.google.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://vercel.live https://*.vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://vercel.live https://*.vercel.live; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8080 https://*.onrender.com https://accounts.google.com https://vercel.live https://*.vercel.live wss://*.pusher.com; img-src 'self' data: blob: https://lh3.googleusercontent.com https://vercel.live https://*.vercel.live https://*.vercel.com; frame-src 'self' https://accounts.google.com https://vercel.live https://*.vercel.live;",
           },
         ],
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
@@ -15,7 +15,7 @@ function generateNonce(): string {
   return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export default function RegisterPage() {
+function RegisterContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
@@ -392,5 +392,17 @@ export default function RegisterPage() {
     {isTermsModalOpen && <TermsModal />}
     {isPrivacyModalOpen && <PrivacyModal />}
     </GoogleOAuthProvider>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
   );
 }

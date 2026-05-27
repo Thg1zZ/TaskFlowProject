@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { collaborationApi } from "@/lib/api/collaboration";
@@ -8,7 +8,8 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
-export default function JoinTaskPage({ params }: { params: { token: string } }) {
+export default function JoinTaskPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = React.use(params);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
@@ -20,14 +21,14 @@ export default function JoinTaskPage({ params }: { params: { token: string } }) 
 
     // Se não estiver logado, redireciona para login com o callbackUrl
     if (!user) {
-      router.replace(`/login?callbackUrl=/join/${params.token}`);
+      router.replace(`/login?callbackUrl=/join/${token}`);
       return;
     }
 
     // Se estiver logado, tenta entrar na tarefa
     const joinTask = async () => {
       try {
-        await collaborationApi.joinTask(params.token);
+        await collaborationApi.joinTask(token);
         setStatus("success");
         toast.success("Você ingressou na tarefa com sucesso!");
         
@@ -45,7 +46,7 @@ export default function JoinTaskPage({ params }: { params: { token: string } }) 
     };
 
     joinTask();
-  }, [user, authLoading, params.token, router]);
+  }, [user, authLoading, token, router]);
 
   if (status === "loading" || authLoading || !user) {
     return (
