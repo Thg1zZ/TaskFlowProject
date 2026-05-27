@@ -173,7 +173,9 @@ export default function DashboardPage() {
                     className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24"
                     style={task.status === 'TODO' 
                       ? { backgroundColor: 'var(--bg-3)', color: colors.todo }
-                      : { backgroundColor: `${colors.inProgress}20`, color: colors.inProgress, border: `1px solid ${colors.inProgress}40` }
+                      : colors.inProgress.startsWith('var(')
+                        ? { backgroundColor: 'rgba(245, 158, 11, 0.1)', color: colors.inProgress, border: '1px solid rgba(245, 158, 11, 0.2)' }
+                        : { backgroundColor: `${colors.inProgress}20`, color: colors.inProgress, border: `1px solid ${colors.inProgress}40` }
                     }
                   >
                     {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
