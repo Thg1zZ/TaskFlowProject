@@ -40,6 +40,30 @@ export default function DashboardPage() {
 
   const recentTasks = tasks ? tasks.filter((t) => t.status !== "DONE").slice(0, 5) : [];
 
+  const getStatusBadgeStyle = (status: "TODO" | "IN_PROGRESS", color: string) => {
+    if (color.startsWith("var(")) {
+      if (status === "TODO") {
+        return {
+          backgroundColor: "rgba(156, 163, 175, 0.1)",
+          color: color,
+          border: "1px solid rgba(156, 163, 175, 0.2)"
+        };
+      } else {
+        return {
+          backgroundColor: "rgba(245, 158, 11, 0.1)",
+          color: color,
+          border: "1px solid rgba(245, 158, 11, 0.2)"
+        };
+      }
+    } else {
+      return {
+        backgroundColor: `${color}20`,
+        color: color,
+        border: `1px solid ${color}40`
+      };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -171,12 +195,7 @@ export default function DashboardPage() {
                     )}
                     <span 
                     className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24"
-                    style={task.status === 'TODO' 
-                      ? { backgroundColor: 'var(--bg-3)', color: colors.todo }
-                      : colors.inProgress.startsWith('var(')
-                        ? { backgroundColor: 'rgba(245, 158, 11, 0.1)', color: colors.inProgress, border: '1px solid rgba(245, 158, 11, 0.2)' }
-                        : { backgroundColor: `${colors.inProgress}20`, color: colors.inProgress, border: `1px solid ${colors.inProgress}40` }
-                    }
+                    style={getStatusBadgeStyle(task.status as any, task.status === 'TODO' ? colors.todo : colors.inProgress)}
                   >
                     {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
                   </span>
