@@ -30,6 +30,11 @@ export default function CalendarPage() {
   const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);
 
   // Calendar logic
+  const parseLocalCalendarDate = (dateStr: string): Date => {
+    const parts = dateStr.split("T")[0].split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  };
+
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
@@ -117,7 +122,7 @@ export default function CalendarPage() {
             {/* Calendar Cells */}
             <div className="flex-1 grid grid-cols-7 grid-rows-[repeat(auto-fit,minmax(0,1fr))]">
               {days.map((day, i) => {
-                const dayTasks = tasks?.filter(t => t.dueDate && isSameDay(new Date(t.dueDate), day)) || [];
+                const dayTasks = tasks?.filter(t => t.dueDate && isSameDay(parseLocalCalendarDate(t.dueDate), day)) || [];
 
                 return (
                   <div 
