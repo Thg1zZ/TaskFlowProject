@@ -34,10 +34,11 @@ public class CollaborationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
         // Desativa links anteriores para mesma tarefa (opcional - no nosso caso deixamos criar multiplos ou invalidamos o ativo)
-        shareLinkRepository.findByTaskIdAndIsActiveTrue(taskId).ifPresent(link -> {
-            link.setIsActive(false);
-            shareLinkRepository.save(link);
-        });
+        List<ShareLink> activeLinks = shareLinkRepository.findByTaskIdAndIsActiveTrue(taskId);
+        for (ShareLink activeLink : activeLinks) {
+            activeLink.setIsActive(false);
+        }
+        shareLinkRepository.saveAll(activeLinks);
 
         LocalDateTime expiresAt = expireInHours != null ? LocalDateTime.now().plusHours(expireInHours) : null;
 

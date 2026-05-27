@@ -44,6 +44,9 @@ export default function LoginPage() {
         name: res.data.name,
         email: res.data.email,
         role: res.data.role,
+        hasCompletedOnboarding: res.data.hasCompletedOnboarding,
+        receiveNotifications: res.data.receiveNotifications,
+        themePreferences: res.data.themePreferences,
       };
       login(userData);
     } catch (err: any) {
@@ -157,10 +160,13 @@ export default function LoginPage() {
                       nonce: nonceRef.current,
                     });
                     login({
-                      id: res.data.id,
+                      id: res.data.userId || res.data.id,
                       name: res.data.name,
                       email: res.data.email,
-                      role: res.data.role
+                      role: res.data.role,
+                      hasCompletedOnboarding: res.data.hasCompletedOnboarding,
+                      receiveNotifications: res.data.receiveNotifications,
+                      themePreferences: res.data.themePreferences,
                     });
                   } catch (err: any) {
                     setError("Erro na autenticação com o Google.");
