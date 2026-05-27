@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import useSWR from "swr";
 import { Task, TaskInput, tasksApi, TaskStatus, TaskPriority } from "@/lib/api/tasks";
 import { categoriesApi, Category } from "@/lib/api/categories";
@@ -30,6 +30,14 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
   const [privacyMode, setPrivacyMode] = useState<'PRIVATE'|'PUBLIC'>('PRIVATE');
 
   const { user } = useAuth();
+
+  const canEdit = useMemo(() => {
+    if (!task || !user) return false;
+    const isOwner = task.ownerId === user.id;
+    const participant = task.participants?.find((p: any) => p.userId === user.id);
+    const role = isOwner ? 'OWNER' : (participant?.role || 'VIEWER');
+    return role === 'OWNER' || role === 'ADMIN' || role === 'EDITOR';
+  }, [task, user]);
 
   const [formData, setFormData] = useState<TaskInput>({
     title: "",
@@ -69,11 +77,8 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
 
       if (task && user) {
         setPrivacyMode(task.privacyMode);
-        const isOwner = task.ownerId === user.id;
-        const participant = task.participants?.find((p: any) => p.userId === user.id);
-        const role = isOwner ? 'OWNER' : (participant?.role || 'VIEWER');
-        
-        setIsReadOnly(role === 'VIEWER');
+        // Sempre abre tarefas existentes em modo de visualização (read-only) por padrão
+        setIsReadOnly(true);
       } else {
         setIsReadOnly(false);
       }
@@ -166,7 +171,7 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
           </div>
           <div className="flex items-center gap-2">
             {task && (
-              <div className="hidden sm:flex items-center gap-2 mr-2">
+              <div className="flex items-center gap-2 mr-2">
                 <ParticipantAvatars participants={task.participants as any} />
                 {user && (task.ownerId === user.id || task.participants?.some((p: any) => p.userId === user.id && p.role === 'ADMIN')) && (
                   <button
@@ -359,25 +364,34 @@ export default function TaskModal({ isOpen, onClose, task, initialDate, onSucces
             {task && !isReadOnly && (
                 <button type="button" onClick={() => setIsConfirmOpen(true)} className="text-sm text-[var(--red)] font-medium hover:underline">Excluir</button>
             )}
-            <div className="flex gap-3 ml-auto">
-                <button
-                type="button"
-                onClick={task ? () => setIsReadOnly(true) : onClose}
-                className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-[var(--radius)] transition-colors"
-                >
-                {task ? "Voltar" : "Cancelar"}
-                </button>
-                {!isReadOnly && (
-                <button
-                    type="submit"
-                    form="task-form"
-                    disabled={loading}
-                    className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[100px]"
-                >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                </button>
-                )}
-            </div>
+             <div className="flex gap-3 ml-auto">
+                 <button
+                   type="button"
+                   onClick={(task && !isReadOnly) ? () => setIsReadOnly(true) : onClose}
+                   className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-[var(--radius)] transition-colors"
+                 >
+                   {task ? (isReadOnly ? "Fechar" : "Cancelar") : "Cancelar"}
+                 </button>
+                 {isReadOnly && canEdit && (
+                   <button
+                     type="button"
+                     onClick={() => setIsReadOnly(false)}
+                     className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 transition-opacity"
+                   >
+                     Editar
+                   </button>
+                 )}
+                 {!isReadOnly && (
+                   <button
+                     type="submit"
+                     form="task-form"
+                     disabled={loading}
+                     className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                   >
+                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                   </button>
+                 )}
+             </div>
         </div>
       </div>
 

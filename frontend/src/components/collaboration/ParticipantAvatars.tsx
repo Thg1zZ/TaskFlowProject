@@ -25,7 +25,7 @@ export default function ParticipantAvatars({ participants = [], maxCount = 3 }: 
           <div 
             key={p.id}
             title={`${name} (${role})`}
-            className="inline-block h-6 w-6 sm:h-8 sm:w-8 rounded-full ring-2 ring-[var(--bg)] bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center text-[10px] sm:text-xs font-bold"
+            className="inline-flex h-6 w-6 sm:h-8 sm:w-8 rounded-full ring-2 ring-[var(--bg)] bg-[var(--accent)] text-[var(--accent-foreground)] items-center justify-center text-[10px] sm:text-xs font-bold"
           >
             {displayName}
           </div>

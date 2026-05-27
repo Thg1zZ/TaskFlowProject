@@ -58,7 +58,7 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[var(--bg)] border border-[var(--color-border)] shadow-xl rounded-[var(--radius-lg)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-[var(--bg)] border border-[var(--color-border)] shadow-xl rounded-[var(--radius-lg)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
           <div className="p-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--bg-2)]">
             <h3 className="font-semibold text-sm">Notificações</h3>
             {notifications && notifications.length > 0 && (

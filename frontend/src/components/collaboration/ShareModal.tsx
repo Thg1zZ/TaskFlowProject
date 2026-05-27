@@ -16,7 +16,7 @@ interface ShareModalProps {
 export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPrivacyChange }: ShareModalProps) {
   const [participants, setParticipants] = useState<TaskParticipant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [linkRole, setLinkRole] = useState<'VIEWER' | 'EDITOR' | 'ADMIN'>('VIEWER');
+  const [linkRole, setLinkRole] = useState<'VIEWER' | 'EDITOR'>('VIEWER');
   const [generatedLink, setGeneratedLink] = useState('');
 
   const loadParticipants = async () => {
@@ -126,7 +126,6 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
               >
                 <option value="VIEWER">Visualizador</option>
                 <option value="EDITOR">Editor</option>
-                <option value="ADMIN">Administrador</option>
               </select>
               <button 
                 onClick={handleGenerateLink}
