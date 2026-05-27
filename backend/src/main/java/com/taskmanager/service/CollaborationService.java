@@ -143,4 +143,15 @@ public class CollaborationService {
 
         return updated;
     }
+
+    @Transactional
+    public void revokeShareLink(Long taskId, Long linkId) {
+        ShareLink link = shareLinkRepository.findByIdAndTaskId(linkId, taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Link de convite não encontrado"));
+        
+        link.setIsActive(false);
+        shareLinkRepository.save(link);
+
+        sseService.broadcastToTask(taskId, "TASK_UPDATED", "Link de convite revogado.");
+    }
 }

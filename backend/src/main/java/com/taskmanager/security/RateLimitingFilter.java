@@ -50,6 +50,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     // [ADMIN HARDENING] Endpoints administrativos têm limite próprio mais restrito
     private static final int  ADMIN_MAX_ATTEMPTS         = 20;
     private static final long ADMIN_WINDOW_MS            = 60 * 1000L;        // 1 minuto
+    
+    // [SECURITY HARDENING] Endpoints de colaboração e streaming têm limites para mitigar DoS
+    private static final int  SHARE_MAX_ATTEMPTS         = 30;
+    private static final long SHARE_WINDOW_MS            = 60 * 1000L;        // 1 minuto
+    private static final int  STREAM_MAX_ATTEMPTS        = 15;
+    private static final long STREAM_WINDOW_MS           = 60 * 1000L;        // 1 minuto
 
     /** [VULN-01 FIX] IPs de proxies reversos confiáveis (ex: nginx, load balancer). */
     @Value("${app.security.trusted-proxies:}")
@@ -77,6 +83,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private final ConcurrentHashMap<String, BucketEntry> registerBuckets   = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> forgotPwdBuckets  = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> adminBuckets      = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, BucketEntry> shareBuckets      = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, BucketEntry> streamBuckets     = new ConcurrentHashMap<>();
 
     private static final Map<String, long[]> PATH_LIMITS = Map.of(
         "/api/auth/login",           new long[]{ LOGIN_MAX_ATTEMPTS,      LOGIN_WINDOW_MS      },
@@ -89,8 +97,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        // Aplica rate limit em rotas de auth E rotas de admin
-        return !PATH_LIMITS.containsKey(uri) && !uri.startsWith(ADMIN_PATH_PREFIX);
+        boolean isSharePath = uri.startsWith("/api/tasks/") && uri.endsWith("/share");
+        boolean isStreamPath = "/api/stream".equals(uri);
+        // Aplica rate limit em rotas de auth, rotas de admin, rota de share e rota de stream
+        return !PATH_LIMITS.containsKey(uri) && !uri.startsWith(ADMIN_PATH_PREFIX) && !isSharePath && !isStreamPath;
     }
 
     @Override
@@ -112,10 +122,24 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return;
         }
 
-        long[] limits    = PATH_LIMITS.get(path);
-        int  maxAttempts = (int) limits[0];
-        long windowMs    = limits[1];
-        var  buckets     = getBucketsForPath(path);
+        int maxAttempts;
+        long windowMs;
+        ConcurrentHashMap<String, BucketEntry> buckets;
+
+        if (path.startsWith("/api/tasks/") && path.endsWith("/share")) {
+            maxAttempts = SHARE_MAX_ATTEMPTS;
+            windowMs = SHARE_WINDOW_MS;
+            buckets = shareBuckets;
+        } else if ("/api/stream".equals(path)) {
+            maxAttempts = STREAM_MAX_ATTEMPTS;
+            windowMs = STREAM_WINDOW_MS;
+            buckets = streamBuckets;
+        } else {
+            long[] limits = PATH_LIMITS.get(path);
+            maxAttempts = (int) limits[0];
+            windowMs = limits[1];
+            buckets = getBucketsForPath(path);
+        }
 
         if (isRateLimited(ip, buckets, maxAttempts, windowMs)) {
             log.warn("Rate limit atingido para IP={} em path={}", maskIp(ip), path);

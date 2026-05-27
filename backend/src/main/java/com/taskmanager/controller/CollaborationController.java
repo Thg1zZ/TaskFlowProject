@@ -74,4 +74,11 @@ public class CollaborationController {
         collaborationService.updatePrivacy(id, privacy);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/tasks/{id}/share-links/{linkId}")
+    @PreAuthorize("@taskSecurity.canShare(#id)") // Apenas owner/admin
+    public ResponseEntity<Void> revokeShareLink(@PathVariable Long id, @PathVariable Long linkId) {
+        collaborationService.revokeShareLink(id, linkId);
+        return ResponseEntity.noContent().build();
+    }
 }
