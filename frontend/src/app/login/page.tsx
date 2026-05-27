@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 import { CheckCircle2, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
@@ -27,6 +27,8 @@ export default function LoginPage() {
   
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || undefined;
 
   useEffect(() => {
     setMounted(true);
@@ -48,7 +50,7 @@ export default function LoginPage() {
         receiveNotifications: res.data.receiveNotifications,
         themePreferences: res.data.themePreferences,
       };
-      login(userData);
+      login(userData, callbackUrl);
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao efetuar login. Verifique as credenciais.");
     } finally {
@@ -167,7 +169,7 @@ export default function LoginPage() {
                       hasCompletedOnboarding: res.data.hasCompletedOnboarding,
                       receiveNotifications: res.data.receiveNotifications,
                       themePreferences: res.data.themePreferences,
-                    });
+                    }, callbackUrl);
                   } catch (err: any) {
                     setError("Erro na autenticação com o Google.");
                     setLoading(false);

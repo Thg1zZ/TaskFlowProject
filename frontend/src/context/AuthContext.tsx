@@ -17,7 +17,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
+  login: (user: User, redirectUrl?: string) => void;
   logout: () => void;
   loading: boolean;
   updateContextUser?: (updates: Partial<User>) => void;
@@ -44,11 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession();
   }, []);
 
-  const login = (userData: User) => {
+  const login = (userData: User, redirectUrl?: string) => {
     // Preserve preferences when storing in localStorage if needed, usually we don't store full obj or rely on state.
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    router.push('/dashboard');
+    router.push(redirectUrl || '/dashboard');
   };
 
   const updateContextUser = (updates: Partial<User>) => {
