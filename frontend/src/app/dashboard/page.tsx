@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import ColorSettingsModal, { defaultColors } from "@/components/dashboard/ColorSettingsModal";
 import ParticipantAvatars from "@/components/collaboration/ParticipantAvatars";
+import { isPast, isToday } from "date-fns";
+import clsx from "clsx";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -62,6 +64,11 @@ export default function DashboardPage() {
         border: `1px solid ${color}40`
       };
     }
+  };
+
+  const parseLocalCalendarDate = (dateStr: string): Date => {
+    const parts = dateStr.split("T")[0].split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
   };
 
   if (isLoading) {
@@ -168,16 +175,27 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-3 overflow-y-auto pr-2">
-              {recentTasks.map((task) => (
-                <div 
-                  key={task.id} 
-                  onClick={() => handleTaskClick(task)}
-                  className="p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--color-border)] hover:border-[var(--accent)] transition-colors flex items-center gap-4 cursor-pointer group w-full"
-                >
+              {recentTasks.map((task) => {
+                const endDateStr = task.endDate || task.dueDate;
+                const parsedDate = endDateStr ? parseLocalCalendarDate(endDateStr) : null;
+                const isOverdue = parsedDate && task.status !== "DONE" && isPast(parsedDate) && !isToday(parsedDate);
+
+                return (
                   <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: task.status === 'TODO' ? colors.todo : colors.inProgress }}
-                  />
+                    key={task.id} 
+                    onClick={() => handleTaskClick(task)}
+                    className={clsx(
+                      "p-4 rounded-[var(--radius)] bg-[var(--bg)] border hover:border-[var(--accent)] transition-colors flex items-center gap-4 cursor-pointer group w-full",
+                      isOverdue ? "border-[var(--red)]/30 bg-[var(--red)]/5" : "border-[var(--color-border)]"
+                    )}
+                  >
+                    <div 
+                      className={clsx(
+                        "w-3 h-3 rounded-full flex-shrink-0 transition-all duration-300",
+                        isOverdue ? "bg-[var(--red)] animate-[pulse_2.5s_infinite_ease-in-out] shadow-[0_0_8px_rgba(239,68,68,0.8)]" : ""
+                      )}
+                      style={!isOverdue ? { backgroundColor: task.status === 'TODO' ? colors.todo : colors.inProgress } : undefined}
+                    />
                   
                   <p className="font-medium text-[var(--text)] text-sm w-32 sm:w-48 truncate flex-shrink-0">
                     {task.title}
@@ -201,7 +219,8 @@ export default function DashboardPage() {
                   </span>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </div>
