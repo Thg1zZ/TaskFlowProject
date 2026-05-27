@@ -212,11 +212,14 @@ export default function DashboardPage() {
                       </div>
                     )}
                     <span 
-                    className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24"
-                    style={getStatusBadgeStyle(task.status as any, task.status === 'TODO' ? colors.todo : colors.inProgress)}
-                  >
-                    {task.status === "TODO" ? "A Fazer" : "Em Progresso"}
-                  </span>
+                      className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24 transition-colors"
+                      style={isOverdue 
+                        ? { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)', border: '1px solid rgba(239, 68, 68, 0.2)' }
+                        : getStatusBadgeStyle(task.status as any, task.status === 'TODO' ? colors.todo : colors.inProgress)
+                      }
+                    >
+                      {isOverdue ? "Atrasada" : (task.status === "TODO" ? "A Fazer" : "Em Progresso")}
+                    </span>
                   </div>
                 </div>
               );
