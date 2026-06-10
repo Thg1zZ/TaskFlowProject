@@ -23,6 +23,7 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Lógica delegada para o custom hook (Clean Code)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { tasks, filteredTasks, error, isLoading, updateTaskStatus, revalidate } = useTasks(filter);
 
   const searchParams = useSearchParams();

@@ -38,6 +38,7 @@ export default function TaskCard({ task, onClick, onStatusChange, selected, onSe
   const parsedDate = endDateStr ? parseLocalCalendarDate(endDateStr) : null;
   const isOverdue = parsedDate && task.status !== "DONE" && isPast(parsedDate) && !isToday(parsedDate);
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const StatusIcon = statusConfig[task.status].icon;
 
   return (

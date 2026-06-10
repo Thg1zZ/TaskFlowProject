@@ -17,7 +17,6 @@ import com.taskmanager.repository.UserRepository;
 import com.taskmanager.repository.BlacklistedEmailRepository;
 import com.taskmanager.security.JwtTokenProvider;
 import com.taskmanager.util.HashUtils;
-import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,7 +152,7 @@ public class AuthService {
                     .build();
             tokenRepository.save(resetToken);
 
-            String resetLink = frontendUrl + "/reset_password.html?token=" + tokenPlain;
+            String resetLink = frontendUrl + "/reset-password?token=" + tokenPlain;
             emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
         });
     }

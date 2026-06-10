@@ -7,7 +7,6 @@ import com.taskmanager.dto.UpdateTaskStatusRequest;
 import com.taskmanager.entity.Task.TaskStatus;
 import com.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

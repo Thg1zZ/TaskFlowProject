@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 
 /**
  * [ASVS 7.2.1 / REF-09] Repositório de auditoria com imutabilidade total.

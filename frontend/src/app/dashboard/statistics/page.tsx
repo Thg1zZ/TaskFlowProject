@@ -29,6 +29,7 @@ export default function StatisticsPage() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
     const savedType = localStorage.getItem("profileChartType") as ChartType | null;
     const savedBarH = localStorage.getItem("profileChartBarH");

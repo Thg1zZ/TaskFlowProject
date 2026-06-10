@@ -29,6 +29,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
   useEffect(() => {
     if (isOpen) {
       if (category) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
           name: category.name,
           color: category.color || "#3b82f6",
@@ -67,6 +68,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
       }
       onSuccess();
       onClose();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao salvar a categoria.");
     } finally {

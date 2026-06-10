@@ -3,7 +3,7 @@ services:
     name: taskflow-backend
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerContext: .
     envVars:
       - key: JWT_SECRET
         sync: false
@@ -14,6 +14,6 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: JPA_DDL_AUTO
-        value: update
+        value: validate
       - key: CORS_ORIGINS
         sync: false

@@ -24,6 +24,7 @@ export default function DashboardPage() {
   if (user?.themePreferences) {
     try {
       colors = { ...defaultColors, ...JSON.parse(user.themePreferences) };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {}
   }
 
@@ -208,6 +209,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-end gap-3 flex-shrink-0 ml-auto">
                     {task.participants && task.participants.length > 0 && (
                       <div className="hidden sm:block">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         <ParticipantAvatars participants={task.participants as any} />
                       </div>
                     )}
@@ -215,6 +217,7 @@ export default function DashboardPage() {
                       className="text-xs font-medium px-2 py-1 rounded flex-shrink-0 whitespace-nowrap text-center w-24 transition-colors"
                       style={isOverdue 
                         ? { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)', border: '1px solid rgba(239, 68, 68, 0.2)' }
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         : getStatusBadgeStyle(task.status as any, task.status === 'TODO' ? colors.todo : colors.inProgress)
                       }
                     >

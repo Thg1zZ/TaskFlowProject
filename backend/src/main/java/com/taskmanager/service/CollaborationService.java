@@ -33,7 +33,8 @@ public class CollaborationService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
-        // Desativa links anteriores para mesma tarefa (opcional - no nosso caso deixamos criar multiplos ou invalidamos o ativo)
+        // Desativa links anteriores para mesma tarefa (opcional - no nosso caso
+        // deixamos criar multiplos ou invalidamos o ativo)
         List<ShareLink> activeLinks = shareLinkRepository.findByTaskIdAndIsActiveTrue(taskId);
         for (ShareLink activeLink : activeLinks) {
             activeLink.setIsActive(false);
@@ -80,21 +81,21 @@ public class CollaborationService {
                             .user(currentUser)
                             .role(link.getRoleGranted())
                             .build();
-                    
+
                     TaskParticipant saved = participantRepository.save(newParticipant);
-                    
+
                     // Notifica em tempo real (SSE)
-                    sseService.broadcastToTask(link.getTask().getId(), "USER_JOINED_TASK", 
-                        currentUser.getName() + " ingressou na tarefa.");
-                        
+                    sseService.broadcastToTask(link.getTask().getId(), "USER_JOINED_TASK",
+                            currentUser.getName() + " ingressou na tarefa.");
+
                     // Cria notificação no banco de dados para o Dono da tarefa
                     notificationService.createNotification(
-                        link.getTask().getUser().getId(),
-                        "COLLABORATION",
-                        currentUser.getName() + " aceitou o convite e ingressou na tarefa: " + link.getTask().getTitle(),
-                        "/dashboard/tasks"
-                    );
-                        
+                            link.getTask().getUser().getId(),
+                            "COLLABORATION",
+                            currentUser.getName() + " aceitou o convite e ingressou na tarefa: "
+                                    + link.getTask().getTitle(),
+                            "/dashboard/tasks");
+
                     return saved;
                 });
     }
@@ -119,11 +120,10 @@ public class CollaborationService {
 
         // Notifica o usuário que foi removido (Banco de Dados + SSE Direto)
         notificationService.createNotification(
-            participantUserId,
-            "COLLABORATION",
-            "Você foi removido da tarefa: " + task.getTitle(),
-            "/dashboard"
-        );
+                participantUserId,
+                "COLLABORATION",
+                "Você foi removido da tarefa: " + task.getTitle(),
+                "/dashboard");
     }
 
     @Transactional(readOnly = true)
@@ -135,7 +135,7 @@ public class CollaborationService {
     public Task updatePrivacy(Long taskId, Task.TaskPrivacy privacy) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
-        
+
         task.setPrivacyMode(privacy);
         Task updated = taskRepository.save(task);
 
@@ -148,7 +148,7 @@ public class CollaborationService {
     public void revokeShareLink(Long taskId, Long linkId) {
         ShareLink link = shareLinkRepository.findByIdAndTaskId(linkId, taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Link de convite não encontrado"));
-        
+
         link.setIsActive(false);
         shareLinkRepository.save(link);
 

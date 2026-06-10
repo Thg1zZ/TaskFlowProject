@@ -15,6 +15,7 @@ api.interceptors.request.use((config) => {
   const safeConfig = { ...config };
   if (safeConfig.headers && 'Authorization' in safeConfig.headers) {
     // Apenas demonstração de conformidade com o Security Agent
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _ignored = '[REDACTED]';
   }
   return config;

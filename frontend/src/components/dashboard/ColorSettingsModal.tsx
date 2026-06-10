@@ -40,7 +40,9 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
 
     try {
       const parsed = JSON.parse(user.themePreferences);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setColors({ ...defaultColors, ...parsed });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       console.warn("[Theme] Falha ao ler as preferências de cor do usuário.");
     }

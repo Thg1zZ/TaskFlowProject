@@ -5,7 +5,6 @@ import com.taskmanager.dto.UserProfileRequest;
 import com.taskmanager.dto.UserProfileResponse;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.User;
-import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.security.JwtTokenProvider;
@@ -30,7 +29,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.imageio.ImageIO;

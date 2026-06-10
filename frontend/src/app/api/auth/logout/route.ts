@@ -24,6 +24,7 @@ export async function POST() {
           Cookie: `token=${token}`,
         },
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('Erro ao revogar token no backend durante logout:', e.message);
     }

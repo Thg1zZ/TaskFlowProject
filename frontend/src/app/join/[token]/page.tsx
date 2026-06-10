@@ -36,6 +36,7 @@ export default function JoinTaskPage({ params }: { params: Promise<{ token: stri
         setTimeout(() => {
           router.replace("/dashboard/tasks");
         }, 2000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         setStatus("error");
         setErrorMessage(

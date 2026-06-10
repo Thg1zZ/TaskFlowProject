@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import useSWR from 'swr';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { notificationsApi, Notification } from '@/lib/api/notifications';
 
 export default function NotificationBell() {

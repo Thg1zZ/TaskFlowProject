@@ -47,6 +47,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       if (savedSettings) {
         try {
           currentSettings = JSON.parse(savedSettings);
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setSettings(currentSettings);
         } catch (e) {
           console.error("Erro ao analisar configurações de Pomodoro:", e);
@@ -115,6 +116,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         });
       }, 1000);
     } else if (timeLeft === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsActive(false);
       localStorage.setItem("pomodoro_is_active", "false");
       

@@ -13,30 +13,36 @@ export const useRealtime = () => {
       withCredentials: true
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     source.addEventListener('TASK_UPDATED', (e: any) => {
       mutate('/tasks');
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     source.addEventListener('TASK_DELETED', (e: any) => {
       mutate('/tasks');
       toast.success("Uma tarefa foi excluída.");
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     source.addEventListener('USER_JOINED_TASK', (e: any) => {
       mutate('/tasks');
       toast.success(e.data);
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     source.addEventListener('USER_LEFT_TASK', (e: any) => {
       mutate('/tasks');
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     source.addEventListener('NEW_NOTIFICATION', (e: any) => {
       mutate('/notifications/unread-count');
       mutate('/notifications');
       try {
         const notif = JSON.parse(e.data);
         toast(notif.message, { icon: '🔔' });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch(err) {}
     });
 

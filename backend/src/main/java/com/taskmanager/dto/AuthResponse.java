@@ -13,6 +13,7 @@ import com.taskmanager.entity.UserRole;
 public class AuthResponse {
 
     private String token;
+    @Builder.Default
     private String tokenType = "Bearer";
     private Long userId;
     private String name;

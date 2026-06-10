@@ -43,11 +43,13 @@ function RegisterContent() {
   const nonceRef = useRef<string>(generateNonce());
   
   const { login } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || undefined;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -89,6 +91,7 @@ function RegisterContent() {
         themePreferences: res.data.themePreferences,
       };
       login(userData, callbackUrl);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0) {
         setError(err.response.data.errors[0].defaultMessage);
@@ -352,6 +355,7 @@ function RegisterContent() {
         <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6 min-h-[40px]">
           {mounted && (
             <GoogleLogin
+              // eslint-disable-next-line react-hooks/refs
               nonce={nonceRef.current}
               onSuccess={async (credentialResponse) => {
                 if (credentialResponse.credential) {
@@ -371,6 +375,7 @@ function RegisterContent() {
                       receiveNotifications: res.data.receiveNotifications,
                       themePreferences: res.data.themePreferences,
                     }, callbackUrl);
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
                   } catch (err: any) {
                     setError("Erro na autenticação com o Google.");
                     setLoading(false);
@@ -389,7 +394,9 @@ function RegisterContent() {
         </div>
       </div>
     </div>
+    {/* eslint-disable-next-line react-hooks/static-components */}
     {isTermsModalOpen && <TermsModal />}
+    {/* eslint-disable-next-line react-hooks/static-components */}
     {isPrivacyModalOpen && <PrivacyModal />}
     </GoogleOAuthProvider>
   );

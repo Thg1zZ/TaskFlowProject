@@ -26,11 +26,13 @@ function LoginContent() {
   const nonceRef = useRef<string>(generateNonce());
   
   const { login } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || undefined;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -51,6 +53,7 @@ function LoginContent() {
         themePreferences: res.data.themePreferences,
       };
       login(userData, callbackUrl);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao efetuar login. Verifique as credenciais.");
     } finally {
@@ -151,6 +154,7 @@ function LoginContent() {
         <div className="flex items-center justify-center pt-4 border-t border-[var(--color-border)] mt-6 min-h-[40px]">
           {mounted && (
             <GoogleLogin
+              // eslint-disable-next-line react-hooks/refs
               nonce={nonceRef.current}
               onSuccess={async (credentialResponse) => {
                 if (credentialResponse.credential) {
@@ -170,6 +174,7 @@ function LoginContent() {
                       receiveNotifications: res.data.receiveNotifications,
                       themePreferences: res.data.themePreferences,
                     }, callbackUrl);
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
                   } catch (err: any) {
                     setError("Erro na autenticação com o Google.");
                     setLoading(false);

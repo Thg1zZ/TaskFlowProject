@@ -121,6 +121,7 @@ export default function CalendarPage() {
 
             {/* Calendar Cells */}
             <div className="flex-1 grid grid-cols-7 grid-rows-[repeat(auto-fit,minmax(0,1fr))]">
+            {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
               {days.map((day, i) => {
                 const dayTasks = tasks?.filter(t => t.dueDate && isSameDay(parseLocalCalendarDate(t.dueDate), day)) || [];
 

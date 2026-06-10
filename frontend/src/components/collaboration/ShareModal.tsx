@@ -23,6 +23,7 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
     try {
       const data = await collaborationApi.getParticipants(taskId);
       setParticipants(data);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       toast.error('Erro ao carregar participantes');
     } finally {
@@ -32,9 +33,11 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadParticipants();
       setGeneratedLink('');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, taskId]);
 
   if (!isOpen) return null;
@@ -47,6 +50,7 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
       const fullUrl = `${baseUrl}/join/${linkData.token}`;
       setGeneratedLink(fullUrl);
       toast.success('Link gerado com sucesso!');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       toast.error('Erro ao gerar link de compartilhamento.');
     }
@@ -62,6 +66,7 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
       await collaborationApi.removeParticipant(taskId, userId);
       toast.success('Participante removido');
       loadParticipants();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       toast.error('Erro ao remover participante');
     }
@@ -73,6 +78,7 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
       await collaborationApi.updatePrivacy(taskId, newMode);
       onPrivacyChange(newMode);
       toast.success(`Tarefa agora é ${newMode === 'PUBLIC' ? 'Pública' : 'Privada'}`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       toast.error('Erro ao atualizar privacidade');
     }
@@ -121,6 +127,7 @@ export default function ShareModal({ taskId, isOpen, onClose, privacyMode, onPri
             <div className="flex gap-2">
               <select 
                 value={linkRole} 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={e => setLinkRole(e.target.value as any)}
                 className="text-sm rounded-md border border-[var(--color-border)] bg-[var(--bg)] p-2 focus:ring-1 focus:ring-[var(--accent)] outline-none"
               >

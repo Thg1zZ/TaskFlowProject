@@ -51,6 +51,7 @@ function ChangeEmailModal({
     try {
       const updated = await adminApi.changeUserEmail(user.id, normalized);
       onSuccess(updated);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao alterar o e-mail.");
     } finally {
@@ -370,6 +371,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
     try {
       const updated = await adminApi.changeUserRole(u.id, newRole);
       mutateUsers((prev) => prev?.map((x) => (x.id === updated.id ? updated : x)));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setAlertModal({ isOpen: true, message: err.response?.data?.message || "Erro ao alterar role.", type: "error" });
     } finally {

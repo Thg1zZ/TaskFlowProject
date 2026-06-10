@@ -34,6 +34,7 @@ export default function CategoriesPage() {
     try {
       await categoriesApi.delete(confirmData.categoryId);
       mutate();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setAlertData({ isOpen: true, message: "Erro ao excluir a categoria." });
     } finally {

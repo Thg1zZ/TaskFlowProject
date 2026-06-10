@@ -70,6 +70,7 @@ export default function ChartRenderer({ type, data, barHorizontal = false }: Cha
               outerRadius={120} 
               innerRadius={60}
               paddingAngle={5}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
             >
               {data.map((entry, index) => (

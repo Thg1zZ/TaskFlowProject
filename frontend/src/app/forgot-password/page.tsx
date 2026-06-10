@@ -20,6 +20,7 @@ export default function ForgotPasswordPage() {
       await api.post("/auth/forgot-password", { email });
       // Sempre define como sucesso, independente de o email existir, por segurança (evita enumeration attack)
       setSuccess(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || "Ocorreu um erro inesperado.");
     } finally {

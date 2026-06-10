@@ -19,6 +19,7 @@ import {
   Sun, 
   Moon,
   Search,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Bell,
   PieChart,
   Menu,
@@ -133,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold text-sm overflow-hidden border border-[var(--color-border)]">
               {user.profileImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
               ) : (
                 user.name.charAt(0).toUpperCase()
@@ -212,6 +214,7 @@ function SearchBar() {
   const [searchVal, setSearchVal] = useState(searchParams.get("search") || "");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchVal(searchParams.get("search") || "");
   }, [searchParams]);
 

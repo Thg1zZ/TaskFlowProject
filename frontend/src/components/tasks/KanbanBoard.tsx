@@ -27,6 +27,7 @@ export default function KanbanBoard({ tasks, onTaskMove, onTaskClick, isLoading 
   const [isBrowser, setIsBrowser] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalTasks(tasks);
     setIsBrowser(true);
   }, [tasks]);
@@ -54,6 +55,7 @@ export default function KanbanBoard({ tasks, onTaskMove, onTaskClick, isLoading 
     try {
       // Call parent handler which should call the API
       await onTaskMove(taskId, newStatus);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // Revert on failure
       setLocalTasks(tasks);

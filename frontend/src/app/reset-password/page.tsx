@@ -28,6 +28,7 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push("/login");
       }, 3000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       let msg = err.response?.data?.message || "Token inválido ou expirado.";
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {

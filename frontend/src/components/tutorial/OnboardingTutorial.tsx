@@ -8,11 +8,13 @@ import { useTheme } from "next-themes";
 
 export default function OnboardingTutorial() {
   const { user, login } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme } = useTheme();
   const [run, setRun] = useState(false);
 
   useEffect(() => {
     if (user && user.hasCompletedOnboarding === false) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRun(true);
     }
   }, [user]);
@@ -40,6 +42,7 @@ export default function OnboardingTutorial() {
     },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleJoyrideCallback = async (data: any) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];

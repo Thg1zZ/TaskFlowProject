@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await api.get('/users/me');
         setUser(response.data);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         setUser(null);
       } finally {

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { X, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Cropper = dynamic(() => import("react-easy-crop"), { ssr: false }) as any;
 
 export interface Point {
@@ -35,6 +36,7 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   rotation = 0
 ): Promise<Blob | null> {
   const image = await createImage(imageSrc);

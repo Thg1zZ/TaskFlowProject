@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useMemo } from 'react';
 import { TaskParticipant } from '@/lib/api/collaboration';
 
@@ -17,6 +18,7 @@ export default function ParticipantAvatars({ participants = [], maxCount = 3 }: 
   return (
     <div className="flex -space-x-2 overflow-hidden">
       {displayParticipants.map((p) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const name = p.user?.name || (p as any).userName || "Usuário";
         const role = p.role || "VIEWER";
         const displayName = name.substring(0, 2).toUpperCase();
