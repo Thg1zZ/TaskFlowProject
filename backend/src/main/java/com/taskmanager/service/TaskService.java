@@ -30,7 +30,7 @@ public class TaskService {
     @Autowired private SecurityService securityService;
     @Autowired private RealTimeSseService sseService;
 
-    private org.springframework.data.domain.Pageable createSafePageable(int page, int size) {
+    private Pageable createSafePageable(int page, int size) {
         int safeSize = Math.min(size, 100);
         return PageRequest.of(page, safeSize);
     }

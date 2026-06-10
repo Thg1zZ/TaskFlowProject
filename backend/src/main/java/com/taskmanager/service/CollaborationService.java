@@ -6,8 +6,6 @@ import com.taskmanager.exception.UnauthorizedException;
 import com.taskmanager.repository.ShareLinkRepository;
 import com.taskmanager.repository.TaskParticipantRepository;
 import com.taskmanager.repository.TaskRepository;
-import com.taskmanager.repository.UserRepository;
-import com.taskmanager.service.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +21,6 @@ public class CollaborationService {
     private final TaskRepository taskRepository;
     private final TaskParticipantRepository participantRepository;
     private final ShareLinkRepository shareLinkRepository;
-    private final UserRepository userRepository;
     private final SecurityService securityService;
     private final RealTimeSseService sseService;
     private final NotificationService notificationService;
