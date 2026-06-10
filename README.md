@@ -29,34 +29,6 @@ O **TaskFlow** é uma aplicação Full-Stack moderna projetada para oferecer uma
 - **Cropper.js** (Manipulação de imagens)
 - **Google Fonts** (Tipografia profissional)
 
-## 🔧 Como Rodar o Projeto Localmente
-
-### Pré-requisitos
-- JDK 17+
-- Maven
-- PostgreSQL rodando localmente
-
-### Configuração
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/seu-usuario/task-manager.git
-   ```
-
-2. Configure as variáveis de ambiente (ou edite o `application.properties`):
-   - `DB_URL`: jdbc:postgresql://localhost:5432/taskmanager
-   - `DB_USER`: seu-usuario
-   - `DB_PASSWORD`: sua-senha
-   - `MAIL_USERNAME`: seu-email-smtp
-   - `MAIL_PASSWORD`: sua-senha-de-app
-
-3. Execute o Backend:
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-
-4. Execute o Frontend:
-   Abra o arquivo `frontend/index.html` usando um servidor local (como a extensão Live Server do VS Code).
 
 ## 🌍 Deploy
 
