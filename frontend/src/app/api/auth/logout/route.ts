@@ -18,7 +18,7 @@ export async function POST() {
   // 2. Tenta revogar o token no backend para invalidação do JTI (ASVS 3.3.1)
   if (token) {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+      const backendUrl = process.env.API_URL || 'http://localhost:8080/api';
       await axios.post(`${backendUrl}/auth/logout`, {}, {
         headers: {
           Cookie: `token=${token}`,

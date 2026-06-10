@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (userData: User, redirectUrl?: string) => {
-    // Preserve preferences when storing in localStorage if needed, usually we don't store full obj or rely on state.
-    localStorage.setItem('user', JSON.stringify(userData));
+    // Preserve preferences when storing in sessionStorage if needed, usually we don't store full obj or rely on state.
+    sessionStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     router.push(redirectUrl || '/dashboard');
   };
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(prev => {
       if (!prev) return null;
       const updated = { ...prev, ...updates };
-      localStorage.setItem('user', JSON.stringify(updated));
+      sessionStorage.setItem('user', JSON.stringify(updated));
       return updated;
     });
   };
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error(e);
     }
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     setUser(null);
     window.location.href = '/login';
   };

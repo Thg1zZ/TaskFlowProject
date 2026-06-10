@@ -27,7 +27,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token revogado ou expirado — força logout e redireciona com razão
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         window.location.href = '/login?reason=session_expired';
       }
     }
