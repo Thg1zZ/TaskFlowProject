@@ -25,6 +25,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Bloqueia open redirect: aceita só caminhos do próprio site
+function isInternalPath(url?: string): url is string {
+  return !!url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\');
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,10 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (userData: User, redirectUrl?: string) => {
-    // Preserve preferences when storing in sessionStorage if needed, usually we don't store full obj or rely on state.
     sessionStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    router.push(redirectUrl || '/dashboard');
+    router.push(isInternalPath(redirectUrl) ? redirectUrl : '/dashboard');
   };
 
   const updateContextUser = (updates: Partial<User>) => {

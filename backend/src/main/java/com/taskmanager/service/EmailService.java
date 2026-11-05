@@ -30,7 +30,6 @@ public class EmailService {
         if (!isMailConfigured()) {
             log.warn("E-mail não configurado (MAIL_USERNAME/MAIL_PASSWORD ausentes). " +
                      "E-mail de recuperação NÃO enviado para: {}", to);
-            log.info("Link de reset (debug apenas): {}", resetLink);
             return;
         }
 
