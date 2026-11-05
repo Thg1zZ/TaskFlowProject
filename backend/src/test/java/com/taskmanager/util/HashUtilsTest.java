@@ -41,6 +41,14 @@ class HashUtilsTest {
     }
 
     @Test
+    void resolvesClientBehindVercelAndCloudflare() {
+        HashUtils hashUtils = hashUtilsTrusting("172.64.0.0/13");
+
+        assertThat(hashUtils.extractClientIp(request("172.69.138.10", "179.218.18.20, 54.232.129.30")))
+                .isEqualTo("179.218.18.20");
+    }
+
+    @Test
     void ignoresForwardedHeaderFromUntrustedAddress() {
         HashUtils hashUtils = hashUtilsTrusting("10.0.0.0/8");
 

@@ -93,14 +93,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String ip   = hashUtils.extractClientIp(request);
         String path = request.getRequestURI();
 
-        // TODO remover: diagnóstico temporário do IP atrás dos proxies (Vercel/Render)
-        if (path.startsWith("/api/auth/")) {
-            log.info("[RL-DIAG] remoteAddr={} xff={} cfConnectingIp={} trueClientIp={} xRealIp={} resolved={}",
-                    maskIp(request.getRemoteAddr()), maskIpList(request.getHeader("X-Forwarded-For")),
-                    maskIp(request.getHeader("CF-Connecting-IP")), maskIp(request.getHeader("True-Client-IP")),
-                    maskIp(request.getHeader("X-Real-IP")), maskIp(ip));
-        }
-
         // Rotas admin têm limite próprio
         if (path.startsWith(ADMIN_PATH_PREFIX)) {
             if (isRateLimited(ip, adminBuckets, ADMIN_MAX_ATTEMPTS, ADMIN_WINDOW_MS)) {
@@ -178,14 +170,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             "{\"status\":429,\"error\":\"Muitas tentativas. Tente novamente em " +
             (retryAfterSeconds / 60) + " minuto(s).\"}"
         );
-    }
-
-    private String maskIpList(String ips) {
-        if (ips == null) return "none";
-        return java.util.Arrays.stream(ips.split(","))
-                .map(String::trim)
-                .map(this::maskIp)
-                .collect(java.util.stream.Collectors.joining(","));
     }
 
     /** Mascara o IP para logs — LGPD / ASVS 7.1.1 */
