@@ -10,5 +10,5 @@ public interface TaskParticipantRepository extends JpaRepository<TaskParticipant
     List<TaskParticipant> findByTaskId(Long taskId);
     Optional<TaskParticipant> findByTaskIdAndUserId(Long taskId, Long userId);
     boolean existsByTaskIdAndUserId(Long taskId, Long userId);
-    void deleteByTaskIdAndUserId(Long taskId, Long userId);
+    long deleteByTaskIdAndUserId(Long taskId, Long userId);
 }

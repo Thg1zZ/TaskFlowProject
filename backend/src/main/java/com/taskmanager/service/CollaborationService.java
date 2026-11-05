@@ -103,14 +103,18 @@ public class CollaborationService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
-        // Se o current user não for owner, nem admin, não pode remover.
-        // Já está coberto pelo @PreAuthorize no Controller, mas validamos:
-        if (!task.getUser().getId().equals(currentUser.getId()) && !currentUser.getId().equals(participantUserId)) {
-            // Se eu não sou owner e não estou tentando remover a mim mesmo: erro.
-            throw new UnauthorizedException("Sem permissão para remover participantes.");
+        boolean isOwner = task.getUser().getId().equals(currentUser.getId());
+        boolean isLeavingParticipant = currentUser.getId().equals(participantUserId)
+                && participantRepository.existsByTaskIdAndUserId(taskId, participantUserId);
+
+        // 404 para quem não tem acesso: não revela se a tarefa existe
+        if (!isOwner && !isLeavingParticipant) {
+            throw new ResourceNotFoundException("Tarefa não encontrada");
         }
 
-        participantRepository.deleteByTaskIdAndUserId(taskId, participantUserId);
+        if (participantRepository.deleteByTaskIdAndUserId(taskId, participantUserId) == 0) {
+            return;
+        }
 
         // Notifica em tempo real a sala (SSE)
         sseService.broadcastToTask(taskId, "USER_LEFT_TASK", "Um usuário foi removido da tarefa.");
