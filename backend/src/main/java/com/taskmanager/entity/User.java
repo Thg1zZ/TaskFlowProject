@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -98,8 +99,23 @@ public class User {
     @Column(name = "theme_preferences", columnDefinition = "TEXT")
     private String themePreferences;
 
+    /** Tokens emitidos antes deste instante são recusados. */
+    @Column(name = "password_changed_at")
+    @JsonIgnore
+    private Instant passwordChangedAt;
+
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    /** Troca a senha e invalida todas as sessões abertas. */
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.passwordChangedAt = Instant.now();
     }
 }
