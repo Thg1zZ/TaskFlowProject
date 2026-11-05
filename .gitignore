@@ -1,0 +1,30 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build output
+backend/target/
+node_modules/
+frontend/.next/
+frontend/out/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local-only files (agents, docs, docker)
+.claude/
+.agents/
+AGENTS.md
+CLAUDE.md
+auditoria_codigo.MD
+docker-compose.yml
+frontend/Dockerfile
+frontend/README.md
+database/
