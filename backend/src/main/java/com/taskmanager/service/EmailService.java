@@ -7,9 +7,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import java.io.UnsupportedEncodingException;
 
 @Service
 public class EmailService {
@@ -21,6 +24,9 @@ public class EmailService {
 
     @Value("${spring.mail.username:}")
     private String mailUsername;
+
+    @Value("${app.mail.from:}")
+    private String mailFrom;
 
     private boolean isMailConfigured() {
         return mailSender != null && mailUsername != null && !mailUsername.isBlank();
@@ -37,6 +43,7 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            helper.setFrom(mailFrom.isBlank() ? mailUsername : mailFrom, "TaskFlow");
             helper.setTo(to);
             helper.setSubject("Redefina sua senha - TaskFlow");
 
@@ -56,9 +63,8 @@ public class EmailService {
 
             helper.setText(htmlContent, true);
             mailSender.send(message);
-        } catch (MessagingException e) {
-            // [VULN-04] EmailDeliveryException é capturada pelo handler genérico
-            // e retorna "Erro interno" ao cliente — sem vazar detalhes SMTP.
+        } catch (MessagingException | UnsupportedEncodingException | MailException e) {
+            // MailException cobre falhas de SMTP (autenticação, conexão); detalhes não vão ao cliente
             throw new EmailDeliveryException("Erro ao disparar e-mail de recuperação", e);
         }
     }

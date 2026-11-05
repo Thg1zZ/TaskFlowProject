@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *  - /api/auth/login          → máx 10 tentativas / 15 minutos por IP
  *  - /api/auth/register       → máx 5 tentativas / hora por IP
  *  - /api/auth/forgot-password → máx 3 tentativas / hora por IP [VULN-05 FIX]
+ *  - /api/auth/reset-password  → máx 10 tentativas / hora por IP
  *
  * [VULN-01 FIX] X-Forwarded-For só é lido se a requisição vier de um proxy confiável.
  * Proxies confiáveis são configurados via app.security.trusted-proxies em
@@ -46,6 +47,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final long REGISTER_WINDOW_MS         = 60 * 60 * 1000L;  // 1 hora
     private static final int  FORGOT_PWD_MAX_ATTEMPTS    = 3;
     private static final long FORGOT_PWD_WINDOW_MS       = 60 * 60 * 1000L;  // 1 hora
+    private static final int  RESET_PWD_MAX_ATTEMPTS     = 10;
+    private static final long RESET_PWD_WINDOW_MS        = 60 * 60 * 1000L;  // 1 hora
     // [ADMIN HARDENING] Endpoints administrativos têm limite próprio mais restrito
     private static final int  ADMIN_MAX_ATTEMPTS         = 20;
     private static final long ADMIN_WINDOW_MS            = 60 * 1000L;        // 1 minuto
@@ -64,6 +67,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private final ConcurrentHashMap<String, BucketEntry> loginBuckets      = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> registerBuckets   = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> forgotPwdBuckets  = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, BucketEntry> resetPwdBuckets   = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> adminBuckets      = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> shareBuckets      = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BucketEntry> streamBuckets     = new ConcurrentHashMap<>();
@@ -71,7 +75,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final Map<String, long[]> PATH_LIMITS = Map.of(
         "/api/auth/login",           new long[]{ LOGIN_MAX_ATTEMPTS,      LOGIN_WINDOW_MS      },
         "/api/auth/register",        new long[]{ REGISTER_MAX_ATTEMPTS,   REGISTER_WINDOW_MS   },
-        "/api/auth/forgot-password", new long[]{ FORGOT_PWD_MAX_ATTEMPTS, FORGOT_PWD_WINDOW_MS }
+        "/api/auth/forgot-password", new long[]{ FORGOT_PWD_MAX_ATTEMPTS, FORGOT_PWD_WINDOW_MS },
+        "/api/auth/reset-password",  new long[]{ RESET_PWD_MAX_ATTEMPTS,  RESET_PWD_WINDOW_MS  }
     );
 
     private static final String ADMIN_PATH_PREFIX = "/api/admin";
@@ -137,6 +142,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             case "/api/auth/login"           -> loginBuckets;
             case "/api/auth/register"        -> registerBuckets;
             case "/api/auth/forgot-password" -> forgotPwdBuckets;
+            case "/api/auth/reset-password"  -> resetPwdBuckets;
             default                          -> loginBuckets;
         };
     }
