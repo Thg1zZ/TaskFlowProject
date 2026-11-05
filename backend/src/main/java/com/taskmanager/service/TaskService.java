@@ -94,7 +94,9 @@ public class TaskService {
         User user = securityService.getCurrentUser();
         Task task = findOwnedTaskOrThrow(id, user.getId()); // [REF-02]
 
-        Category category = resolveCategory(request.getCategoryId(), user.getId());
+        // Categorias são do dono; colaboradores editam a tarefa mas mantêm a categoria atual
+        boolean isOwner = task.getUser().getId().equals(user.getId());
+        Category category = isOwner ? resolveCategory(request.getCategoryId(), user.getId()) : task.getCategory();
         LocalDate endDate = resolveEndDate(request);
         validateDateRange(request.getStartDate(), endDate);
 
