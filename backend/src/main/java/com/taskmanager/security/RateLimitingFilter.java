@@ -6,15 +6,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import com.taskmanager.util.HashUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,25 +56,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int  STREAM_MAX_ATTEMPTS        = 15;
     private static final long STREAM_WINDOW_MS           = 60 * 1000L;        // 1 minuto
 
-    /** [VULN-01 FIX] IPs de proxies reversos confiáveis (ex: nginx, load balancer). */
-    @Value("${app.security.trusted-proxies:}")
-    private String trustedProxiesRaw;
-
-    private List<String> trustedProxies;
-
-    @Override
-    protected void initFilterBean() {
-        if (trustedProxiesRaw != null && !trustedProxiesRaw.isBlank()) {
-            trustedProxies = Arrays.stream(trustedProxiesRaw.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isBlank())
-                    .toList();
-        } else {
-            trustedProxies = List.of();
-        }
-        log.info("RateLimitingFilter inicializado. Proxies confiáveis: {}",
-                trustedProxies.isEmpty() ? "nenhum" : trustedProxies);
-    }
+    @Autowired
+    private HashUtils hashUtils;
 
     private record BucketEntry(AtomicInteger count, long windowStart) {}
 
@@ -108,7 +90,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String ip   = extractClientIp(request);
+        String ip   = hashUtils.extractClientIp(request);
         String path = request.getRequestURI();
 
         // Rotas admin têm limite próprio
@@ -188,30 +170,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             "{\"status\":429,\"error\":\"Muitas tentativas. Tente novamente em " +
             (retryAfterSeconds / 60) + " minuto(s).\"}"
         );
-    }
-
-    /**
-     * [VULN-01 FIX] Extrai o IP real do cliente de forma segura.
-     *
-     * X-Forwarded-For só é confiado quando o remoteAddr é um proxy explicitamente
-     * configurado em app.security.trusted-proxies. Caso contrário, usa remoteAddr
-     * diretamente — impedindo que o cliente injete um IP falso no header e bypass
-     * o rate limiter.
-     *
-     * OWASP ASVS 14.4 / CWE-348 (Use of Less Trusted Source)
-     */
-    private String extractClientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-
-        if (!trustedProxies.isEmpty() && trustedProxies.contains(remoteAddr)) {
-            // Proxy confiável: aceitar X-Forwarded-For
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                return forwarded.split(",")[0].trim();
-            }
-        }
-        // Sem proxy confiável: usar sempre o IP real da conexão TCP
-        return remoteAddr;
     }
 
     /** Mascara o IP para logs — LGPD / ASVS 7.1.1 */

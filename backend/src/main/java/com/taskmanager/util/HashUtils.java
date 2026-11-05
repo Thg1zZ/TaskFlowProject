@@ -1,9 +1,11 @@
 package com.taskmanager.util;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -31,12 +33,24 @@ public class HashUtils {
 
     private static final Logger log = LoggerFactory.getLogger(HashUtils.class);
 
-    /** IPs de proxies reversos confiáveis (ex: nginx, load balancer no Render). */
+    /** IPs ou faixas CIDR de proxies reversos confiáveis (ex: 10.0.0.0/8 no Render). */
     @Value("${app.security.trusted-proxies:}")
     private String trustedProxiesRaw;
 
-    /** Cache lazy da lista de proxies (imutável após a primeira leitura). */
-    private volatile List<String> trustedProxies;
+    private List<IpAddressMatcher> trustedProxies = List.of();
+
+    @PostConstruct
+    void loadTrustedProxies() {
+        if (trustedProxiesRaw == null || trustedProxiesRaw.isBlank()) {
+            return;
+        }
+        trustedProxies = Arrays.stream(trustedProxiesRaw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(IpAddressMatcher::new)
+                .toList();
+        log.info("[HashUtils] Proxies confiáveis carregados: {}", trustedProxiesRaw);
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // HASH SHA-256
@@ -84,10 +98,10 @@ public class HashUtils {
      */
     public String extractClientIp(HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
-        List<String> proxies = getOrLoadTrustedProxies();
 
-        if (!proxies.isEmpty() && proxies.contains(remoteAddr)) {
-            // Proxy confiável confirmado — podemos ler o header
+        if (trustedProxies.stream().anyMatch(proxy -> proxy.matches(remoteAddr))) {
+            // ponytail: usa o primeiro IP do X-Forwarded-For. Quem chama o Render direto
+            // (sem passar pela Vercel) pode forjar esse valor; limite por e-mail resolve se precisar.
             String forwarded = request.getHeader("X-Forwarded-For");
             if (forwarded != null && !forwarded.isBlank()) {
                 return forwarded.split(",")[0].trim();
@@ -113,25 +127,4 @@ public class HashUtils {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // PRIVADO
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private List<String> getOrLoadTrustedProxies() {
-        if (trustedProxies == null) {
-            synchronized (this) {
-                if (trustedProxies == null) {
-                    trustedProxies = (trustedProxiesRaw != null && !trustedProxiesRaw.isBlank())
-                        ? Arrays.stream(trustedProxiesRaw.split(","))
-                                .map(String::trim)
-                                .filter(s -> !s.isBlank())
-                                .toList()
-                        : List.of();
-                    log.info("[HashUtils] Proxies confiáveis carregados: {}",
-                        trustedProxies.isEmpty() ? "nenhum" : trustedProxies);
-                }
-            }
-        }
-        return trustedProxies;
-    }
 }
