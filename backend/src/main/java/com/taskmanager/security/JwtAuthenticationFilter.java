@@ -1,5 +1,7 @@
 package com.taskmanager.security;
 
+import com.taskmanager.repository.UserRepository;
+import com.taskmanager.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtTokenProvider tokenProvider;
 
     @Autowired
-    private com.taskmanager.service.UserDetailsServiceImpl userDetailsService;
+    private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -43,18 +45,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String email = tokenProvider.getEmailFromToken(jwt);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                // Token emitido antes da última troca de senha é recusado
+                userRepository.findByEmailIgnoreCase(email)
+                        .filter(user -> tokenProvider.isIssuedAfter(jwt, user.getPasswordChangedAt()))
+                        .map(UserDetailsServiceImpl::toUserDetails)
+                        .ifPresent(userDetails -> authenticate(userDetails, request));
             }
         } catch (Exception ex) {
             logger.error("Não foi possível definir a autenticação do usuário: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void authenticate(UserDetails userDetails, HttpServletRequest request) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

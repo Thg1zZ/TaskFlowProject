@@ -10,6 +10,7 @@ import com.taskmanager.dto.RegisterRequest;
 import com.taskmanager.entity.PasswordResetToken;
 import com.taskmanager.entity.User;
 import com.taskmanager.entity.UserAccessLog;
+import com.taskmanager.exception.EmailDeliveryException;
 import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.repository.PasswordResetTokenRepository;
 import com.taskmanager.repository.UserAccessLogRepository;
@@ -65,12 +66,13 @@ public class AuthService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    /**
-     * [ASVS 2.5.3] Expiração configurável via variável de ambiente.
-     * Padrão: 1 hora. Em produção, considere 15-30 minutos.
-     */
-    @Value("${app.password-reset.expiry-hours:1}")
-    private int passwordResetExpiryHours;
+    /** [ASVS 2.5.3] Validade do link de redefinição. */
+    @Value("${app.password-reset.expiry-minutes:30}")
+    private int passwordResetExpiryMinutes;
+
+    /** Intervalo mínimo entre pedidos de redefinição para o mesmo e-mail. */
+    @Value("${app.password-reset.cooldown-minutes:15}")
+    private int passwordResetCooldownMinutes;
 
     @Value("${app.google.client-id}")
     private String googleClientId;
@@ -131,30 +133,46 @@ public class AuthService {
         tokenProvider.revokeToken(token);
     }
 
+    /** A resposta ao cliente é sempre a mesma, exista ou não a conta. */
     @Transactional
     public void forgotPassword(String email) {
-        userRepository.findByEmailIgnoreCase(email.trim()).ifPresent(user -> {
-            tokenRepository.deleteByUser(user);
+        userRepository.findByEmailIgnoreCase(email.trim())
+                .filter(user -> !hasRecentResetRequest(user))
+                .ifPresent(this::sendResetLink);
+    }
 
-            // [ASVS 6.3.1] Token criptograficamente seguro (256 bits)
-            byte[] randomBytes = new byte[32];
-            SECURE_RANDOM.nextBytes(randomBytes);
-            String tokenPlain = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    private boolean hasRecentResetRequest(User user) {
+        // Momento do pedido = expiração - validade
+        return tokenRepository.findByUser(user)
+                .map(token -> token.getExpiryDate()
+                        .minusMinutes(passwordResetExpiryMinutes)
+                        .plusMinutes(passwordResetCooldownMinutes)
+                        .isAfter(LocalDateTime.now()))
+                .orElse(false);
+    }
 
-            // [VULN-07 FIX / DUP-02] Salvar apenas o hash SHA-256 via HashUtils.sha256Hex()
-            // Token plain-text nunca é persistido no banco — ASVS 2.5.4 / CWE-312
-            String tokenHash = HashUtils.sha256Hex(tokenPlain);
+    private void sendResetLink(User user) {
+        tokenRepository.deleteByUser(user);
 
-            PasswordResetToken resetToken = PasswordResetToken.builder()
-                    .tokenHash(tokenHash)
-                    .user(user)
-                    .expiryDate(LocalDateTime.now().plusHours(passwordResetExpiryHours))
-                    .build();
-            tokenRepository.save(resetToken);
+        // [ASVS 6.3.1] Token criptograficamente seguro (256 bits); só o hash SHA-256 é persistido
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        String tokenPlain = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
-            String resetLink = frontendUrl + "/reset-password?token=" + tokenPlain;
-            emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
-        });
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .tokenHash(HashUtils.sha256Hex(tokenPlain))
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(passwordResetExpiryMinutes))
+                .build();
+        tokenRepository.save(resetToken);
+
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), frontendUrl + "/reset-password?token=" + tokenPlain);
+        } catch (EmailDeliveryException e) {
+            // Não propaga: um erro só para e-mails cadastrados revelaria quem tem conta
+            log.error("[RESET] Falha ao enviar e-mail de redefinição: {}", e.getMessage());
+            tokenRepository.delete(resetToken);
+        }
     }
 
     @Transactional
@@ -170,7 +188,7 @@ public class AuthService {
         }
 
         User user = resetToken.getUser();
-        user.setPassword(passwordEncoder.encode(newPassword));
+        user.changePassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         // [ASVS 3.3.1] Consumir o token de reset imediatamente (one-time use)
@@ -255,7 +273,7 @@ public class AuthService {
         return idToken.getPayload();
     }
 
-    private User syncSocialUser(GoogleIdToken.Payload payload) {
+    User syncSocialUser(GoogleIdToken.Payload payload) {
         String email = payload.getEmail().toLowerCase().trim();
         String name = (String) payload.get("name");
         if (name == null || name.isBlank()) {
@@ -263,25 +281,38 @@ public class AuthService {
         }
 
         User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-        boolean isNewUser = (user == null);
 
-        if (isNewUser) {
-            // [ASVS 2.4.6] Senha de alta entropia para login social (nunca exposta, impossível adivinhar)
-            byte[] randomBytes = new byte[24];
-            SECURE_RANDOM.nextBytes(randomBytes);
-            String secureRandomPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes) + "aA1!";
-
+        if (user == null) {
+            if (blacklistedEmailRepository.existsByEmailIgnoreCase(email)) {
+                throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
+            }
             user = User.builder()
                     .name(name.trim())
                     .email(email)
-                    .password(passwordEncoder.encode(secureRandomPassword))
+                    .password(passwordEncoder.encode(randomPassword()))
                     .role(com.taskmanager.entity.UserRole.ROLE_USER)
+                    .emailVerified(true)
                     .build();
 
             user = userRepository.save(user);
             defaultCategorySeeder.seedForNewUser(user);
+            return user;
         }
 
+        // Primeira prova de posse do e-mail: descarta a senha e as sessões criadas sem verificação
+        // (impede que quem cadastrou o e-mail de outra pessoa mantenha o acesso)
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            user.changePassword(passwordEncoder.encode(randomPassword()));
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+        }
         return user;
+    }
+
+    /** [ASVS 2.4.6] Senha de alta entropia para contas via Google (nunca exposta). */
+    private static String randomPassword() {
+        byte[] randomBytes = new byte[24];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes) + "aA1!";
     }
 }

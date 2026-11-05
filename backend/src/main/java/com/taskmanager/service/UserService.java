@@ -111,7 +111,7 @@ public class UserService {
             throw new IllegalArgumentException("A nova senha deve ser diferente da atual");
         }
 
-        u.setPassword(passwordEncoder.encode(req.getNewPassword()));
+        u.changePassword(passwordEncoder.encode(req.getNewPassword()));
         userRepo.save(u);
 
         // [ASVS 3.3.1] Revogar o token atual para forçar novo login com nova senha.

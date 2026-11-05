@@ -21,6 +21,8 @@ import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 
@@ -173,6 +175,13 @@ public class JwtTokenProvider {
 
     public String getJtiFromToken(String token) {
         return parseClaims(token).getId();
+    }
+
+    /** O "iat" do JWT tem precisão de segundos, por isso a comparação é truncada. */
+    public boolean isIssuedAfter(String token, Instant instant) {
+        if (instant == null) return true;
+        Instant issuedAt = parseClaims(token).getIssuedAt().toInstant();
+        return !issuedAt.isBefore(instant.truncatedTo(ChronoUnit.SECONDS));
     }
 
     public boolean validateToken(String token) {

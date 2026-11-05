@@ -30,6 +30,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     return new UsernameNotFoundException("Credenciais inválidas");
                 });
 
+        return toUserDetails(user);
+    }
+
+    public static UserDetails toUserDetails(User user) {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())
