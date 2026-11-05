@@ -84,11 +84,10 @@ public class AdminService {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * [SUPER_ADMIN SHIELD — CAMADA DE SERVIÇO]
-     * Garante que nenhuma ação modifique a conta master, independentemente de
-     * quem está chamando. Registra tentativas bloqueadas no audit log.
+     * Ninguém modifica a conta SUPER_ADMIN, e apenas o SUPER_ADMIN modifica outros ADMINs.
+     * Tentativas bloqueadas são registradas no audit log.
      */
-    private void assertNotSuperAdmin(User target, User admin, String action) {
+    private void assertCanManage(User target, User admin, String action) {
         if (target.getRole() == UserRole.ROLE_SUPER_ADMIN) {
             persistAudit(admin, target, action,
                 "Tentativa de modificar conta ROLE_SUPER_ADMIN bloqueada",
@@ -97,6 +96,16 @@ public class AdminService {
                 admin.getEmail(), action);
             throw new IllegalArgumentException(
                 "Operação negada: esta conta possui proteção de nível máximo."
+            );
+        }
+        if (target.getRole() == UserRole.ROLE_ADMIN && admin.getRole() != UserRole.ROLE_SUPER_ADMIN) {
+            persistAudit(admin, target, action,
+                "Tentativa de ADMIN modificar outro ADMIN bloqueada",
+                AdminAuditLog.RESULT_BLOCKED);
+            log.warn("[SECURITY] ADMIN tentou modificar outro ADMIN. Admin: {} | Ação: {}",
+                admin.getEmail(), action);
+            throw new IllegalArgumentException(
+                "Operação negada: apenas o Super Admin pode modificar outros administradores."
             );
         }
     }
@@ -188,7 +197,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         // [SUPER_ADMIN SHIELD]
-        assertNotSuperAdmin(target, admin, AdminAuditLog.ACTION_DELETE_USER);
+        assertCanManage(target, admin, AdminAuditLog.ACTION_DELETE_USER);
 
         userRepository.delete(target);
         persistAudit(admin, target, AdminAuditLog.ACTION_DELETE_USER,
@@ -225,7 +234,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         // [SUPER_ADMIN SHIELD]
-        assertNotSuperAdmin(target, admin, AdminAuditLog.ACTION_CHANGE_EMAIL);
+        assertCanManage(target, admin, AdminAuditLog.ACTION_CHANGE_EMAIL);
 
         // Verificar blacklist
         if (blacklistedEmailRepository.existsByEmailIgnoreCase(normalized)) {
@@ -281,7 +290,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         // [SUPER_ADMIN SHIELD] — bloqueio de rebaixamento
-        assertNotSuperAdmin(target, admin, AdminAuditLog.ACTION_CHANGE_ROLE);
+        assertCanManage(target, admin, AdminAuditLog.ACTION_CHANGE_ROLE);
 
         // Apenas SUPER_ADMIN pode promover outros a SUPER_ADMIN
         if (newRole == UserRole.ROLE_SUPER_ADMIN && admin.getRole() != UserRole.ROLE_SUPER_ADMIN) {
