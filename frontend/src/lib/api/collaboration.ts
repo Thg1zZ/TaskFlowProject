@@ -5,7 +5,6 @@ export interface TaskParticipant {
   user: {
     id: number;
     name: string;
-    email: string;
   };
   role: 'ADMIN' | 'EDITOR' | 'VIEWER';
   joinedAt: string;

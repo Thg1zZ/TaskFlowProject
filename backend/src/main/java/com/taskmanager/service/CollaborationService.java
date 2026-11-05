@@ -1,5 +1,6 @@
 package com.taskmanager.service;
 
+import com.taskmanager.dto.ParticipantResponse;
 import com.taskmanager.entity.*;
 import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.exception.UnauthorizedException;
@@ -51,7 +52,7 @@ public class CollaborationService {
     }
 
     @Transactional
-    public TaskParticipant joinViaLink(UUID token) {
+    public ParticipantResponse joinViaLink(UUID token) {
         ShareLink link = shareLinkRepository.findByToken(token)
                 .orElseThrow(() -> new ResourceNotFoundException("Link de convite inválido ou não encontrado"));
 
@@ -71,7 +72,7 @@ public class CollaborationService {
         }
 
         // Verifica se já é participante
-        return participantRepository.findByTaskIdAndUserId(link.getTask().getId(), currentUser.getId())
+        TaskParticipant participant = participantRepository.findByTaskIdAndUserId(link.getTask().getId(), currentUser.getId())
                 .orElseGet(() -> {
                     TaskParticipant newParticipant = TaskParticipant.builder()
                             .task(link.getTask())
@@ -95,6 +96,7 @@ public class CollaborationService {
 
                     return saved;
                 });
+        return ParticipantResponse.fromEntity(participant);
     }
 
     @Transactional
@@ -128,8 +130,10 @@ public class CollaborationService {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskParticipant> getParticipants(Long taskId) {
-        return participantRepository.findByTaskId(taskId);
+    public List<ParticipantResponse> getParticipants(Long taskId) {
+        return participantRepository.findByTaskId(taskId).stream()
+                .map(ParticipantResponse::fromEntity)
+                .toList();
     }
 
     @Transactional

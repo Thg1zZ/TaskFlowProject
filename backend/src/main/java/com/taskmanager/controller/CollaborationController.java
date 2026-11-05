@@ -1,8 +1,8 @@
 package com.taskmanager.controller;
 
+import com.taskmanager.dto.ParticipantResponse;
 import com.taskmanager.entity.ParticipantRole;
 import com.taskmanager.entity.ShareLink;
-import com.taskmanager.entity.TaskParticipant;
 import com.taskmanager.entity.Task;
 import com.taskmanager.service.CollaborationService;
 import com.taskmanager.service.SecurityService;
@@ -48,14 +48,13 @@ public class CollaborationController {
     }
 
     @PostMapping("/tasks/join/{token}")
-    public ResponseEntity<TaskParticipant> joinTaskViaLink(@PathVariable UUID token) {
-        TaskParticipant participant = collaborationService.joinViaLink(token);
-        return ResponseEntity.ok(participant);
+    public ResponseEntity<ParticipantResponse> joinTaskViaLink(@PathVariable UUID token) {
+        return ResponseEntity.ok(collaborationService.joinViaLink(token));
     }
 
     @GetMapping("/tasks/{id}/participants")
     @PreAuthorize("@taskSecurity.canView(#id)")
-    public ResponseEntity<List<TaskParticipant>> getParticipants(@PathVariable Long id) {
+    public ResponseEntity<List<ParticipantResponse>> getParticipants(@PathVariable Long id) {
         return ResponseEntity.ok(collaborationService.getParticipants(id));
     }
 
