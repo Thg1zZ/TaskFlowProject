@@ -26,7 +26,7 @@ export const usersApi = {
   },
 
   changePassword: async (data: { currentPassword?: string; newPassword?: string }) => {
-    const res = await api.patch("/users/me/password", data);
+    const res = await api.post("/users/me/password", data);
     return res.data;
   },
 

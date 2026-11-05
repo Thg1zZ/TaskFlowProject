@@ -74,18 +74,27 @@ public class UserService {
         return profile;
     }
 
+    private static String blankToNull(String value) {
+        return value.isBlank() ? null : value.trim();
+    }
+
     @Transactional
     public UserProfileResponse updateProfile(UserProfileRequest req) {
         User u = securityService.getCurrentUser();
+        // Campo ausente (null) = não alterar; string vazia = limpar
         u.setName(req.getName().trim());
-        u.setBio(req.getBio() != null ? req.getBio().trim() : null);
-        u.setJobTitle(req.getJobTitle() != null ? req.getJobTitle().trim() : null);
+        if (req.getBio() != null) {
+            u.setBio(blankToNull(req.getBio()));
+        }
+        if (req.getJobTitle() != null) {
+            u.setJobTitle(blankToNull(req.getJobTitle()));
+        }
         if (req.getReceiveNotifications() != null) {
             u.setReceiveNotifications(req.getReceiveNotifications());
         }
-        u.setProfileImage(req.getProfileImage() != null && !req.getProfileImage().isBlank()
-                ? req.getProfileImage()
-                : null);
+        if (req.getProfileImage() != null) {
+            u.setProfileImage(blankToNull(req.getProfileImage()));
+        }
         userRepo.save(u);
 
         return getProfile();
