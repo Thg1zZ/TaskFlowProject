@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface TaskParticipantRepository extends JpaRepository<TaskParticipant, Long> {
     List<TaskParticipant> findByTaskId(Long taskId);
+    List<TaskParticipant> findByUserId(Long userId);
     Optional<TaskParticipant> findByTaskIdAndUserId(Long taskId, Long userId);
     boolean existsByTaskIdAndUserId(Long taskId, Long userId);
     long deleteByTaskIdAndUserId(Long taskId, Long userId);

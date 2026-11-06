@@ -10,5 +10,6 @@ import java.util.UUID;
 public interface ShareLinkRepository extends JpaRepository<ShareLink, Long> {
     Optional<ShareLink> findByToken(UUID token);
     List<ShareLink> findByTaskIdAndIsActiveTrue(Long taskId);
+    List<ShareLink> findByCreatedById(Long userId);
     Optional<ShareLink> findByIdAndTaskId(Long id, Long taskId);
 }
