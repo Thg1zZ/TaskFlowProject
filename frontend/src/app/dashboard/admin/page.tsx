@@ -17,10 +17,11 @@ import {
   Ban, AlertTriangle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useState, useCallback } from "react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
+import { useI18n } from "@/i18n/I18nProvider";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 // ── Tipos de aba ─────────────────────────────────────────────────────────────
 type Tab = "users" | "audit";
@@ -36,6 +37,7 @@ function ChangeEmailModal({
   onSuccess: (updated: AdminUser) => void;
 }) {
   const [email, setEmail] = useState(user.email);
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,7 +45,7 @@ function ChangeEmailModal({
     e.preventDefault();
     const normalized = email.toLowerCase().trim();
     if (!normalized || normalized === user.email) {
-      setError("Informe um e-mail diferente do atual.");
+      setError(t("admin.sameEmail"));
       return;
     }
     setLoading(true);
@@ -51,9 +53,8 @@ function ChangeEmailModal({
     try {
       const updated = await adminApi.changeUserEmail(user.id, normalized);
       onSuccess(updated);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao alterar o e-mail.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("admin.emailError")));
     } finally {
       setLoading(false);
     }
@@ -68,15 +69,15 @@ function ChangeEmailModal({
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4 text-[var(--accent)]" />
-            <h2 className="text-base font-semibold">Alterar E-mail</h2>
+            <h2 className="text-base font-semibold">{t("admin.changeEmail")}</h2>
           </div>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-[var(--bg-3)] transition-colors">
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-[var(--bg-3)] transition-colors" aria-label={t("common.close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <p className="text-xs text-[var(--text-2)]">
-            Alterando e-mail de: <span className="font-semibold text-[var(--text)]">{user.name}</span>
+            {t("admin.changingEmailOf")} <span className="font-semibold text-[var(--text)]">{user.name}</span>
           </p>
           {error && (
             <div className="p-2 text-xs text-[var(--red)] bg-[var(--red)]/10 border border-[var(--red)]/20 rounded-[var(--radius)]">
@@ -84,14 +85,14 @@ function ChangeEmailModal({
             </div>
           )}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-[var(--text-2)]">Novo e-mail</label>
+            <label className="text-xs font-medium text-[var(--text-2)]">{t("admin.newEmail")}</label>
             <input
               type="email"
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="novo@email.com"
+              placeholder={t("admin.newEmailPlaceholder")}
             />
           </div>
           <div className="flex justify-end gap-2 pt-1">
@@ -100,7 +101,7 @@ function ChangeEmailModal({
               onClick={onClose}
               className="px-4 py-2 text-sm rounded-[var(--radius)] hover:bg-[var(--bg-3)] transition-colors"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -108,7 +109,7 @@ function ChangeEmailModal({
               className="flex items-center gap-2 px-4 py-2 text-sm bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 disabled:opacity-50 transition-all"
             >
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Salvar
+              {t("common.save")}
             </button>
           </div>
         </form>
@@ -151,23 +152,24 @@ function StatCard({
 
 // ── Badge de resultado de auditoria ───────────────────────────────────────────
 function ResultBadge({ result }: { result: AuditLog["result"] }) {
+  const { t } = useI18n();
   if (result === "SUCCESS") {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-green-500/10 text-green-500 ring-1 ring-green-500/20">
-        <CheckCircle2 className="w-3 h-3" /> Sucesso
+        <CheckCircle2 className="w-3 h-3" /> {t("admin.result.SUCCESS")}
       </span>
     );
   }
   if (result === "BLOCKED") {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-500/10 text-orange-500 ring-1 ring-orange-500/20">
-        <Ban className="w-3 h-3" /> Bloqueado
+        <Ban className="w-3 h-3" /> {t("admin.result.BLOCKED")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-[var(--red)]/10 text-[var(--red)] ring-1 ring-[var(--red)]/20">
-      <AlertTriangle className="w-3 h-3" /> Falhou
+      <AlertTriangle className="w-3 h-3" /> {t("admin.result.FAILED")}
     </span>
   );
 }
@@ -175,6 +177,7 @@ function ResultBadge({ result }: { result: AuditLog["result"] }) {
 // ── Aba de auditoria ──────────────────────────────────────────────────────────
 function AuditTab() {
   const [page, setPage] = useState(0);
+  const { t, dateLocale } = useI18n();
 
   const fetchAuditLogs = useCallback(
     () => adminApi.getAuditLogs(page),
@@ -189,30 +192,21 @@ function AuditTab() {
     revalidateOnFocus: false,
   });
 
-  const actionLabel: Record<string, string> = {
-    GET_USERS:      "Listou usuários",
-    DELETE_USER:    "Excluiu usuário",
-    CHANGE_EMAIL:   "Alterou e-mail",
-    CHANGE_ROLE:    "Alterou role",
-    GET_STATS:      "Consultou estatísticas",
-    GET_AUDIT_LOGS: "Consultou logs de auditoria",
-  };
-
   return (
     <div className="space-y-4">
       {/* Cabeçalho da aba */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <ScrollText className="w-4 h-4 text-[var(--text-2)]" />
-          <h2 className="text-base font-semibold">Log de Auditoria</h2>
+          <h2 className="text-base font-semibold">{t("admin.auditTitle")}</h2>
           {data && (
             <span className="text-xs text-[var(--text-2)] bg-[var(--bg-3)] px-2 py-0.5 rounded-full">
-              {data.totalElements} registro{data.totalElements !== 1 ? "s" : ""}
+              {t("admin.records", { count: data.totalElements })}
             </span>
           )}
         </div>
         <p className="text-xs text-[var(--text-3)]">
-          Todas as ações administrativas, incluindo tentativas bloqueadas, são registradas de forma imutável.
+          {t("admin.auditSubtitle")}
         </p>
       </div>
 
@@ -222,7 +216,7 @@ function AuditTab() {
           {error ? (
             <div className="p-8 flex items-center justify-center gap-2 text-[var(--red)]">
               <AlertCircle className="w-5 h-5" />
-              Erro ao carregar o log de auditoria.
+              {t("admin.auditLoadError")}
             </div>
           ) : isLoading ? (
             <div className="p-12 flex justify-center">
@@ -231,25 +225,25 @@ function AuditTab() {
           ) : !data?.content?.length ? (
             <div className="p-12 flex flex-col items-center justify-center gap-3 text-[var(--text-3)]">
               <ScrollText className="w-10 h-10 opacity-30" />
-              <p className="text-sm">Nenhuma ação registrada ainda.</p>
+              <p className="text-sm">{t("admin.auditEmpty")}</p>
             </div>
           ) : (
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase bg-[var(--bg-2)] text-[var(--text-2)]">
                 <tr>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Quando</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">{t("admin.col.when")}</th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Admin</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Ação</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Alvo</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Detalhes</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">Resultado</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">{t("admin.col.action")}</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">{t("admin.col.target")}</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">{t("admin.col.details")}</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">{t("admin.col.result")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
                 {data.content.map((log) => (
                   <tr key={log.id} className={`hover:bg-[var(--bg-3)]/50 transition-colors ${log.result === "BLOCKED" ? "bg-orange-500/5" : log.result === "FAILED" ? "bg-[var(--red)]/5" : ""}`}>
                     <td className="px-4 py-3 text-xs text-[var(--text-3)] whitespace-nowrap font-mono">
-                      {format(parseISO(log.performedAt), "dd/MM/yy HH:mm:ss", { locale: ptBR })}
+                      {format(parseISO(log.performedAt), "Pp", { locale: dateLocale })}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
@@ -263,7 +257,7 @@ function AuditTab() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-medium text-[var(--text)]">
-                        {actionLabel[log.action] ?? log.action}
+                        {t(`admin.action.${log.action}`)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -298,14 +292,14 @@ function AuditTab() {
         {data && data.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--color-border)] bg-[var(--bg-2)]/40">
             <p className="text-xs text-[var(--text-3)]">
-              Página {data.number + 1} de {data.totalPages} &middot; {data.totalElements} registros
+              {t("admin.pageOf", { page: data.number + 1, total: data.totalPages })} &middot; {t("admin.records", { count: data.totalElements })}
             </p>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={data.number === 0}
                 className="p-1.5 rounded-md hover:bg-[var(--bg-3)] disabled:opacity-30 transition-colors"
-                title="Página anterior"
+                title={t("admin.prevPage")}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -314,7 +308,7 @@ function AuditTab() {
                 onClick={() => setPage((p) => p + 1)}
                 disabled={data.number >= data.totalPages - 1}
                 className="p-1.5 rounded-md hover:bg-[var(--bg-3)] disabled:opacity-30 transition-colors"
-                title="Próxima página"
+                title={t("admin.nextPage")}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -334,6 +328,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
     isOpen: false, action: () => {}, title: "", message: ""
   });
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; message: string; type?: "error" | "success" }>({ isOpen: false, message: "" });
+  const { t, dateLocale } = useI18n();
 
   const {
     data: users,
@@ -352,15 +347,15 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
       await adminApi.deleteUser(id);
       mutateUsers();
     } catch {
-      setAlertModal({ isOpen: true, message: "Erro ao excluir usuário.", type: "error" });
+      setAlertModal({ isOpen: true, message: t("admin.deleteError"), type: "error" });
     }
   };
 
   const handleDeleteUser = (id: number) => {
     setConfirmModal({
       isOpen: true,
-      title: "Excluir Usuário",
-      message: "ATENÇÃO: Isso excluirá permanentemente o usuário e todas as suas tarefas. Deseja continuar?",
+      title: t("admin.deleteUser"),
+      message: t("admin.deleteConfirm"),
       isDestructive: true,
       action: () => executeDelete(id)
     });
@@ -371,9 +366,8 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
     try {
       const updated = await adminApi.changeUserRole(u.id, newRole);
       mutateUsers((prev) => prev?.map((x) => (x.id === updated.id ? updated : x)));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setAlertModal({ isOpen: true, message: err.response?.data?.message || "Erro ao alterar role.", type: "error" });
+    } catch (err) {
+      setAlertModal({ isOpen: true, message: getApiErrorMessage(err, t("admin.roleError")), type: "error" });
     } finally {
       setRoleLoadingId(null);
     }
@@ -381,12 +375,10 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
 
   const handleToggleRole = (u: AdminUser) => {
     const newRole = u.role === "ROLE_ADMIN" ? "ROLE_USER" : "ROLE_ADMIN";
-    const actionStr = newRole === "ROLE_ADMIN" ? "promover" : "rebaixar";
-    
     setConfirmModal({
       isOpen: true,
-      title: "Alterar Papel",
-      message: `Tem certeza que deseja ${actionStr} o usuário "${u.name}" para ${newRole}?`,
+      title: t("admin.changeRole"),
+      message: t(newRole === "ROLE_ADMIN" ? "admin.promoteConfirm" : "admin.demoteConfirm", { name: u.name }),
       action: () => executeToggleRole(u, newRole)
     });
   };
@@ -402,52 +394,52 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <StatCard
           icon={Users}
-          label="Total de Usuários"
+          label={t("admin.stats.totalUsers")}
           value={stats?.totalUsers ?? 0}
           color="bg-[var(--accent)]/10 text-[var(--accent)]"
           loading={statsLoading}
         />
         <StatCard
           icon={BarChart3}
-          label="Total de Tarefas"
+          label={t("admin.stats.totalTasks")}
           value={stats?.totalTasks ?? 0}
           color="bg-[var(--green)]/10 text-[var(--green)]"
           loading={statsLoading}
         />
         <StatCard
           icon={LogIn}
-          label="Total de Acessos"
+          label={t("admin.stats.totalAccesses")}
           value={stats?.totalAccesses ?? 0}
-          sub="logins registrados"
+          sub={t("admin.stats.loginsRecorded")}
           color="bg-purple-500/10 text-purple-500"
           loading={statsLoading}
         />
         <StatCard
           icon={Activity}
-          label="Acessos (7 dias)"
+          label={t("admin.stats.accesses7")}
           value={stats?.accessesLast7Days ?? 0}
           color="bg-orange-500/10 text-orange-500"
           loading={statsLoading}
         />
         <StatCard
           icon={TrendingUp}
-          label="Novos cadastros"
+          label={t("admin.stats.newUsers")}
           value={stats?.newUsersLast7Days ?? 0}
-          sub="últimos 7 dias"
+          sub={t("admin.stats.last7")}
           color="bg-sky-500/10 text-sky-500"
           loading={statsLoading}
         />
         <StatCard
           icon={TrendingUp}
-          label="Novos cadastros"
+          label={t("admin.stats.newUsers")}
           value={stats?.newUsersLast30Days ?? 0}
-          sub="últimos 30 dias"
+          sub={t("admin.stats.last30")}
           color="bg-teal-500/10 text-teal-500"
           loading={statsLoading}
         />
         <StatCard
           icon={Activity}
-          label="Acessos (30 dias)"
+          label={t("admin.stats.accesses30")}
           value={stats?.accessesLast30Days ?? 0}
           color="bg-pink-500/10 text-pink-500"
           loading={statsLoading}
@@ -458,11 +450,11 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
       <div className="glass rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-sm overflow-hidden">
         <div className="p-4 border-b border-[var(--color-border)] bg-[var(--bg-2)]/50 flex items-center justify-between">
           <h2 className="text-base font-semibold flex items-center gap-2">
-            <Users className="w-4 h-4" /> Base de Usuários
+            <Users className="w-4 h-4" /> {t("admin.userBase")}
           </h2>
           {users && (
             <span className="text-xs text-[var(--text-2)] bg-[var(--bg-3)] px-2 py-0.5 rounded-full">
-              {users.length} registrado{users.length !== 1 ? "s" : ""}
+              {t("admin.registered", { count: users.length })}
             </span>
           )}
         </div>
@@ -471,7 +463,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
           {usersError ? (
             <div className="p-8 flex items-center justify-center gap-2 text-[var(--red)]">
               <AlertCircle className="w-5 h-5" />
-              Erro ao carregar a lista de usuários.
+              {t("admin.usersLoadError")}
             </div>
           ) : usersLoading ? (
             <div className="p-12 flex justify-center">
@@ -482,13 +474,13 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
               <thead className="text-xs uppercase bg-[var(--bg-2)] text-[var(--text-2)]">
                 <tr>
                   <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">ID</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Nome</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">{t("admin.col.name")}</th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">E-mail</th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">Role</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">Tarefas</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">Acessos</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">Cadastro</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-right">Ações</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">{t("admin.col.tasks")}</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-center">{t("admin.col.accesses")}</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)]">{t("admin.col.createdAt")}</th>
+                  <th className="px-4 py-3 font-medium border-b border-[var(--color-border)] text-right">{t("admin.col.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
@@ -527,7 +519,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
                     <td className="px-4 py-3 text-center text-[var(--text-2)] font-mono text-xs">{u.taskCount}</td>
                     <td className="px-4 py-3 text-center text-[var(--text-2)] font-mono text-xs">{u.accessCount}</td>
                     <td className="px-4 py-3 text-[var(--text-2)] text-xs whitespace-nowrap">
-                      {format(new Date(u.createdAt), "dd MMM yyyy", { locale: ptBR })}
+                      {format(new Date(u.createdAt), "PP", { locale: dateLocale })}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {currentUser.id !== u.id && u.role !== "ROLE_SUPER_ADMIN" && (
@@ -536,7 +528,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
                           <button
                             onClick={() => setEmailModalUser(u)}
                             className="p-1.5 text-[var(--text-2)] hover:text-[var(--accent)] rounded-md hover:bg-[var(--accent)]/10 transition-colors"
-                            title="Alterar e-mail"
+                            title={t("admin.changeEmail")}
                           >
                             <Mail className="w-3.5 h-3.5" />
                           </button>
@@ -551,7 +543,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
                                   ? "text-[var(--red)] hover:bg-[var(--red)]/10"
                                   : "text-[var(--text-2)] hover:text-purple-500 hover:bg-purple-500/10"
                               }`}
-                              title={u.role === "ROLE_ADMIN" ? "Rebaixar para Usuário" : "Promover para Admin"}
+                              title={u.role === "ROLE_ADMIN" ? t("admin.demote") : t("admin.promote")}
                             >
                               {roleLoadingId === u.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -568,7 +560,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
                             <button
                               onClick={() => handleDeleteUser(u.id)}
                               className="p-1.5 text-[var(--text-2)] hover:text-[var(--red)] rounded-md hover:bg-[var(--red)]/10 transition-colors"
-                              title="Excluir Usuário"
+                              title={t("admin.deleteUser")}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -606,7 +598,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
       <AlertModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
-        title={alertModal.type === "error" ? "Erro" : "Aviso"}
+        title={alertModal.type === "error" ? t("common.error") : t("admin.notice")}
         message={alertModal.message}
         type={alertModal.type}
       />
@@ -618,6 +610,7 @@ function UsersTab({ currentUser }: { currentUser: { id: number; role: string } }
 export default function AdminPage() {
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("users");
+  const { t } = useI18n();
 
   // [FRONTEND] Proteção visual; a real acontece no backend com JWT + RBAC
   if (currentUser?.role !== "ROLE_ADMIN" && currentUser?.role !== "ROLE_SUPER_ADMIN") {
@@ -626,17 +619,17 @@ export default function AdminPage() {
         <div className="w-20 h-20 bg-[var(--red)]/10 rounded-full flex items-center justify-center mb-6 text-[var(--red)]">
           <ShieldAlert className="w-10 h-10" />
         </div>
-        <h1 className="text-3xl font-bold text-[var(--text)] mb-2">Acesso Negado</h1>
+        <h1 className="text-3xl font-bold text-[var(--text)] mb-2">{t("admin.deniedTitle")}</h1>
         <p className="text-[var(--text-2)] text-center max-w-md">
-          Você não possui privilégios de Administrador para acessar esta área.
+          {t("admin.deniedBody")}
         </p>
       </div>
     );
   }
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "users",  label: "Usuários",  icon: Users      },
-    { id: "audit",  label: "Auditoria", icon: ScrollText },
+    { id: "users",  label: t("admin.tabUsers"),  icon: Users      },
+    { id: "audit",  label: t("admin.tabAudit"), icon: ScrollText },
   ];
 
   return (
@@ -647,8 +640,8 @@ export default function AdminPage() {
           <LockKeyhole className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Painel Administrativo</h1>
-          <p className="text-[var(--text-2)] text-sm">Controle e monitoramento do sistema.</p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">{t("admin.title")}</h1>
+          <p className="text-[var(--text-2)] text-sm">{t("admin.subtitle")}</p>
         </div>
       </div>
 

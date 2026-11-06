@@ -7,6 +7,8 @@ import { collaborationApi } from "@/lib/api/collaboration";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
+import { useI18n } from "@/i18n/I18nProvider";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export default function JoinTaskPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = React.use(params);
@@ -14,6 +16,7 @@ export default function JoinTaskPage({ params }: { params: Promise<{ token: stri
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const { t } = useI18n();
 
   useEffect(() => {
     // Se a autenticação ainda está carregando, esperamos.
@@ -30,31 +33,27 @@ export default function JoinTaskPage({ params }: { params: Promise<{ token: stri
       try {
         await collaborationApi.joinTask(token);
         setStatus("success");
-        toast.success("Você ingressou na tarefa com sucesso!");
+        toast.success(t("join.joined"));
         
         // Redireciona para o dashboard após breve sucesso
         setTimeout(() => {
           router.replace("/dashboard/tasks");
         }, 2000);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
+      } catch (err) {
         setStatus("error");
-        setErrorMessage(
-          err.response?.data?.message || 
-          "Ocorreu um erro ao processar o convite. O link pode ser inválido, expirado, ou você não tem permissão."
-        );
+        setErrorMessage(getApiErrorMessage(err, t("join.error")));
       }
     };
 
     joinTask();
-  }, [user, authLoading, token, router]);
+  }, [user, authLoading, token, router, t]);
 
   if (status === "loading" || authLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 text-[var(--accent)] animate-spin mx-auto" />
-          <p className="text-[var(--text-2)] font-medium">Verificando convite e preparando o acesso...</p>
+          <p className="text-[var(--text-2)] font-medium">{t("join.checking")}</p>
         </div>
       </div>
     );
@@ -69,10 +68,10 @@ export default function JoinTaskPage({ params }: { params: Promise<{ token: stri
               <CheckCircle2 className="w-8 h-8 text-[var(--green)]" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-[var(--text)]">Convite Aceito!</h2>
-          <p className="text-[var(--text-2)]">Você agora é um participante desta tarefa.</p>
+          <h2 className="text-2xl font-bold text-[var(--text)]">{t("join.acceptedTitle")}</h2>
+          <p className="text-[var(--text-2)]">{t("join.acceptedBody")}</p>
           <p className="text-sm text-[var(--color-muted-foreground)] animate-pulse">
-            Redirecionando para o seu Dashboard...
+            {t("join.redirecting")}
           </p>
         </div>
       </div>
@@ -87,7 +86,7 @@ export default function JoinTaskPage({ params }: { params: Promise<{ token: stri
             <AlertCircle className="w-8 h-8 text-[var(--red)]" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-[var(--text)]">Falha no Convite</h2>
+        <h2 className="text-2xl font-bold text-[var(--text)]">{t("join.failedTitle")}</h2>
         <p className="text-[var(--text-2)] bg-[var(--red)]/5 p-4 rounded-[var(--radius)] text-sm border border-[var(--red)]/10">
           {errorMessage}
         </p>
@@ -95,7 +94,7 @@ export default function JoinTaskPage({ params }: { params: Promise<{ token: stri
           href="/dashboard" 
           className="inline-block bg-[var(--accent)] text-[var(--accent-foreground)] px-6 py-2.5 rounded-[var(--radius)] font-medium hover:opacity-90 transition-opacity w-full"
         >
-          Voltar para o Início
+          {t("join.backHome")}
         </Link>
       </div>
     </div>

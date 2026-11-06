@@ -16,13 +16,14 @@ import {
   isSameDay, 
   isToday 
 } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import TaskModal from "@/components/tasks/TaskModal";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const { t, dateLocale } = useI18n();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -41,6 +42,7 @@ export default function CalendarPage() {
   const endDate = endOfWeek(monthEnd);
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
+  const weekDays = days.slice(0, 7).map((d) => format(d, "EEE", { locale: dateLocale }));
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -63,9 +65,9 @@ export default function CalendarPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-[var(--color-border)] bg-[var(--bg)]/50 backdrop-blur-sm z-10 sticky top-0">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)] capitalize flex items-center gap-2">
-            Calendário
+            {t("layout.navCalendar")}
           </h1>
-          <p className="text-[var(--text-2)] text-sm">Visão geral de vencimentos.</p>
+          <p className="text-[var(--text-2)] text-sm">{t("calendar.subtitle")}</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -73,21 +75,23 @@ export default function CalendarPage() {
             onClick={() => setCurrentDate(new Date())}
             className="px-4 py-2 text-sm font-medium bg-[var(--bg-2)] hover:bg-[var(--bg-3)] border border-[var(--color-border)] rounded-[var(--radius)] transition-colors"
           >
-            Hoje
+            {t("calendar.today")}
           </button>
 
           <div className="flex items-center gap-1 bg-[var(--bg-2)] p-1 rounded-lg border border-[var(--color-border)]">
             <button 
               onClick={handlePrevMonth}
+              aria-label={t("calendar.previousMonth")}
               className="p-1.5 hover:bg-[var(--bg)] rounded-md transition-colors text-[var(--text-2)] hover:text-[var(--text)]"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <span className="min-w-[120px] text-center text-sm font-medium capitalize">
-              {format(currentDate, "MMMM yyyy", { locale: ptBR })}
+              {format(currentDate, "MMMM yyyy", { locale: dateLocale })}
             </span>
             <button 
               onClick={handleNextMonth}
+              aria-label={t("calendar.nextMonth")}
               className="p-1.5 hover:bg-[var(--bg)] rounded-md transition-colors text-[var(--text-2)] hover:text-[var(--text)]"
             >
               <ChevronRight className="w-5 h-5" />
@@ -101,7 +105,7 @@ export default function CalendarPage() {
         {error ? (
           <div className="p-4 bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/20 rounded-[var(--radius-lg)] flex items-center justify-center gap-2">
             <AlertCircle className="w-5 h-5" />
-            <span>Erro ao carregar as tarefas.</span>
+            <span>{t("tasksPage.loadError")}</span>
           </div>
         ) : isLoading ? (
           <div className="flex-1 flex items-center justify-center">
@@ -111,7 +115,7 @@ export default function CalendarPage() {
           <div className="flex-1 flex flex-col h-full rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden glass shadow-sm">
             {/* Days of Week Header */}
             <div className="grid grid-cols-7 border-b border-[var(--color-border)] bg-[var(--bg-2)]">
-              {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
+              {weekDays.map((day) => (
                 <div key={day} className="py-3 text-center text-sm font-semibold text-[var(--text-2)]">
                   <span className="hidden sm:inline">{day}</span>
                   <span className="inline sm:hidden">{day.charAt(0)}</span>
@@ -144,7 +148,8 @@ export default function CalendarPage() {
                       <button 
                         onClick={() => handleDayClick(day)}
                         className="opacity-0 group-hover/day:opacity-100 p-1 hover:bg-[var(--bg-3)] rounded text-[var(--text-2)] transition-opacity"
-                        title="Nova tarefa neste dia"
+                        title={t("calendar.newTaskOnDay")}
+                        aria-label={t("calendar.newTaskOnDay")}
                       >
                         <span className="text-sm font-bold">+</span>
                       </button>

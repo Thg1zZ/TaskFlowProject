@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, ScatterChart, Scatter, CartesianGrid, Legend 
 } from "recharts";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface ChartData {
   name: string;
@@ -18,11 +19,13 @@ interface ChartRendererProps {
 }
 
 export default function ChartRenderer({ type, data, barHorizontal = false }: ChartRendererProps) {
-  
+  const { t } = useI18n();
+  const tasksLabel = t("statistics.tasks");
+
   if (!data || data.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-[var(--color-muted-foreground)]">
-        Nenhum dado disponível para exibir.
+        {t("statistics.noData")}
       </div>
     );
   }
@@ -52,7 +55,7 @@ export default function ChartRenderer({ type, data, barHorizontal = false }: Cha
             <YAxis tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
             <Tooltip cursor={{ fill: 'transparent' }} contentStyle={tooltipStyle} />
             <Legend />
-            <Line type="monotone" dataKey="value" name="Tarefas" stroke={lineColor} strokeWidth={4} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+            <Line type="monotone" dataKey="value" name={tasksLabel} stroke={lineColor} strokeWidth={4} dot={{ r: 6 }} activeDot={{ r: 8 }} />
           </LineChart>
         );
         
@@ -89,7 +92,7 @@ export default function ChartRenderer({ type, data, barHorizontal = false }: Cha
             <YAxis tick={{ fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Area type="monotone" dataKey="value" name="Tarefas" stroke={areaColor} fill={areaColor} fillOpacity={0.3} />
+            <Area type="monotone" dataKey="value" name={tasksLabel} stroke={areaColor} fill={areaColor} fillOpacity={0.3} />
           </AreaChart>
         );
         
@@ -97,11 +100,11 @@ export default function ChartRenderer({ type, data, barHorizontal = false }: Cha
         return (
           <ScatterChart>
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis type="category" dataKey="name" name="Status" tick={{ fill: 'var(--color-muted-foreground)' }} />
-            <YAxis type="number" dataKey="value" name="Tarefas" allowDecimals={false} tick={{ fill: 'var(--color-muted-foreground)' }} />
+            <XAxis type="category" dataKey="name" name={t("taskModal.status")} tick={{ fill: 'var(--color-muted-foreground)' }} />
+            <YAxis type="number" dataKey="value" name={tasksLabel} allowDecimals={false} tick={{ fill: 'var(--color-muted-foreground)' }} />
             <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={tooltipStyle} />
             <Legend />
-            <Scatter name="Quantidade de Tarefas" data={scatterData}>
+            <Scatter name={t("statistics.taskCount")} data={scatterData}>
               {scatterData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
@@ -132,7 +135,7 @@ export default function ChartRenderer({ type, data, barHorizontal = false }: Cha
             <Legend />
             <Bar 
               dataKey="value" 
-              name="Tarefas" 
+              name={tasksLabel} 
               radius={isHist ? 0 : [6, 6, 6, 6]}
             >
               {data.map((entry, index) => (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, RotateCcw, Palette } from "lucide-react";
 import { usersApi } from "@/lib/api/users";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface ColorSettingsModalProps {
   isOpen: boolean;
@@ -23,16 +24,17 @@ export const defaultColors: ThemeColors = {
 };
 
 const COLOR_OPTIONS = [
-  { key: "total", label: "Total de Tarefas", fallbackHex: "#6366f1" },
-  { key: "todo", label: "A Fazer", fallbackHex: "#9ca3af" },
-  { key: "inProgress", label: "Em Progresso", fallbackHex: "#eab308" },
-  { key: "done", label: "Concluídas", fallbackHex: "#22c55e" }
+  { key: "total", labelKey: "dashboard.totalTasks", fallbackHex: "#6366f1" },
+  { key: "todo", labelKey: "status.TODO", fallbackHex: "#9ca3af" },
+  { key: "inProgress", labelKey: "status.IN_PROGRESS", fallbackHex: "#eab308" },
+  { key: "done", labelKey: "dashboard.doneCount", fallbackHex: "#22c55e" }
 ] as const;
 
 export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsModalProps) {
   const { user, updateContextUser } = useAuth();
   const [colors, setColors] = useState<ThemeColors>(defaultColors);
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
 
   // Sincroniza as cores do usuário com o estado interno do modal
   useEffect(() => {
@@ -79,9 +81,9 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
         <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--bg-2)]">
           <div className="flex items-center gap-2">
             <Palette className="w-5 h-5 text-[var(--accent)]" />
-            <h3 className="font-semibold text-[var(--text)]">Personalizar Cores</h3>
+            <h3 className="font-semibold text-[var(--text)]">{t("dashboard.customizeColors")}</h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-3)] text-[var(--color-muted-foreground)] transition-colors">
+          <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-3)] text-[var(--color-muted-foreground)] transition-colors" aria-label={t("common.close")}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -89,18 +91,18 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
         {/* Body */}
         <div className="p-6 space-y-4">
           <p className="text-sm text-[var(--color-muted-foreground)] mb-4">
-            Altere as cores dos cards de status do painel. Clique no botão de cor para escolher.
+            {t("colors.description")}
           </p>
 
           <div className="grid grid-cols-2 gap-4">
-            {COLOR_OPTIONS.map(({ key, label, fallbackHex }) => {
+            {COLOR_OPTIONS.map(({ key, labelKey, fallbackHex }) => {
               const currentColor = colors[key];
               // O input color exige hexadecimal, então usamos o fallback se for variável CSS nativa
               const displayValue = currentColor.startsWith("var") ? fallbackHex : currentColor;
 
               return (
                 <div key={key} className="space-y-1">
-                  <label className="text-xs font-medium text-[var(--text-2)]">{label}</label>
+                  <label className="text-xs font-medium text-[var(--text-2)]">{t(labelKey)}</label>
                   <div className="flex items-center gap-2">
                     <input 
                       type="color" 
@@ -125,7 +127,7 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
             className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-            Padrão
+            {t("colors.default")}
           </button>
           
           <div className="flex gap-2">
@@ -133,14 +135,14 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium bg-[var(--bg-3)] hover:bg-[var(--color-border)] text-[var(--text)] rounded-[var(--radius)] transition-colors"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button 
               onClick={handleSave}
               disabled={loading}
               className="px-4 py-2 text-sm font-medium bg-[var(--accent)] hover:opacity-90 text-[var(--accent-foreground)] rounded-[var(--radius)] transition-opacity disabled:opacity-50"
             >
-              {loading ? "Salvando..." : "Salvar Cores"}
+              {loading ? t("colors.saving") : t("colors.save")}
             </button>
           </div>
         </div>

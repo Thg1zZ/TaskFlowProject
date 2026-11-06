@@ -2,9 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useSWRConfig } from 'swr';
 import { toast } from 'react-hot-toast';
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import { useI18n } from '@/i18n/I18nProvider';
 
 export const useRealtime = () => {
   const { mutate } = useSWRConfig();
+  const { t } = useI18n();
   const eventSourceRef = useRef<EventSourcePolyfill | null>(null);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export const useRealtime = () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     source.addEventListener('TASK_DELETED', (e: any) => {
       mutate('/tasks');
-      toast.success("Uma tarefa foi excluída.");
+      toast.success(t("share.taskDeleted"));
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,5 +59,5 @@ export const useRealtime = () => {
         eventSourceRef.current.close();
       }
     };
-  }, [mutate]);
+  }, [mutate, t]);
 };

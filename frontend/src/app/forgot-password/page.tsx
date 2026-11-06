@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import api from "@/lib/axios";
+import { useI18n } from "@/i18n/I18nProvider";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function ForgotPasswordPage() {
@@ -10,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,9 +23,8 @@ export default function ForgotPasswordPage() {
       await api.post("/auth/forgot-password", { email });
       // Sempre define como sucesso, independente de o email existir, por segurança (evita enumeration attack)
       setSuccess(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Ocorreu um erro inesperado.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("common.unexpectedError")));
     } finally {
       setLoading(false);
     }
@@ -38,9 +40,9 @@ export default function ForgotPasswordPage() {
           <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center mx-auto mb-4">
             <Mail className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--text)] tracking-tight">Recuperar Senha</h1>
+          <h1 className="text-2xl font-bold text-[var(--text)] tracking-tight">{t("recovery.forgotTitle")}</h1>
           <p className="text-[var(--text-2)] text-sm mt-2">
-            Informe seu e-mail para receber as instruções de recuperação de acesso.
+            {t("recovery.forgotSubtitle")}
           </p>
         </div>
 
@@ -49,15 +51,15 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 rounded-full bg-[var(--green)]/10 text-[var(--green)] flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-[var(--text)]">E-mail Enviado!</h3>
+            <h3 className="text-xl font-bold text-[var(--text)]">{t("recovery.sentTitle")}</h3>
             <p className="text-[var(--text-2)] text-sm">
-              Se o e-mail estiver cadastrado em nossa base, você receberá um link com o token para redefinir sua senha em instantes.
+              {t("recovery.sentBody")}
             </p>
             <Link 
               href="/login"
               className="mt-4 px-6 py-2 bg-[var(--bg-3)] hover:bg-[var(--color-border)] text-[var(--text)] font-medium rounded-lg transition-colors"
             >
-              Voltar ao Login
+              {t("recovery.backToLogin")}
             </Link>
           </div>
         ) : (
@@ -69,7 +71,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[var(--text-2)]">E-mail cadastrado</label>
+              <label className="text-sm font-medium text-[var(--text-2)]">{t("recovery.registeredEmail")}</label>
               <div className="relative">
                 <Mail className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
                 <input
@@ -78,7 +80,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[var(--bg-2)] border border-[var(--color-border)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
-                  placeholder="seu@email.com"
+                  placeholder={t("auth.emailPlaceholder")}
                 />
               </div>
             </div>
@@ -88,7 +90,7 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="w-full py-3 px-4 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-xl font-medium shadow-lg hover:shadow-xl hover:opacity-90 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enviar Instruções"}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t("recovery.sendInstructions")}
             </button>
 
             <div className="pt-4 text-center">
@@ -96,7 +98,7 @@ export default function ForgotPasswordPage() {
                 href="/login" 
                 className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-2)] hover:text-[var(--accent)] transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" /> Voltar ao Login
+                <ArrowLeft className="w-4 h-4" /> {t("recovery.backToLogin")}
               </Link>
             </div>
           </form>

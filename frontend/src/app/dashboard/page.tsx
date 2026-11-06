@@ -12,9 +12,11 @@ import ColorSettingsModal, { defaultColors } from "@/components/dashboard/ColorS
 import ParticipantAvatars from "@/components/collaboration/ParticipantAvatars";
 import { isPast, isToday } from "date-fns";
 import clsx from "clsx";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
@@ -84,7 +86,7 @@ export default function DashboardPage() {
     return (
       <div className="p-4 bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/20 rounded-[var(--radius)] flex items-center gap-2">
         <AlertCircle className="w-5 h-5" />
-        Erro ao carregar os dados do painel.
+        {t("dashboard.loadError")}
       </div>
     );
   }
@@ -93,13 +95,14 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Visão Geral</h1>
-          <p className="text-[var(--color-muted-foreground)]">Acompanhe o progresso das suas atividades.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("dashboard.title")}</h1>
+          <p className="text-[var(--color-muted-foreground)]">{t("dashboard.subtitle")}</p>
         </div>
         <button 
           onClick={() => setIsColorModalOpen(true)}
           className="p-2 rounded-full hover:bg-[var(--bg-3)] text-[var(--color-muted-foreground)] transition-colors"
-          title="Personalizar Cores"
+          title={t("dashboard.customizeColors")}
+          aria-label={t("dashboard.customizeColors")}
         >
           <Settings className="w-5 h-5" />
         </button>
@@ -108,7 +111,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Card */}
         <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.total} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
-          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Total de Tarefas</p>
+          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">{t("dashboard.totalTasks")}</p>
           <p className="text-3xl font-bold">{stats?.total || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
             <div className="h-full w-full" style={{ backgroundColor: colors.total }} />
@@ -117,7 +120,7 @@ export default function DashboardPage() {
 
         {/* TODO Card */}
         <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.todo} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
-          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">A Fazer</p>
+          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">{t("status.TODO")}</p>
           <p className="text-3xl font-bold">{stats?.todo || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
             <div className="h-full transition-all" style={{ backgroundColor: colors.todo, width: `${stats?.total ? (stats.todo / stats.total) * 100 : 0}%` }} />
@@ -126,7 +129,7 @@ export default function DashboardPage() {
 
         {/* In Progress Card */}
         <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.inProgress} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
-          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Em Progresso</p>
+          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">{t("status.IN_PROGRESS")}</p>
           <p className="text-3xl font-bold">{stats?.inProgress || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
             <div className="h-full transition-all" style={{ backgroundColor: colors.inProgress, width: `${stats?.total ? (stats.inProgress / stats.total) * 100 : 0}%` }} />
@@ -135,7 +138,7 @@ export default function DashboardPage() {
 
         {/* Done Card */}
         <div className="glass p-5 rounded-[var(--radius-lg)] space-y-3 cursor-pointer transition-colors" onMouseOver={e => e.currentTarget.style.borderColor = colors.done} onMouseOut={e => e.currentTarget.style.borderColor = ''}>
-          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Concluídas</p>
+          <p className="text-sm font-medium text-[var(--color-muted-foreground)]">{t("dashboard.doneCount")}</p>
           <p className="text-3xl font-bold">{stats?.done || 0}</p>
           <div className="w-full bg-[var(--bg-3)] h-1.5 rounded-full overflow-hidden">
             <div className="h-full transition-all" style={{ backgroundColor: colors.done, width: `${stats?.total ? (stats.done / stats.total) * 100 : 0}%` }} />
@@ -149,12 +152,12 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-[var(--red)]" />
             <div>
-              <p className="font-medium text-[var(--red)]">Atenção</p>
-              <p className="text-sm text-[var(--red)]/80">Você possui {stats.overdue} tarefa(s) atrasada(s).</p>
+              <p className="font-medium text-[var(--red)]">{t("dashboard.attention")}</p>
+              <p className="text-sm text-[var(--red)]/80">{t("dashboard.overdueMessage", { count: stats.overdue })}</p>
             </div>
           </div>
           <Link href="/dashboard/tasks" className="text-sm font-medium text-[var(--red)] hover:underline">
-            Ver tarefas
+            {t("dashboard.viewTasks")}
           </Link>
         </div>
       )}
@@ -164,15 +167,15 @@ export default function DashboardPage() {
         
         {/* Tarefas Recentes */}
         <div className="lg:col-span-2 glass rounded-[var(--radius-lg)] p-6 min-h-[400px] border border-[var(--color-border)] shadow-sm flex flex-col">
-          <h2 className="text-lg font-semibold mb-4 text-[var(--text)]">Tarefas Recentes</h2>
+          <h2 className="text-lg font-semibold mb-4 text-[var(--text)]">{t("dashboard.recentTasks")}</h2>
           
           {recentTasks.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3 text-[var(--color-muted-foreground)]">
               <div className="w-12 h-12 rounded-full bg-[var(--bg-3)] flex items-center justify-center mb-2">
                 <CheckSquare className="w-6 h-6" />
               </div>
-              <p className="font-medium text-[var(--text)]">Tudo em dia!</p>
-              <p className="text-sm max-w-sm">Você não possui tarefas pendentes no momento.</p>
+              <p className="font-medium text-[var(--text)]">{t("dashboard.allClear")}</p>
+              <p className="text-sm max-w-sm">{t("dashboard.noPending")}</p>
             </div>
           ) : (
             <div className="space-y-3 overflow-y-auto pr-2">
@@ -203,7 +206,7 @@ export default function DashboardPage() {
                   </p>
                   
                   <div className="flex-1 min-w-0 hidden md:block text-xs text-[var(--color-muted-foreground)] truncate">
-                    {task.description || "Sem descrição"}
+                    {task.description || t("dashboard.noDescription")}
                   </div>
 
                   <div className="flex items-center justify-end gap-3 flex-shrink-0 ml-auto">
@@ -221,7 +224,7 @@ export default function DashboardPage() {
                         : getStatusBadgeStyle(task.status as any, task.status === 'TODO' ? colors.todo : colors.inProgress)
                       }
                     >
-                      {isOverdue ? "Atrasada" : (task.status === "TODO" ? "A Fazer" : "Em Progresso")}
+                      {isOverdue ? t("dashboard.overdue") : t(`status.${task.status}`)}
                     </span>
                   </div>
                 </div>

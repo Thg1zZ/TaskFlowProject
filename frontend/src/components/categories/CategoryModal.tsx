@@ -13,9 +13,12 @@ interface CategoryModalProps {
 
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { useTheme } from "next-themes";
+import { useI18n } from "@/i18n/I18nProvider";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export default function CategoryModal({ isOpen, onClose, category, onSuccess }: CategoryModalProps) {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
@@ -53,7 +56,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      setError("O nome da categoria é obrigatório.");
+      setError(t("categories.nameRequired"));
       return;
     }
 
@@ -68,9 +71,8 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
       }
       onSuccess();
       onClose();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao salvar a categoria.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("categories.saveError")));
     } finally {
       setLoading(false);
     }
@@ -84,9 +86,10 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-bold">{category ? "Editar Categoria" : "Nova Categoria"}</h2>
+          <h2 className="text-lg font-bold">{category ? t("categories.edit") : t("categories.new")}</h2>
           <button
             onClick={onClose}
+            aria-label={t("common.close")}
             className="p-1 rounded-full hover:bg-[var(--bg-3)] transition-colors text-[var(--color-muted-foreground)]"
           >
             <X className="w-5 h-5" />
@@ -104,7 +107,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
             {/* Nome */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                Nome <span className="text-[var(--red)]">*</span>
+                {t("categories.name")} <span className="text-[var(--red)]">*</span>
               </label>
               <input
                 type="text"
@@ -112,7 +115,8 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
-                placeholder="Ex: Trabalho, Estudos, Finanças..."
+                placeholder={t("categories.namePlaceholder")}
+                aria-label={t("categories.name")}
               />
             </div>
 
@@ -120,12 +124,13 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
             <div className="grid grid-cols-2 gap-4">
               {/* Seletor de Cor */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Cor</label>
+                <label className="text-sm font-medium">{t("categories.color")}</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
                     value={formData.color}
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    aria-label={t("categories.color")}
                     className="w-10 h-10 p-1 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] cursor-pointer"
                   />
                   <input
@@ -139,10 +144,11 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
 
               {/* Seletor de Emoji */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Ícone</label>
+                <label className="text-sm font-medium">{t("categories.icon")}</label>
                 <button
                   type="button"
                   onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
+                  aria-label={t("categories.icon")}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm hover:bg-[var(--bg-3)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                 >
                   <span className="text-2xl leading-none">{formData.icon}</span>
@@ -160,7 +166,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
                 <EmojiPicker
                   onEmojiClick={(emojiData) => handleEmojiSelect(emojiData.emoji)}
                   theme={theme === 'dark' ? Theme.DARK : Theme.LIGHT}
-                  searchPlaceHolder="Buscar emoji..."
+                  searchPlaceHolder={t("categories.searchEmoji")}
                   skinTonesDisabled
                   lazyLoadEmojis
                   width="100%"
@@ -177,7 +183,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-[var(--radius)] transition-colors"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
@@ -185,7 +191,7 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }: 
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : category ? "Salvar" : "Criar Categoria"}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : category ? t("common.save") : t("categories.create")}
           </button>
         </div>
       </div>

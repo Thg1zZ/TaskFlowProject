@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getStoredLocale } from '@/i18n/I18nProvider';
 
 const api = axios.create({
   baseURL: '/api',
@@ -9,14 +10,10 @@ const api = axios.create({
   },
 });
 
-// Interceptor: nunca loga dados sensíveis
+// O backend responde as mensagens de erro no idioma escolhido na interface
 api.interceptors.request.use((config) => {
-  // Exemplo de redação para logs sem alterar o request real e sem quebrar tipagem
-  const safeConfig = { ...config };
-  if (safeConfig.headers && 'Authorization' in safeConfig.headers) {
-    // Apenas demonstração de conformidade com o Security Agent
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _ignored = '[REDACTED]';
+  if (typeof window !== 'undefined') {
+    config.headers['Accept-Language'] = getStoredLocale();
   }
   return config;
 });

@@ -6,6 +6,7 @@ import { Task, TaskStatus } from "@/lib/api/tasks";
 import TaskCard from "./TaskCard";
 import { Loader2 } from "lucide-react";
 import clsx from "clsx";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -14,10 +15,10 @@ interface KanbanBoardProps {
   isLoading?: boolean;
 }
 
-const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
-  { id: "TODO", title: "A Fazer", color: "border-[var(--color-border)]" },
-  { id: "IN_PROGRESS", title: "Em Progresso", color: "border-[var(--yellow)]" },
-  { id: "DONE", title: "Concluída", color: "border-[var(--green)]" },
+const COLUMNS: { id: TaskStatus; color: string }[] = [
+  { id: "TODO", color: "border-[var(--color-border)]" },
+  { id: "IN_PROGRESS", color: "border-[var(--yellow)]" },
+  { id: "DONE", color: "border-[var(--green)]" },
 ];
 
 export default function KanbanBoard({ tasks, onTaskMove, onTaskClick, isLoading }: KanbanBoardProps) {
@@ -25,6 +26,7 @@ export default function KanbanBoard({ tasks, onTaskMove, onTaskClick, isLoading 
   const [localTasks, setLocalTasks] = useState<Task[]>([]);
   // Fix hydration issues with dnd
   const [isBrowser, setIsBrowser] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -74,7 +76,7 @@ export default function KanbanBoard({ tasks, onTaskMove, onTaskClick, isLoading 
             <div key={col.id} className="flex flex-col w-80 shrink-0">
               {/* Column Header */}
               <div className={clsx("flex items-center justify-between mb-4 pb-2 border-b-2", col.color)}>
-                <h3 className="font-semibold text-[var(--text)]">{col.title}</h3>
+                <h3 className="font-semibold text-[var(--text)]">{t(`status.${col.id}`)}</h3>
                 <span className="bg-[var(--bg-3)] text-[var(--text-2)] text-xs py-0.5 px-2 rounded-full font-medium">
                   {columnTasks.length}
                 </span>

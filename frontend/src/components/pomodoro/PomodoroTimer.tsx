@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Play, Pause, RotateCcw, Settings2, X } from "lucide-react";
 import clsx from "clsx";
 import { usePomodoro, PomodoroMode } from "@/context/PomodoroContext";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function PomodoroTimer() {
   const {
@@ -18,6 +19,7 @@ export default function PomodoroTimer() {
   } = usePomodoro();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { t } = useI18n();
 
   const saveSettings = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,6 +52,7 @@ export default function PomodoroTimer() {
       {/* Settings Button */}
       <button 
         onClick={() => setIsSettingsOpen(true)}
+        aria-label={t("pomodoro.settings")}
         className="absolute bottom-4 right-4 p-2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] hover:bg-[var(--bg-3)] rounded-full transition-colors z-10"
       >
         <Settings2 className="w-5 h-5" />
@@ -59,23 +62,23 @@ export default function PomodoroTimer() {
       {isSettingsOpen && (
         <div className="absolute inset-0 bg-[var(--bg)]/90 backdrop-blur-sm z-20 flex flex-col p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold">Configurações</h3>
-            <button onClick={() => setIsSettingsOpen(false)} className="p-1 rounded-md hover:bg-[var(--bg-3)]">
+            <h3 className="text-lg font-bold">{t("pomodoro.settings")}</h3>
+            <button onClick={() => setIsSettingsOpen(false)} className="p-1 rounded-md hover:bg-[var(--bg-3)]" aria-label={t("common.close")}>
               <X className="w-5 h-5" />
             </button>
           </div>
           
           <form onSubmit={saveSettings} className="space-y-4 flex-1 flex flex-col">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Tempo de Foco (min)</label>
+              <label className="text-sm font-medium">{t("pomodoro.focusMinutes")}</label>
               <input type="number" name="focus" defaultValue={settings.focus} min="1" max="120" className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)]" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Pausa Curta (min)</label>
+              <label className="text-sm font-medium">{t("pomodoro.shortBreakMinutes")}</label>
               <input type="number" name="shortBreak" defaultValue={settings.shortBreak} min="1" max="30" className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)]" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Pausa Longa (min)</label>
+              <label className="text-sm font-medium">{t("pomodoro.longBreakMinutes")}</label>
               <input type="number" name="longBreak" defaultValue={settings.longBreak} min="1" max="60" className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)]" />
             </div>
             
@@ -88,13 +91,13 @@ export default function PomodoroTimer() {
                 className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--accent)] focus:ring-[var(--accent)] bg-[var(--bg)]" 
               />
               <label htmlFor="soundEnabled" className="text-sm font-medium cursor-pointer">
-                Tocar som ao finalizar
+                {t("pomodoro.playSound")}
               </label>
             </div>
             
             <div className="mt-auto pt-4">
               <button type="submit" className="w-full py-2 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-[var(--radius)] font-medium">
-                Salvar
+                {t("common.save")}
               </button>
             </div>
           </form>
@@ -114,7 +117,7 @@ export default function PomodoroTimer() {
                 : "text-[var(--color-muted-foreground)] hover:text-[var(--text)]"
             )}
           >
-            {m === "focus" ? "Foco" : m === "shortBreak" ? "Pausa Curta" : "Pausa Longa"}
+            {t(`pomodoro.mode.${m}`)}
           </button>
         ))}
       </div>
@@ -152,7 +155,7 @@ export default function PomodoroTimer() {
             {formatTime(timeLeft)}
           </span>
           <span className="text-sm font-medium text-[var(--color-muted-foreground)] mt-2 uppercase tracking-widest">
-            {mode === "focus" ? "Tempo de Foco" : mode === "shortBreak" ? "Relaxar" : "Descansar"}
+            {t(`pomodoro.label.${mode}`)}
           </span>
         </div>
       </div>
@@ -161,12 +164,14 @@ export default function PomodoroTimer() {
       <div className="flex items-center gap-4 z-10">
         <button 
           onClick={toggleTimer}
+          aria-label={isActive ? t("pomodoro.pause") : t("pomodoro.start")}
           className="w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center shadow-lg hover:opacity-90 transition-all hover:scale-105 active:scale-95"
         >
           {isActive ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
         </button>
         <button 
           onClick={resetTimer}
+          aria-label={t("pomodoro.reset")}
           className="w-12 h-12 rounded-full bg-[var(--bg-3)] text-[var(--text-2)] flex items-center justify-center hover:bg-[var(--color-border)] transition-colors"
         >
           <RotateCcw className="w-5 h-5" />

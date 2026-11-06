@@ -3,6 +3,7 @@
 import { X, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -21,11 +22,12 @@ export default function ConfirmModal({
   onConfirm, 
   title, 
   message,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
+  confirmText,
+  cancelText,
   isDestructive = false
 }: ConfirmModalProps) {
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
 
   if (!isOpen) return null;
 
@@ -52,6 +54,7 @@ export default function ConfirmModal({
           </div>
           <button 
             onClick={onClose}
+            aria-label={t("common.close")}
             className="p-1 rounded-full hover:bg-[var(--bg-3)] transition-colors text-[var(--color-muted-foreground)]"
           >
             <X className="w-5 h-5" />
@@ -68,7 +71,7 @@ export default function ConfirmModal({
             disabled={loading}
             className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-[var(--radius)] transition-colors disabled:opacity-50"
           >
-            {cancelText}
+            {cancelText ?? t("common.cancel")}
           </button>
           <button
             onClick={handleConfirm}
@@ -80,7 +83,7 @@ export default function ConfirmModal({
             }`}
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {confirmText}
+            {confirmText ?? t("common.confirm")}
           </button>
         </div>
       </div>

@@ -6,9 +6,11 @@ import { Bell, Check, Trash2, X } from 'lucide-react';
 import useSWR from 'swr';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { notificationsApi, Notification } from '@/lib/api/notifications';
+import { useI18n } from '@/i18n/I18nProvider';
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
+  const { t, locale } = useI18n();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: unreadCount, mutate: mutateCount } = useSWR(
@@ -49,6 +51,7 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={t("notifications.title")}
         className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors relative"
       >
         <Bell className="w-5 h-5" />
@@ -62,25 +65,25 @@ export default function NotificationBell() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-[var(--bg)] border border-[var(--color-border)] shadow-xl rounded-[var(--radius-lg)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
           <div className="p-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--bg-2)]">
-            <h3 className="font-semibold text-sm">Notificações</h3>
+            <h3 className="font-semibold text-sm">{t("notifications.title")}</h3>
             {notifications && notifications.length > 0 && (
               <button 
                 onClick={handleMarkAllAsRead}
                 className="text-xs text-[var(--accent)] hover:underline flex items-center gap-1"
               >
                 <Check className="w-3 h-3" />
-                Marcar todas lidas
+                {t("notifications.markAllRead")}
               </button>
             )}
           </div>
           
           <div className="max-h-[60vh] overflow-y-auto">
             {!notifications ? (
-              <div className="p-4 text-center text-sm text-[var(--color-muted-foreground)]">Carregando...</div>
+              <div className="p-4 text-center text-sm text-[var(--color-muted-foreground)]">{t("common.loading")}</div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center justify-center text-[var(--color-muted-foreground)]">
                 <Bell className="w-8 h-8 mb-2 opacity-20" />
-                <p className="text-sm">Nenhuma notificação</p>
+                <p className="text-sm">{t("notifications.empty")}</p>
               </div>
             ) : (
               <div className="divide-y divide-[var(--color-border)]">
@@ -97,14 +100,15 @@ export default function NotificationBell() {
                         {notif.message}
                       </p>
                       <p className="text-xs text-[var(--color-muted-foreground)] mt-1">
-                        {new Date(notif.createdAt).toLocaleString()}
+                        {new Date(notif.createdAt).toLocaleString(locale)}
                       </p>
                     </div>
                     {!notif.isRead && (
                       <button 
                         onClick={() => handleMarkAsRead(notif.id)}
                         className="text-[var(--color-muted-foreground)] hover:text-[var(--accent)] p-1 h-fit"
-                        title="Marcar como lida"
+                        title={t("notifications.markRead")}
+                        aria-label={t("notifications.markRead")}
                       >
                         <Check className="w-4 h-4" />
                       </button>

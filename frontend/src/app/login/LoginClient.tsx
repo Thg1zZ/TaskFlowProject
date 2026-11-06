@@ -7,6 +7,9 @@ import api from "@/lib/axios";
 import { CheckCircle2, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { useI18n } from '@/i18n/I18nProvider';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 // Gera um nonce aleatório e o armazena para validação
 function generateNonce(): string {
@@ -26,6 +29,7 @@ function LoginContent({ clientId }: { clientId: string }) {
   const nonceRef = useRef<string>(generateNonce());
   
   const { login } = useAuth();
+  const { t, locale } = useI18n();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,17 +57,17 @@ function LoginContent({ clientId }: { clientId: string }) {
         themePreferences: res.data.themePreferences,
       };
       login(userData, callbackUrl);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao efetuar login. Verifique as credenciais.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("auth.loginError")));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <GoogleOAuthProvider clientId={clientId}>
+    <GoogleOAuthProvider clientId={clientId} locale={locale}>
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-8">
+      <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
       {/* Background shapes for modern aesthetic */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute -top-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-[var(--bg-3)] blur-[100px] opacity-50" />
@@ -75,9 +79,9 @@ function LoginContent({ clientId }: { clientId: string }) {
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="h-10 w-10 text-[var(--accent)]" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">Bem-vindo de volta</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("auth.loginTitle")}</h2>
           <p className="text-sm text-[var(--color-muted-foreground)] mt-2">
-            Entre na sua conta do TaskFlow
+            {t("auth.loginSubtitle")}
           </p>
         </div>
 
@@ -101,16 +105,16 @@ function LoginContent({ clientId }: { clientId: string }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                placeholder="seu@email.com"
+                placeholder={t("auth.emailPlaceholder")}
               />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium" htmlFor="password">
-                  Senha
+                  {t("auth.password")}
                 </label>
                 <Link href="/forgot-password" className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors">
-                  Esqueceu a senha?
+                  {t("auth.forgotPassword")}
                 </Link>
               </div>
               <div className="relative">
@@ -127,7 +131,7 @@ function LoginContent({ clientId }: { clientId: string }) {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors focus:outline-none"
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -140,14 +144,14 @@ function LoginContent({ clientId }: { clientId: string }) {
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] py-2.5 rounded-[var(--radius)] text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.signInButton")}
           </button>
         </form>
 
         <div className="text-center text-sm">
-          <span className="text-[var(--color-muted-foreground)]">Não tem uma conta? </span>
+          <span className="text-[var(--color-muted-foreground)]">{t("auth.noAccount")} </span>
           <Link href="/register" className="font-medium text-[var(--accent)] hover:underline">
-            Criar conta
+            {t("auth.registerTitle")}
           </Link>
         </div>
 
@@ -174,15 +178,14 @@ function LoginContent({ clientId }: { clientId: string }) {
                       receiveNotifications: res.data.receiveNotifications,
                       themePreferences: res.data.themePreferences,
                     }, callbackUrl);
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-                  } catch (err: any) {
-                    setError("Erro na autenticação com o Google.");
+                  } catch {
+                    setError(t("auth.googleError"));
                     setLoading(false);
                   }
                 }
               }}
               onError={() => {
-                setError("Login com o Google falhou.");
+                setError(t("auth.googleFailed"));
               }}
               useOneTap
               theme="outline"

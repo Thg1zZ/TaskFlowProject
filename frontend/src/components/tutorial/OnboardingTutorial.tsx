@@ -5,12 +5,14 @@ import { Joyride, Step, STATUS } from "react-joyride";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi } from "@/lib/api/users";
 import { useTheme } from "next-themes";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function OnboardingTutorial() {
   const { user, login } = useAuth();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme } = useTheme();
   const [run, setRun] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (user && user.hasCompletedOnboarding === false) {
@@ -22,22 +24,22 @@ export default function OnboardingTutorial() {
   const steps: Step[] = [
     {
       target: "body",
-      content: "Bem-vindo ao TaskFlow! Vamos fazer um tour rápido para você conhecer a plataforma.",
+      content: t("tour.welcome"),
       placement: "center",
     },
     {
       target: "aside nav",
-      content: "Aqui no menu lateral você encontra as principais ferramentas para gerenciar suas tarefas e categorias.",
+      content: t("tour.sidebar"),
       placement: "right",
     },
     {
       target: "header button.bg-\\[var\\(--accent\\)\\]",
-      content: "Use este botão para criar rapidamente uma nova tarefa de qualquer lugar da plataforma.",
+      content: t("tour.newTask"),
       placement: "bottom-end",
     },
     {
       target: ".lucide-bell",
-      content: "Fique de olho nas notificações para não perder prazos ou alertas do sistema.",
+      content: t("tour.notifications"),
       placement: "bottom",
     },
   ];
@@ -70,11 +72,11 @@ export default function OnboardingTutorial() {
       scrollToFirstStep
       onEvent={handleJoyrideCallback}
       locale={{
-        back: 'Voltar',
-        close: 'Fechar',
-        last: 'Concluir',
-        next: 'Próximo',
-        skip: 'Pular Tour',
+        back: t("tour.back"),
+        close: t("common.close"),
+        last: t("tour.finish"),
+        next: t("tour.next"),
+        skip: t("tour.skip"),
       }}
     />
   );

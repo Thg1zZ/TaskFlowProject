@@ -7,11 +7,14 @@ import CategoryModal from "@/components/categories/CategoryModal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
 import { Plus, Loader2, AlertCircle, Trash2, Edit2 } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 const FIXED_CATEGORIES = ["Trabalho", "Pessoal", "Estudos", "Saúde", "Finanças", "Casa", "Lazer", "Outros"];
 
 export default function CategoriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { t } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [confirmData, setConfirmData] = useState<{ isOpen: boolean; categoryId: number | null }>({ isOpen: false, categoryId: null });
   const [alertData, setAlertData] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
@@ -34,9 +37,8 @@ export default function CategoriesPage() {
     try {
       await categoriesApi.delete(confirmData.categoryId);
       mutate();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      setAlertData({ isOpen: true, message: "Erro ao excluir a categoria." });
+      setAlertData({ isOpen: true, message: getApiErrorMessage(err, t("categories.deleteError")) });
     } finally {
       setConfirmData({ isOpen: false, categoryId: null });
     }
@@ -50,22 +52,22 @@ export default function CategoriesPage() {
     <div className="flex flex-col h-full space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Categorias</h1>
-          <p className="text-[var(--text-2)] text-sm mt-1">Categorias padronizadas e personalizadas para organizar suas tarefas.</p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">{t("layout.navCategories")}</h1>
+          <p className="text-[var(--text-2)] text-sm mt-1">{t("categories.subtitle")}</p>
         </div>
         <button
           onClick={handleCreateNew}
           className="flex items-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shadow-sm shrink-0 w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" />
-          Nova Categoria
+          {t("categories.new")}
         </button>
       </div>
 
       {error ? (
         <div className="p-4 bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/20 rounded-[var(--radius-lg)] flex items-center justify-center gap-2">
           <AlertCircle className="w-5 h-5" />
-          <span>Erro ao carregar as categorias.</span>
+          <span>{t("categories.loadError")}</span>
         </div>
       ) : isLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -76,8 +78,8 @@ export default function CategoriesPage() {
           <div className="w-16 h-16 bg-[var(--bg-3)] rounded-full flex items-center justify-center mb-4 text-[var(--text-3)] text-3xl">
             📁
           </div>
-          <h3 className="text-lg font-medium">Nenhuma categoria encontrada</h3>
-          <p className="text-[var(--text-2)] text-sm mb-4">O sistema não possui categorias padronizadas cadastradas.</p>
+          <h3 className="text-lg font-medium">{t("categories.emptyTitle")}</h3>
+          <p className="text-[var(--text-2)] text-sm mb-4">{t("categories.emptyHint")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -99,14 +101,16 @@ export default function CategoriesPage() {
                     <button 
                       onClick={() => handleEdit(cat)}
                       className="p-1.5 text-[var(--text-2)] hover:text-[var(--accent)] rounded-md hover:bg-[var(--bg-3)] transition-colors"
-                      title="Editar"
+                      title={t("common.edit")}
+                      aria-label={t("common.edit")}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => handleDelete(cat.id)}
                       className="p-1.5 text-[var(--text-2)] hover:text-[var(--red)] rounded-md hover:bg-[var(--red)]/10 transition-colors"
-                      title="Excluir"
+                      title={t("common.delete")}
+                      aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -139,16 +143,16 @@ export default function CategoriesPage() {
         isOpen={confirmData.isOpen}
         onClose={() => setConfirmData({ isOpen: false, categoryId: null })}
         onConfirm={executeDelete}
-        title="Excluir Categoria"
-        message="Tem certeza que deseja excluir esta categoria? Tarefas associadas perderão o vínculo."
-        confirmText="Excluir"
+        title={t("categories.deleteTitle")}
+        message={t("categories.deleteMessage")}
+        confirmText={t("common.delete")}
         isDestructive={true}
       />
 
       <AlertModal
         isOpen={alertData.isOpen}
         onClose={() => setAlertData({ isOpen: false, message: "" })}
-        title="Erro"
+        title={t("common.error")}
         message={alertData.message}
         type="error"
       />

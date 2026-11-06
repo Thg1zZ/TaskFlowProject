@@ -7,6 +7,9 @@ import api from "@/lib/axios";
 import { CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, X } from "lucide-react";
 import Link from "next/link";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { useI18n } from '@/i18n/I18nProvider';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 // Gera um nonce aleatório e o armazena para validação
 function generateNonce(): string {
@@ -43,6 +46,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
   const nonceRef = useRef<string>(generateNonce());
   
   const { login } = useAuth();
+  const { t, locale } = useI18n();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,22 +62,22 @@ function RegisterContent({ clientId }: { clientId: string }) {
     setError("");
 
     if (email !== confirmEmail) {
-      setError("Os emails fornecidos não coincidem.");
+      setError(t("auth.emailsMismatch"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("As senhas fornecidas não coincidem.");
+      setError(t("auth.passwordsMismatch"));
       return;
     }
 
     if (!isPasswordStrong) {
-      setError("A senha não atende a todos os requisitos de segurança.");
+      setError(t("auth.weakPassword"));
       return;
     }
 
     if (!acceptedTerms) {
-      setError("Você deve aceitar os termos de uso e a política de privacidade.");
+      setError(t("auth.acceptTerms"));
       return;
     }
 
@@ -91,13 +95,8 @@ function RegisterContent({ clientId }: { clientId: string }) {
         themePreferences: res.data.themePreferences,
       };
       login(userData, callbackUrl);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      if (err.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0) {
-        setError(err.response.data.errors[0].defaultMessage);
-      } else {
-        setError(err.response?.data?.message || "Erro ao criar conta. Verifique os dados fornecidos.");
-      }
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("auth.registerError")));
     } finally {
       setLoading(false);
     }
@@ -107,22 +106,22 @@ function RegisterContent({ clientId }: { clientId: string }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-[var(--bg)] w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--color-border)] flex flex-col max-h-[80vh] shadow-lg text-left" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-          <h3 className="font-bold text-lg">Termos de Uso</h3>
-          <button onClick={() => setIsTermsModalOpen(false)} className="p-1 rounded-full hover:bg-[var(--bg-3)]">
+          <h3 className="font-bold text-lg">{t("legal.termsTitle")}</h3>
+          <button onClick={() => setIsTermsModalOpen(false)} className="p-1 rounded-full hover:bg-[var(--bg-3)]" aria-label={t("common.close")}>
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm text-[var(--text-2)] leading-relaxed">
-          <p className="font-semibold text-[var(--text)]">1. Aceitação dos Termos</p>
-          <p>Ao se cadastrar no TaskFlow, você concorda em cumprir e estar totalmente vinculado aos seguintes Termos de Serviço.</p>
-          <p className="font-semibold text-[var(--text)]">2. Uso do Serviço</p>
-          <p>Você concorda em usar o TaskFlow apenas para fins legítimos de gerenciamento pessoal de tarefas. O uso indevido de nossos sistemas ou tentativas de burla de segurança resultará na imediata exclusão da conta.</p>
-          <p className="font-semibold text-[var(--text)]">3. Segurança da Conta</p>
-          <p>Você é responsável por salvaguardar sua senha de acesso e quaisquer atividades realizadas sob sua conta.</p>
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="space-y-1">
+              <p className="font-semibold text-[var(--text)]">{t(`legal.terms${n}Title`)}</p>
+              <p>{t(`legal.terms${n}Body`)}</p>
+            </div>
+          ))}
         </div>
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex justify-end">
           <button onClick={() => setIsTermsModalOpen(false)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium">
-            Entendido
+            {t("common.understood")}
           </button>
         </div>
       </div>
@@ -133,22 +132,22 @@ function RegisterContent({ clientId }: { clientId: string }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-[var(--bg)] w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--color-border)] flex flex-col max-h-[80vh] shadow-lg text-left" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-          <h3 className="font-bold text-lg">Política de Privacidade</h3>
-          <button onClick={() => setIsPrivacyModalOpen(false)} className="p-1 rounded-full hover:bg-[var(--bg-3)]">
+          <h3 className="font-bold text-lg">{t("legal.privacyTitle")}</h3>
+          <button onClick={() => setIsPrivacyModalOpen(false)} className="p-1 rounded-full hover:bg-[var(--bg-3)]" aria-label={t("common.close")}>
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm text-[var(--text-2)] leading-relaxed">
-          <p className="font-semibold text-[var(--text)]">1. Coleta de Informações</p>
-          <p>Coletamos seu nome e e-mail com a única finalidade de autenticação e identificação das suas tarefas em nosso sistema. Nenhuma informação pessoal é compartilhada com terceiros.</p>
-          <p className="font-semibold text-[var(--text)]">2. Segurança de Dados</p>
-          <p>Empregamos criptografia de ponta e hash de senha por BCrypt no backend para assegurar que seus dados estejam protegidos contra acessos não autorizados.</p>
-          <p className="font-semibold text-[var(--text)]">3. Seus Direitos (LGPD)</p>
-          <p>Você tem o direito de, a qualquer momento, exportar suas tarefas ou excluir permanentemente a sua conta de nossos servidores através do painel de controle do perfil.</p>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="space-y-1">
+              <p className="font-semibold text-[var(--text)]">{t(`legal.privacy${n}Title`)}</p>
+              <p>{t(`legal.privacy${n}Body`)}</p>
+            </div>
+          ))}
         </div>
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex justify-end">
           <button onClick={() => setIsPrivacyModalOpen(false)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium">
-            Entendido
+            {t("common.understood")}
           </button>
         </div>
       </div>
@@ -156,8 +155,9 @@ function RegisterContent({ clientId }: { clientId: string }) {
   );
 
   return (
-    <GoogleOAuthProvider clientId={clientId}>
+    <GoogleOAuthProvider clientId={clientId} locale={locale}>
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-8">
+      <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
       {/* Background shapes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-[var(--bg-3)] blur-[100px] opacity-50" />
@@ -168,9 +168,9 @@ function RegisterContent({ clientId }: { clientId: string }) {
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="h-10 w-10 text-[var(--accent)]" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">Criar conta</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("auth.registerTitle")}</h2>
           <p className="text-sm text-[var(--color-muted-foreground)] mt-2">
-            Comece a organizar suas tarefas hoje mesmo
+            {t("auth.registerSubtitle")}
           </p>
         </div>
 
@@ -185,7 +185,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="name">
-                Nome completo
+                {t("profile.fullName")}
               </label>
               <input
                 id="name"
@@ -194,7 +194,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                placeholder="Seu nome"
+                placeholder={t("auth.namePlaceholder")}
               />
             </div>
             <div className="space-y-2">
@@ -208,13 +208,13 @@ function RegisterContent({ clientId }: { clientId: string }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                placeholder="seu@email.com"
+                placeholder={t("auth.emailPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="confirmEmail">
-                Confirmar Email
+                {t("auth.confirmEmail")}
               </label>
               <input
                 id="confirmEmail"
@@ -223,12 +223,12 @@ function RegisterContent({ clientId }: { clientId: string }) {
                 value={confirmEmail}
                 onChange={(e) => setConfirmEmail(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                placeholder="Confirme seu email"
+                placeholder={t("auth.confirmEmailPlaceholder")}
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="password">
-                Senha
+                {t("auth.password")}
               </label>
               <div className="relative">
                 <input
@@ -238,13 +238,13 @@ function RegisterContent({ clientId }: { clientId: string }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-3 pr-10 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                  placeholder="Crie uma senha forte"
+                  placeholder={t("auth.createPasswordPlaceholder")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors focus:outline-none"
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -253,27 +253,27 @@ function RegisterContent({ clientId }: { clientId: string }) {
               {/* Requisitos de senha forte dinâmicos */}
               {password && (
                 <div className="p-3 bg-[var(--bg-3)] border border-[var(--color-border)] rounded-[var(--radius)] space-y-1.5 text-xs text-left">
-                  <p className="font-semibold text-[var(--text-2)] mb-1">Requisitos para uma senha forte:</p>
+                  <p className="font-semibold text-[var(--text-2)] mb-1">{t("auth.requirementsTitle")}</p>
                   <ul className="space-y-1">
                     <li className={`flex items-center gap-1.5 ${passwordRequirements.minLength ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      Mínimo de 10 caracteres
+                      {t("auth.reqMinLength")}
                     </li>
                     <li className={`flex items-center gap-1.5 ${passwordRequirements.hasUpper ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      Pelo menos uma letra maiúscula (A-Z)
+                      {t("auth.reqUpper")}
                     </li>
                     <li className={`flex items-center gap-1.5 ${passwordRequirements.hasLower ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      Pelo menos uma letra minúscula (a-z)
+                      {t("auth.reqLower")}
                     </li>
                     <li className={`flex items-center gap-1.5 ${passwordRequirements.hasNumber ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      Pelo menos um número (0-9)
+                      {t("auth.reqNumber")}
                     </li>
                     <li className={`flex items-center gap-1.5 ${passwordRequirements.hasSpecial ? "text-[var(--green)]" : "text-[var(--text-3)]"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      Pelo menos um caractere especial (ex: @, $, !, %, *)
+                      {t("auth.reqSpecial")}
                     </li>
                   </ul>
                 </div>
@@ -282,7 +282,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="confirmPassword">
-                Confirmar Senha
+                {t("auth.confirmPassword")}
               </label>
               <div className="relative">
                 <input
@@ -292,13 +292,13 @@ function RegisterContent({ clientId }: { clientId: string }) {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pl-3 pr-10 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
-                  placeholder="Confirme sua senha"
+                  placeholder={t("auth.confirmPasswordPlaceholder")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors focus:outline-none"
-                  aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-label={showConfirmPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -315,21 +315,21 @@ function RegisterContent({ clientId }: { clientId: string }) {
                 className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-[var(--bg)] bg-[var(--bg-2)] cursor-pointer mt-1"
               />
               <label htmlFor="acceptedTerms" className="text-xs text-[var(--text-2)] leading-relaxed cursor-pointer select-none">
-                Eu li e aceito os{" "}
+                {t("auth.acceptPrefix")}{" "}
                 <button
                   type="button"
                   onClick={() => setIsTermsModalOpen(true)}
                   className="text-[var(--accent)] hover:underline font-semibold"
                 >
-                  Termos de Uso
+                  {t("legal.termsTitle")}
                 </button>{" "}
-                e a{" "}
+                {t("auth.acceptAnd")}{" "}
                 <button
                   type="button"
                   onClick={() => setIsPrivacyModalOpen(true)}
                   className="text-[var(--accent)] hover:underline font-semibold"
                 >
-                  Política de Privacidade
+                  {t("legal.privacyTitle")}
                 </button>
                 .
               </label>
@@ -341,14 +341,14 @@ function RegisterContent({ clientId }: { clientId: string }) {
             disabled={loading || !acceptedTerms}
             className="w-full flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] py-2.5 rounded-[var(--radius)] text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar conta"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.registerTitle")}
           </button>
         </form>
 
         <div className="text-center text-sm">
-          <span className="text-[var(--color-muted-foreground)]">Já tem uma conta? </span>
+          <span className="text-[var(--color-muted-foreground)]">{t("auth.haveAccount")} </span>
           <Link href="/login" className="font-medium text-[var(--accent)] hover:underline">
-            Fazer login
+            {t("auth.signIn")}
           </Link>
         </div>
 
@@ -375,15 +375,14 @@ function RegisterContent({ clientId }: { clientId: string }) {
                       receiveNotifications: res.data.receiveNotifications,
                       themePreferences: res.data.themePreferences,
                     }, callbackUrl);
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-                  } catch (err: any) {
-                    setError("Erro na autenticação com o Google.");
+                  } catch {
+                    setError(t("auth.googleError"));
                     setLoading(false);
                   }
                 }
               }}
               onError={() => {
-                setError("Login com o Google falhou.");
+                setError(t("auth.googleFailed"));
               }}
               useOneTap
               theme="outline"

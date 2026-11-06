@@ -1,6 +1,7 @@
 "use client";
 
 import { X, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface AlertModalProps {
 }
 
 export default function AlertModal({ isOpen, onClose, title, message, type = "error" }: AlertModalProps) {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   return (
@@ -28,6 +30,7 @@ export default function AlertModal({ isOpen, onClose, title, message, type = "er
           </div>
           <button 
             onClick={onClose}
+            aria-label={t("common.close")}
             className="p-1 rounded-full hover:bg-[var(--bg-3)] transition-colors text-[var(--color-muted-foreground)]"
           >
             <X className="w-5 h-5" />

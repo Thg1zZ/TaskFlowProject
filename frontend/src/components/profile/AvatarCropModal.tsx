@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { X, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Cropper = dynamic(() => import("react-easy-crop"), { ssr: false }) as any;
@@ -102,6 +103,8 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
     }
   };
 
+  const { t } = useI18n();
+
   if (!isOpen || !imageSrc) return null;
 
   return (
@@ -110,10 +113,11 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-          <h3 className="font-semibold text-lg">Ajustar Foto</h3>
+          <h3 className="font-semibold text-lg">{t("avatar.title")}</h3>
           <button 
             onClick={onClose}
             disabled={isProcessing}
+            aria-label={t("common.close")}
             className="p-1 rounded-full hover:bg-[var(--bg-3)] text-[var(--text-2)] transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
@@ -146,7 +150,7 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
               min={1}
               max={3}
               step={0.1}
-              aria-labelledby="Zoom"
+              aria-label="Zoom"
               onChange={(e) => setZoom(Number(e.target.value))}
               className="w-full h-1 bg-[var(--color-border)] rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
             />
@@ -160,7 +164,7 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
               disabled={isProcessing}
               className="px-4 py-2 text-sm font-medium hover:bg-[var(--bg-3)] rounded-lg transition-colors text-[var(--text-2)]"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleSave}
@@ -170,12 +174,12 @@ export default function AvatarCropModal({ isOpen, onClose, imageSrc, onComplete 
               {isProcessing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Salvando...
+                  {t("colors.saving")}
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  Aplicar
+                  {t("avatar.apply")}
                 </>
               )}
             </button>

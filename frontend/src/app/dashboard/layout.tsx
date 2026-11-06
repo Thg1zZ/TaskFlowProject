@@ -10,6 +10,8 @@ import TaskModal from "@/components/tasks/TaskModal";
 import OnboardingTutorial from "@/components/tutorial/OnboardingTutorial";
 import { useRealtime } from "@/hooks/useRealtime";
 import NotificationBell from "@/components/dashboard/NotificationBell";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import { useI18n } from "@/i18n/I18nProvider";
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -36,6 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   useRealtime();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,11 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading || !user) return null;
 
   const navLinks = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Minhas Tarefas", href: "/dashboard/tasks", icon: CheckSquare },
-    { name: "Categorias", href: "/dashboard/categories", icon: Folder },
-    { name: "Calendário", href: "/dashboard/calendar", icon: Calendar },
-    { name: "Estatísticas", href: "/dashboard/statistics", icon: PieChart },
+    { name: t("layout.navDashboard"), href: "/dashboard", icon: LayoutDashboard },
+    { name: t("layout.navTasks"), href: "/dashboard/tasks", icon: CheckSquare },
+    { name: t("layout.navCategories"), href: "/dashboard/categories", icon: Folder },
+    { name: t("layout.navCalendar"), href: "/dashboard/calendar", icon: Calendar },
+    { name: t("layout.navStatistics"), href: "/dashboard/statistics", icon: PieChart },
   ];
 
   return (
@@ -78,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="p-1 rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--bg-3)] hover:text-[var(--text)] md:hidden transition-colors"
-            title="Fechar menu"
+            title={t("layout.closeMenu")}
           >
             <X className="w-5 h-5" />
           </button>
@@ -108,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {(user.role === "ROLE_ADMIN" || user.role === "ROLE_SUPER_ADMIN") && (
               <div className="pt-4 mt-4 border-t border-[var(--color-border)]">
-                <p className="px-3 text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider mb-2">Administração</p>
+                <p className="px-3 text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider mb-2">{t("layout.administration")}</p>
                 <Link 
                   href="/dashboard/admin" 
                   onClick={() => setIsSidebarOpen(false)}
@@ -119,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  {user.role === "ROLE_SUPER_ADMIN" ? "👑 Painel Master" : "Painel Admin"}
+                  {user.role === "ROLE_SUPER_ADMIN" ? t("layout.masterPanel") : t("layout.adminPanel")}
                 </Link>
               </div>
             )}
@@ -150,7 +153,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-[var(--red)] hover:bg-[var(--red)]/10 transition-colors mt-2"
           >
             <LogOut className="w-4 h-4" />
-            Sair da conta
+            {t("layout.logout")}
           </button>
         </div>
       </aside>
@@ -163,7 +166,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 -ml-2 rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--bg-3)] hover:text-[var(--text)] md:hidden transition-colors"
-              title="Abrir menu"
+              title={t("layout.openMenu")}
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -174,9 +177,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Suspense>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            <LanguageSwitcher />
             <NotificationBell />
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label={t("layout.toggleTheme")}
               className="p-2 rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--text)] transition-colors"
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -185,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClick={() => setIsNewTaskModalOpen(true)}
               className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              + Nova Tarefa
+              {t("layout.newTask")}
             </button>
           </div>
         </header>
@@ -210,6 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 function SearchBar() {
   const router = useRouter();
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const [searchVal, setSearchVal] = useState(searchParams.get("search") || "");
 
@@ -232,7 +238,7 @@ function SearchBar() {
       <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
       <input 
         type="text" 
-        placeholder="Buscar tarefas..." 
+        placeholder={t("layout.searchPlaceholder")} 
         value={searchVal}
         onChange={(e) => handleSearchChange(e.target.value)}
         className="w-full pl-9 pr-4 py-2 bg-[var(--bg-3)] border-transparent rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"

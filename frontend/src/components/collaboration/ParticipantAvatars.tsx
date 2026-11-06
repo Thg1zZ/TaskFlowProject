@@ -3,6 +3,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useMemo } from 'react';
 import { TaskParticipant } from '@/lib/api/collaboration';
+import { useI18n } from '@/i18n/I18nProvider';
 
 interface ParticipantAvatarsProps {
   participants?: TaskParticipant[];
@@ -10,6 +11,7 @@ interface ParticipantAvatarsProps {
 }
 
 export default function ParticipantAvatars({ participants = [], maxCount = 3 }: ParticipantAvatarsProps) {
+  const { t } = useI18n();
   if (participants.length === 0) return null;
 
   const displayParticipants = participants.slice(0, maxCount);
@@ -19,14 +21,14 @@ export default function ParticipantAvatars({ participants = [], maxCount = 3 }: 
     <div className="flex -space-x-2 overflow-hidden">
       {displayParticipants.map((p) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const name = p.user?.name || (p as any).userName || "Usuário";
+        const name = p.user?.name || (p as any).userName || t("share.user");
         const role = p.role || "VIEWER";
         const displayName = name.substring(0, 2).toUpperCase();
 
         return (
           <div 
             key={p.id}
-            title={`${name} (${role})`}
+            title={`${name} (${t(`share.role.${role}`)})`}
             className="inline-flex h-6 w-6 sm:h-8 sm:w-8 rounded-full ring-2 ring-[var(--bg)] bg-[var(--accent)] text-[var(--accent-foreground)] items-center justify-center text-[10px] sm:text-xs font-bold"
           >
             {displayName}
