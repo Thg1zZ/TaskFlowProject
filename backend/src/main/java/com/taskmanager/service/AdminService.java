@@ -92,8 +92,8 @@ public class AdminService {
             persistAudit(admin, target, action,
                 "Tentativa de modificar conta ROLE_SUPER_ADMIN bloqueada",
                 AdminAuditLog.RESULT_BLOCKED);
-            log.warn("[SECURITY] Tentativa de modificar SUPER_ADMIN detectada. Admin: {} | Ação: {}",
-                admin.getEmail(), action);
+            log.warn("[SECURITY] Tentativa de modificar SUPER_ADMIN detectada. Admin ID: {} | Ação: {}",
+                admin.getId(), action);
             throw new IllegalArgumentException(
                 "error.admin.protectedAccount"
             );
@@ -102,8 +102,8 @@ public class AdminService {
             persistAudit(admin, target, action,
                 "Tentativa de ADMIN modificar outro ADMIN bloqueada",
                 AdminAuditLog.RESULT_BLOCKED);
-            log.warn("[SECURITY] ADMIN tentou modificar outro ADMIN. Admin: {} | Ação: {}",
-                admin.getEmail(), action);
+            log.warn("[SECURITY] ADMIN tentou modificar outro ADMIN. Admin ID: {} | Ação: {}",
+                admin.getId(), action);
             throw new IllegalArgumentException(
                 "error.admin.onlySuperAdminManagesAdmins"
             );
@@ -138,11 +138,11 @@ public class AdminService {
             if (fails >= AUDIT_FAIL_ALERT_THRESHOLD) {
                 // [SEC-03] Alerta crítico: audit log está degradado
                 log.error("[SECURITY ALERT] Audit log falhou {} vezes consecutivas. " +
-                    "Ações admin podem não estar sendo auditadas! Action={}, Admin={}: {}",
-                    fails, action, admin.getEmail(), e.getMessage());
+                    "Ações admin podem não estar sendo auditadas! Action={}, Admin ID={}: {}",
+                    fails, action, admin.getId(), e.getMessage());
             } else {
-                log.error("[AUDIT] Falha ao persistir log de auditoria. Action={}, Admin={}: {}",
-                    action, admin.getEmail(), e.getMessage());
+                log.error("[AUDIT] Falha ao persistir log de auditoria. Action={}, Admin ID={}: {}",
+                    action, admin.getId(), e.getMessage());
             }
         }
     }
@@ -202,7 +202,8 @@ public class AdminService {
         userRepository.delete(target);
         persistAudit(admin, target, AdminAuditLog.ACTION_DELETE_USER,
             "Conta excluída pelo administrador", AdminAuditLog.RESULT_SUCCESS);
-        log.info("[ADMIN] Usuário {} excluído pelo admin {}", target.getEmail(), admin.getEmail());
+        adminAuditService.anonymizeUser(target.getId());
+        log.info("[ADMIN] Usuário ID {} excluído pelo admin ID {}", target.getId(), admin.getId());
     }
 
     @Transactional(readOnly = false)
@@ -257,8 +258,7 @@ public class AdminService {
         persistAudit(admin, saved, AdminAuditLog.ACTION_CHANGE_EMAIL,
             String.format("E-mail alterado: [%s] → [%s]", previousEmail, normalized),
             AdminAuditLog.RESULT_SUCCESS);
-        log.info("[ADMIN] E-mail do usuário {} alterado de {} para {} pelo admin {}",
-            target.getId(), previousEmail, normalized, admin.getEmail());
+        log.info("[ADMIN] E-mail do usuário ID {} alterado pelo admin ID {}", target.getId(), admin.getId());
 
         return buildResponse(saved);
     }
@@ -296,8 +296,8 @@ public class AdminService {
         if (newRole == UserRole.ROLE_SUPER_ADMIN && admin.getRole() != UserRole.ROLE_SUPER_ADMIN) {
             persistAudit(admin, target, AdminAuditLog.ACTION_CHANGE_ROLE,
                 "Tentativa de promover para SUPER_ADMIN sem permissão", AdminAuditLog.RESULT_BLOCKED);
-            log.warn("[SECURITY] Admin {} tentou promover usuário {} para SUPER_ADMIN sem permissão",
-                admin.getEmail(), target.getEmail());
+            log.warn("[SECURITY] Admin ID {} tentou promover usuário ID {} para SUPER_ADMIN sem permissão",
+                admin.getId(), target.getId());
             throw new IllegalArgumentException("error.admin.onlySuperAdminCanPromote");
         }
 
@@ -308,8 +308,8 @@ public class AdminService {
         persistAudit(admin, saved, AdminAuditLog.ACTION_CHANGE_ROLE,
             String.format("Role alterada: [%s] → [%s]", previousRole.name(), newRole.name()),
             AdminAuditLog.RESULT_SUCCESS);
-        log.info("[ADMIN] Role do usuário {} alterada de {} para {} pelo admin {}",
-            target.getId(), previousRole, newRole, admin.getEmail());
+        log.info("[ADMIN] Role do usuário ID {} alterada de {} para {} pelo admin ID {}",
+            target.getId(), previousRole, newRole, admin.getId());
 
         return buildResponse(saved);
     }

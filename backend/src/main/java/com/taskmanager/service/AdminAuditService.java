@@ -27,4 +27,11 @@ public class AdminAuditService {
     public void saveAuditLog(AdminAuditLog entry) {
         auditLogRepository.save(entry);
     }
+
+    /** [LGPD] Na exclusão da conta, a auditoria mantém só o ID do titular. Roda na transação da exclusão. */
+    @Transactional
+    public void anonymizeUser(Long userId) {
+        auditLogRepository.anonymizeTarget(userId, AdminAuditLog.DELETED_ACCOUNT_MARKER, AdminAuditLog.ACTION_CHANGE_EMAIL);
+        auditLogRepository.anonymizeAdmin(userId, AdminAuditLog.DELETED_ACCOUNT_MARKER);
+    }
 }

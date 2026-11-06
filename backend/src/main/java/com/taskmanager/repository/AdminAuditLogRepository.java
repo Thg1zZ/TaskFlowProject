@@ -6,7 +6,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
 
 
 /**
@@ -43,6 +46,27 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
 
     /** Logs de uma ação específica */
     Page<AdminAuditLog> findByActionOrderByPerformedAtDesc(String action, Pageable pageable);
+
+    // ── LGPD: únicas alterações permitidas ───────────────────────────────────
+    // Chamadas só pela exclusão de conta e pelo DataRetentionJob, nunca por endpoints.
+
+    /** [LGPD art. 16] Conta excluída: troca o e-mail do titular pelo marcador e apaga detalhes com e-mails. */
+    @Modifying
+    @Query("UPDATE AdminAuditLog a SET a.targetUserEmail = :marker, "
+         + "a.details = CASE WHEN a.action = :changeEmail THEN NULL ELSE a.details END "
+         + "WHERE a.targetUserId = :userId")
+    int anonymizeTarget(@Param("userId") Long userId, @Param("marker") String marker,
+                        @Param("changeEmail") String changeEmailAction);
+
+    /** [LGPD art. 16] Mesmo tratamento quando quem excluiu a conta era o admin do registro. */
+    @Modifying
+    @Query("UPDATE AdminAuditLog a SET a.adminEmail = :marker WHERE a.adminId = :userId")
+    int anonymizeAdmin(@Param("userId") Long userId, @Param("marker") String marker);
+
+    /** [LGPD art. 15] Retenção: remove registros mais antigos que o prazo configurado. */
+    @Modifying
+    @Query("DELETE FROM AdminAuditLog a WHERE a.performedAt < :cutoff")
+    int deletePerformedBefore(@Param("cutoff") LocalDateTime cutoff);
 
     // ── BLOQUEIOS DE EXCLUSÃO (IMUTABILIDADE) ────────────────────────────────
     // Todos herdam de JpaRepository e precisam ser explicitamente bloqueados.

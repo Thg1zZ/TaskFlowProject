@@ -96,4 +96,7 @@ public class AdminAuditLog {
     public static final String RESULT_SUCCESS = "SUCCESS";
     public static final String RESULT_BLOCKED = "BLOCKED";
     public static final String RESULT_FAILED  = "FAILED";
+
+    /** [LGPD] Substitui o e-mail de quem excluiu a conta. */
+    public static final String DELETED_ACCOUNT_MARKER = "[conta excluída]";
 }
