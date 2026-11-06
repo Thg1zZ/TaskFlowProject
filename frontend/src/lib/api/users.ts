@@ -30,6 +30,11 @@ export const usersApi = {
     return res.data;
   },
 
+  exportData: async () => {
+    const res = await api.get<Blob>("/users/me/export", { responseType: "blob" });
+    return res.data;
+  },
+
   updatePreferences: async (themePreferences: string) => {
     const res = await api.patch("/users/me/preferences", { themePreferences });
     return res.data;

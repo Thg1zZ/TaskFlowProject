@@ -57,6 +57,21 @@ class HashUtilsTest {
     }
 
     @Test
+    void ipHashDependsOnSecretAndIsNotPlainSha256() {
+        HashUtils first = hashUtilsTrusting("");
+        ReflectionTestUtils.setField(first, "jwtSecret", "segredo-um-com-mais-de-32-caracteres");
+        HashUtils second = hashUtilsTrusting("");
+        ReflectionTestUtils.setField(second, "jwtSecret", "segredo-dois-com-mais-de-32-caracteres");
+
+        String ip = "179.218.18.20";
+        assertThat(first.hmacSha256Hex(ip))
+                .isEqualTo(first.hmacSha256Hex(ip))
+                .isNotEqualTo(HashUtils.sha256Hex(ip))
+                .isNotEqualTo(second.hmacSha256Hex(ip))
+                .hasSize(64);
+    }
+
+    @Test
     void fallsBackToRemoteAddrWhenTrustedProxySendsNoHeader() {
         HashUtils hashUtils = hashUtilsTrusting("10.0.0.0/8");
 

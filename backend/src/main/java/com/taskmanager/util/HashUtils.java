@@ -8,10 +8,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -38,6 +42,9 @@ public class HashUtils {
     private String trustedProxiesRaw;
 
     private List<IpAddressMatcher> trustedProxies = List.of();
+
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
 
     @PostConstruct
     void loadTrustedProxies() {
@@ -112,19 +119,34 @@ public class HashUtils {
     }
 
     /**
-     * Extrai o IP do cliente e retorna o hash SHA-256 para persistência segura (LGPD art. 12).
-     * O IP real NUNCA é armazenado, apenas o hash, que é irreversível.
+     * [LGPD art. 12] Pseudonimiza o IP com HMAC-SHA256. Sem a chave, o hash não pode ser
+     * revertido por força bruta (o espaço de IPv4 é pequeno o bastante para isso com SHA-256 puro).
      *
-     * @return hash SHA-256 do IP, ou null se não for possível extrair
+     * @return hash do IP, ou null se não for possível extrair
      */
     public String hashClientIp(HttpServletRequest request) {
         try {
             String ip = extractClientIp(request);
-            return (ip != null && !ip.isBlank()) ? sha256Hex(ip) : null;
+            return (ip != null && !ip.isBlank()) ? hmacSha256Hex(ip) : null;
         } catch (Exception e) {
             log.debug("[HASH-IP] Falha ao extrair/hashear IP: {}", e.getMessage());
             return null;
         }
     }
 
+    String hmacSha256Hex(String input) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            // Chave derivada do segredo do JWT, separada por domínio para não reutilizar a mesma chave
+            mac.init(new SecretKeySpec((jwtSecret + ":ip-hash").getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            return HexFormat.of().formatHex(mac.doFinal(input.getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("HmacSHA256 não disponível na JVM", e);
+        }
+    }
+
+    /** [LGPD] Hash do e-mail normalizado; mesma fórmula da migration V9. */
+    public static String emailHash(String email) {
+        return sha256Hex(email.toLowerCase().trim());
+    }
 }

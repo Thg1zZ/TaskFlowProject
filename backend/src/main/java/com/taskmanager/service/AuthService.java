@@ -85,13 +85,13 @@ public class AuthService {
         String emailNormalized = request.getEmail().toLowerCase().trim();
 
         // 1. Verificar se o e-mail está na blacklist de contas excluídas
-        if (blacklistedEmailRepository.existsByEmailIgnoreCase(emailNormalized)) {
-            throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
+        if (blacklistedEmailRepository.isBlacklisted(emailNormalized)) {
+            throw new IllegalArgumentException("error.register.failed");
         }
 
         // 2. Evitar revelação se o e-mail já existe (User Enumeration)
         if (userRepository.existsByEmailIgnoreCase(emailNormalized)) {
-            throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
+            throw new IllegalArgumentException("error.register.failed");
         }
 
         User user = User.builder()
@@ -121,7 +121,7 @@ public class AuthService {
         String token = tokenProvider.generateToken(authentication);
 
         User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.user.notFound"));
 
         // [LGPD] Registra acesso com hash do IP; o IP real nunca é persistido
         recordAccessLog(user);
@@ -180,11 +180,11 @@ public class AuthService {
         // [VULN-07 FIX / DUP-02] Hashear o token recebido via HashUtils antes de buscar no banco
         String tokenHash = HashUtils.sha256Hex(token);
         PasswordResetToken resetToken = tokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Token inválido"));
+                .orElseThrow(() -> new IllegalArgumentException("error.reset.tokenInvalid"));
 
         if (resetToken.isExpired()) {
             tokenRepository.delete(resetToken);
-            throw new IllegalArgumentException("Token expirado");
+            throw new IllegalArgumentException("error.reset.tokenExpired");
         }
 
         User user = resetToken.getUser();
@@ -232,13 +232,13 @@ public class AuthService {
 
             // 1. Exigir verificação estrita de e-mail (ASVS 2.1.12)
             if (!payload.getEmailVerified()) {
-                throw new IllegalArgumentException("Email do Google não verificado");
+                throw new IllegalArgumentException("error.google.emailNotVerified");
             }
 
             // 2. Proteção contra CSRF e replays: validação estrita de nonce
             String tokenNonce = (String) payload.get("nonce");
             if (tokenNonce == null || tokenNonce.isBlank() || !tokenNonce.equals(suppliedNonce)) {
-                throw new IllegalArgumentException("Token de estado (Nonce/CSRF) inválido ou expirado");
+                throw new IllegalArgumentException("error.google.nonceInvalid");
             }
 
             User user = syncSocialUser(payload);
@@ -268,7 +268,7 @@ public class AuthService {
 
         GoogleIdToken idToken = verifier.verify(idTokenString);
         if (idToken == null) {
-            throw new IllegalArgumentException("Assinatura do token do Google inválida ou expirada");
+            throw new IllegalArgumentException("error.google.signatureInvalid");
         }
         return idToken.getPayload();
     }
@@ -283,8 +283,8 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
 
         if (user == null) {
-            if (blacklistedEmailRepository.existsByEmailIgnoreCase(email)) {
-                throw new IllegalArgumentException("Não foi possível criar a conta com os dados informados");
+            if (blacklistedEmailRepository.isBlacklisted(email)) {
+                throw new IllegalArgumentException("error.register.failed");
             }
             user = User.builder()
                     .name(name.trim())

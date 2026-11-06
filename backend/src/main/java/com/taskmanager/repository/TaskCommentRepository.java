@@ -13,4 +13,5 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
     List<TaskComment> findByTaskIdOrderByCreatedAtAsc(Long taskId);
 
     Optional<TaskComment> findByIdAndUserId(Long id, Long userId);
+    List<TaskComment> findByUserIdOrderByCreatedAtAsc(Long userId);
 }

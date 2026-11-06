@@ -2,10 +2,13 @@ package com.taskmanager.controller;
 
 import com.taskmanager.dto.ChangePasswordRequest;
 import com.taskmanager.dto.UserProfileRequest;
+import com.taskmanager.dto.UserDataExport;
 import com.taskmanager.dto.UserProfileResponse;
+import com.taskmanager.service.DataExportService;
 import com.taskmanager.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +21,17 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private DataExportService dataExportService;
+
+    /** [LGPD] Download de todos os dados pessoais do usuário em JSON. */
+    @GetMapping("/me/export")
+    public ResponseEntity<UserDataExport> exportMyData() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"taskflow-meus-dados.json\"")
+                .body(dataExportService.exportCurrentUser());
+    }
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile() {

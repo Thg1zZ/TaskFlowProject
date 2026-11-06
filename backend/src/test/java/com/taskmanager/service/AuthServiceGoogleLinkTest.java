@@ -73,7 +73,7 @@ class AuthServiceGoogleLinkTest {
     @Test
     void newGoogleAccountIsCreatedAsVerified() {
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.empty());
-        when(blacklistedEmailRepository.existsByEmailIgnoreCase(EMAIL)).thenReturn(false);
+        when(blacklistedEmailRepository.isBlacklisted(EMAIL)).thenReturn(false);
 
         User result = authService.syncSocialUser(payload);
 
@@ -85,7 +85,7 @@ class AuthServiceGoogleLinkTest {
     @Test
     void blacklistedEmailCannotBeRecreatedThroughGoogle() {
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.empty());
-        when(blacklistedEmailRepository.existsByEmailIgnoreCase(EMAIL)).thenReturn(true);
+        when(blacklistedEmailRepository.isBlacklisted(EMAIL)).thenReturn(true);
 
         assertThatThrownBy(() -> authService.syncSocialUser(payload))
                 .isInstanceOf(IllegalArgumentException.class);

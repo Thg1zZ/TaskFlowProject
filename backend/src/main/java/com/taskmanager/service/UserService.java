@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.taskmanager.dto.DeleteAccountRequest;
 import com.taskmanager.entity.BlacklistedEmail;
 import com.taskmanager.repository.BlacklistedEmailRepository;
+import com.taskmanager.util.HashUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,10 +106,10 @@ public class UserService {
         User u = securityService.getCurrentUser();
 
         if (!passwordEncoder.matches(req.getCurrentPassword(), u.getPassword())) {
-            throw new IllegalArgumentException("Senha atual incorreta");
+            throw new IllegalArgumentException("error.password.currentIncorrect");
         }
         if (req.getCurrentPassword().equals(req.getNewPassword())) {
-            throw new IllegalArgumentException("A nova senha deve ser diferente da atual");
+            throw new IllegalArgumentException("error.password.sameAsCurrent");
         }
 
         u.changePassword(passwordEncoder.encode(req.getNewPassword()));
@@ -140,13 +141,13 @@ public class UserService {
     @Transactional
     public UserProfileResponse uploadAvatar(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("O arquivo de imagem não pode estar vazio.");
+            throw new IllegalArgumentException("error.avatar.empty");
         }
 
         // 1. Validação do Header MIME (não confiamos apenas nisso)
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png") && !contentType.equals("image/webp"))) {
-            throw new IllegalArgumentException("Formato não suportado. Use JPG, PNG ou WebP.");
+            throw new IllegalArgumentException("error.avatar.unsupportedFormat");
         }
 
         try {
@@ -154,7 +155,7 @@ public class UserService {
             // [REF-06] Importações de AWT/ImageIO movidas para o topo do arquivo
             BufferedImage originalImage = ImageIO.read(file.getInputStream());
             if (originalImage == null) {
-                throw new IllegalArgumentException("Arquivo inválido ou corrompido.");
+                throw new IllegalArgumentException("error.avatar.invalid");
             }
 
             int targetWidth  = Math.min(originalImage.getWidth(), 512);
@@ -177,7 +178,7 @@ public class UserService {
             byte[] imageBytes = baos.toByteArray();
 
             if (imageBytes.length > 500 * 1024) {
-                throw new IllegalArgumentException("Imagem final resultante muito pesada.");
+                throw new IllegalArgumentException("error.avatar.tooLarge");
             }
 
             // 5. Salvar como Base64 Data URI (Seguro contra Path Traversal)
@@ -202,20 +203,21 @@ public class UserService {
 
         // [SUPER_ADMIN SHIELD] A conta master não pode ser auto-excluída pelo sistema
         if (u.getRole() == com.taskmanager.entity.UserRole.ROLE_SUPER_ADMIN) {
-            throw new IllegalArgumentException("A conta de administrador master não pode ser excluída pelo painel do sistema.");
+            throw new IllegalArgumentException("error.account.superAdminCannotDelete");
         }
 
         // 1. Validar a senha fornecida
         if (!passwordEncoder.matches(req.getPassword(), u.getPassword())) {
-            logger.warn("Tentativa de exclusão de conta falhou para o usuário {}: senha incorreta", u.getEmail());
-            throw new IllegalArgumentException("Senha atual incorreta");
+            logger.warn("Tentativa de exclusão de conta falhou para o usuário ID {}: senha incorreta", u.getId());
+            throw new IllegalArgumentException("error.password.currentIncorrect");
         }
 
-        logger.info("Iniciando exclusão da conta do usuário ID: {}, Email: {}", u.getId(), u.getEmail());
+        // [LGPD] Logs só com o ID: o e-mail não deve sobreviver à exclusão da conta
+        logger.info("Iniciando exclusão da conta do usuário ID: {}", u.getId());
 
-        // 2. Adicionar o e-mail na blacklist de contas excluídas
+        // 2. Adicionar o hash do e-mail na blacklist de contas excluídas
         BlacklistedEmail blacklisted = BlacklistedEmail.builder()
-                .email(u.getEmail().toLowerCase().trim())
+                .emailHash(HashUtils.emailHash(u.getEmail()))
                 .deletedAt(LocalDateTime.now())
                 .reason("Conta excluída pelo próprio usuário")
                 .build();
@@ -230,7 +232,7 @@ public class UserService {
         // 5. Invalidar o contexto de segurança local
         SecurityContextHolder.clearContext();
 
-        logger.info("Conta do usuário {} excluída com sucesso.", u.getEmail());
+        logger.info("Conta do usuário ID {} excluída com sucesso.", u.getId());
     }
 
     @Transactional

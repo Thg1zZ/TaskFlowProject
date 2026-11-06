@@ -48,4 +48,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT t.status, COUNT(DISTINCT t) FROM Task t WHERE (t.user.id = :userId OR EXISTS (SELECT 1 FROM TaskParticipant p WHERE p.task.id = t.id AND p.user.id = :userId)) GROUP BY t.status")
     List<Object[]> countByUserIdGroupByStatus(@Param("userId") Long userId);
+
+    /** Só as tarefas que o usuário criou (exportação LGPD). */
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.category WHERE t.user.id = :userId ORDER BY t.createdAt")
+    List<Task> findAllOwnedBy(@Param("userId") Long userId);
 }

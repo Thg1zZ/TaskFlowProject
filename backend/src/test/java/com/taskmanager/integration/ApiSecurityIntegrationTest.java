@@ -6,12 +6,14 @@ import com.taskmanager.entity.Task;
 import com.taskmanager.entity.TaskParticipant;
 import com.taskmanager.entity.User;
 import com.taskmanager.entity.UserRole;
+import com.taskmanager.repository.BlacklistedEmailRepository;
 import com.taskmanager.repository.NotificationRepository;
 import com.taskmanager.repository.PasswordResetTokenRepository;
 import com.taskmanager.repository.TaskParticipantRepository;
 import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.security.JwtTokenProvider;
+import com.taskmanager.service.DataRetentionJob;
 import com.taskmanager.util.HashUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -31,10 +34,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,6 +70,9 @@ class ApiSecurityIntegrationTest {
     @Autowired private PasswordResetTokenRepository resetTokens;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtTokenProvider jwt;
+    @Autowired private BlacklistedEmailRepository blacklist;
+    @Autowired private DataRetentionJob retentionJob;
+    @Autowired private JdbcTemplate jdbc;
 
     // ─── helpers ────────────────────────────────────────────────────────────
 
@@ -187,6 +195,89 @@ class ApiSecurityIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Nome Novo"))
                 .andExpect(jsonPath("$.profileImage").value("data:image/jpeg;base64,QUJD"))
                 .andExpect(jsonPath("$.bio").value("minha bio"));
+    }
+
+    // ─── LGPD e operação ────────────────────────────────────────────────────
+
+    @Test
+    void dataExportReturnsOwnDataWithoutCredentials() throws Exception {
+        User user = createUser(UserRole.ROLE_USER);
+        createTask(user);
+
+        String body = call(get("/api/users/me/export"), tokenFor(user))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(jsonPath("$.profile.email").value(user.getEmail()))
+                .andExpect(jsonPath("$.tasks[0].title").value("Tarefa secreta"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).doesNotContain(user.getPassword()).doesNotContain("\"password\"");
+    }
+
+    @Test
+    void healthCheckIsPublicAndHidesDetails() throws Exception {
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components").doesNotExist());
+    }
+
+    @Test
+    void deletedAccountKeepsOnlyEmailHashAndBlocksReRegistration() throws Exception {
+        User user = createUser(UserRole.ROLE_USER);
+
+        callJson(delete("/api/users/me"), tokenFor(user), "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isOk());
+
+        assertThat(blacklist.existsByEmailHash(HashUtils.emailHash(user.getEmail()))).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from information_schema.columns "
+                + "where table_name = 'blacklisted_emails' and column_name = 'email'", Integer.class)).isZero();
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(
+                        "{\"name\":\"Outra\",\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PASSWORD + "\",\"acceptedTerms\":true}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void apiMessagesFollowAcceptLanguage() throws Exception {
+        String token = tokenFor(createUser(UserRole.ROLE_USER));
+        String body = "{\"currentPassword\":\"Errada!123x\",\"newPassword\":\"NovaSenha!456\"}";
+
+        call(post("/api/users/me/password").contentType(MediaType.APPLICATION_JSON).content(body)
+                .header("Accept-Language", "en-US"), token)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Current password is incorrect"));
+
+        call(post("/api/users/me/password").contentType(MediaType.APPLICATION_JSON).content(body)
+                .header("Accept-Language", "pt-BR"), token)
+                .andExpect(jsonPath("$.error").value("Senha atual incorreta"));
+
+        callJson(post("/api/tasks").header("Accept-Language", "en"), token, "{\"title\":\"\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Invalid data"))
+                .andExpect(jsonPath("$.details.title").value("Title is required"));
+
+        // Idioma não suportado cai no português, nunca no idioma do servidor
+        callJson(post("/api/tasks").header("Accept-Language", "de-DE"), token, "{\"title\":\"\"}")
+                .andExpect(jsonPath("$.details.title").value("Título é obrigatório"));
+    }
+
+    @Test
+    void javaEmailHashMatchesMigrationFormula() {
+        String email = "  Pessoa.Teste@Example.COM ";
+        String sqlHash = jdbc.queryForObject(
+                "select encode(sha256(convert_to(lower(trim(?)), 'UTF8')), 'hex')", String.class, email);
+        assertThat(HashUtils.emailHash(email)).isEqualTo(sqlHash);
+    }
+
+    @Test
+    void retentionJobPurgesOnlyExpiredAccessLogs() {
+        User user = createUser(UserRole.ROLE_USER);
+        jdbc.update("insert into user_access_logs (user_id, accessed_at) values (?, now() - interval '200 days')", user.getId());
+        jdbc.update("insert into user_access_logs (user_id, accessed_at) values (?, now())", user.getId());
+
+        retentionJob.purgeExpiredData();
+
+        assertThat(jdbc.queryForObject("select count(*) from user_access_logs where user_id = ?", Integer.class, user.getId()))
+                .isEqualTo(1);
     }
 
     @Test

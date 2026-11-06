@@ -95,7 +95,7 @@ public class AdminService {
             log.warn("[SECURITY] Tentativa de modificar SUPER_ADMIN detectada. Admin: {} | Ação: {}",
                 admin.getEmail(), action);
             throw new IllegalArgumentException(
-                "Operação negada: esta conta possui proteção de nível máximo."
+                "error.admin.protectedAccount"
             );
         }
         if (target.getRole() == UserRole.ROLE_ADMIN && admin.getRole() != UserRole.ROLE_SUPER_ADMIN) {
@@ -105,7 +105,7 @@ public class AdminService {
             log.warn("[SECURITY] ADMIN tentou modificar outro ADMIN. Admin: {} | Ação: {}",
                 admin.getEmail(), action);
             throw new IllegalArgumentException(
-                "Operação negada: apenas o Super Admin pode modificar outros administradores."
+                "error.admin.onlySuperAdminManagesAdmins"
             );
         }
     }
@@ -190,11 +190,11 @@ public class AdminService {
         if (admin.getId().equals(id)) {
             persistAudit(admin, admin, AdminAuditLog.ACTION_DELETE_USER,
                 "Tentativa de auto-exclusão bloqueada", AdminAuditLog.RESULT_BLOCKED);
-            throw new IllegalArgumentException("Você não pode excluir sua própria conta administradora");
+            throw new IllegalArgumentException("error.admin.cannotDeleteSelf");
         }
 
         User target = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.user.notFound"));
 
         // [SUPER_ADMIN SHIELD]
         assertCanManage(target, admin, AdminAuditLog.ACTION_DELETE_USER);
@@ -211,43 +211,43 @@ public class AdminService {
 
         // [INPUT VALIDATION: guard clause primeiro] Normalização e sanitização do e-mail
         if (newEmail == null || newEmail.isBlank()) {
-            throw new IllegalArgumentException("E-mail não pode ser vazio");
+            throw new IllegalArgumentException("error.email.empty");
         }
         String normalized = newEmail.toLowerCase().trim();
 
         if (!normalized.matches("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$")) {
-            throw new IllegalArgumentException("Formato de e-mail inválido");
+            throw new IllegalArgumentException("error.email.invalidFormat");
         }
 
         if (normalized.length() > 254) {
-            throw new IllegalArgumentException("E-mail excede o comprimento máximo permitido");
+            throw new IllegalArgumentException("error.email.tooLong");
         }
 
         // Auto-proteção
         if (admin.getId().equals(id)) {
             persistAudit(admin, admin, AdminAuditLog.ACTION_CHANGE_EMAIL,
                 "Tentativa de auto-alteração de e-mail bloqueada", AdminAuditLog.RESULT_BLOCKED);
-            throw new IllegalArgumentException("Use a página de perfil para alterar seu próprio e-mail");
+            throw new IllegalArgumentException("error.admin.useProfileForOwnEmail");
         }
 
         User target = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.user.notFound"));
 
         // [SUPER_ADMIN SHIELD]
         assertCanManage(target, admin, AdminAuditLog.ACTION_CHANGE_EMAIL);
 
         // Verificar blacklist
-        if (blacklistedEmailRepository.existsByEmailIgnoreCase(normalized)) {
+        if (blacklistedEmailRepository.isBlacklisted(normalized)) {
             persistAudit(admin, target, AdminAuditLog.ACTION_CHANGE_EMAIL,
                 "E-mail bloqueado na blacklist: " + normalized, AdminAuditLog.RESULT_BLOCKED);
-            throw new IllegalArgumentException("Este e-mail está bloqueado no sistema");
+            throw new IllegalArgumentException("error.email.blocked");
         }
 
         // Verificar unicidade
         if (userRepository.existsByEmailIgnoreCase(normalized)) {
             persistAudit(admin, target, AdminAuditLog.ACTION_CHANGE_EMAIL,
                 "E-mail já em uso: " + normalized, AdminAuditLog.RESULT_BLOCKED);
-            throw new IllegalArgumentException("Este e-mail já está em uso por outro usuário");
+            throw new IllegalArgumentException("error.email.inUse");
         }
 
         String previousEmail = target.getEmail();
@@ -269,25 +269,25 @@ public class AdminService {
 
         // [REF-05 FIX] Input validation PRIMEIRO (guard clause), antes de qualquer lógica de negócio
         if (roleName == null || roleName.isBlank()) {
-            throw new IllegalArgumentException("Role não pode ser vazia");
+            throw new IllegalArgumentException("error.role.empty");
         }
 
         UserRole newRole;
         try {
             newRole = UserRole.valueOf(roleName.toUpperCase().trim());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Role inválida. Valores aceitos: ROLE_USER, ROLE_ADMIN, ROLE_SUPER_ADMIN");
+            throw new IllegalArgumentException("error.role.invalid");
         }
 
         // Auto-proteção (após validar o input)
         if (admin.getId().equals(id)) {
             persistAudit(admin, admin, AdminAuditLog.ACTION_CHANGE_ROLE,
                 "Tentativa de auto-alteração de role bloqueada", AdminAuditLog.RESULT_BLOCKED);
-            throw new IllegalArgumentException("Você não pode alterar sua própria role por aqui");
+            throw new IllegalArgumentException("error.admin.cannotChangeOwnRole");
         }
 
         User target = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.user.notFound"));
 
         // [SUPER_ADMIN SHIELD] Bloqueio de rebaixamento
         assertCanManage(target, admin, AdminAuditLog.ACTION_CHANGE_ROLE);
@@ -298,7 +298,7 @@ public class AdminService {
                 "Tentativa de promover para SUPER_ADMIN sem permissão", AdminAuditLog.RESULT_BLOCKED);
             log.warn("[SECURITY] Admin {} tentou promover usuário {} para SUPER_ADMIN sem permissão",
                 admin.getEmail(), target.getEmail());
-            throw new IllegalArgumentException("Apenas o Super Admin pode promover outros usuários a este nível");
+            throw new IllegalArgumentException("error.admin.onlySuperAdminCanPromote");
         }
 
         UserRole previousRole = target.getRole();
