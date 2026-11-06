@@ -80,6 +80,9 @@ public class AuthService {
     /** [ASVS 6.3.1] SecureRandom para geração de tokens criptograficamente seguros */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+    /** Versão dos Termos e da Política de Privacidade aceita no cadastro. */
+    static final String TERMS_VERSION = "1.1";
+
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         String emailNormalized = request.getEmail().toLowerCase().trim();
@@ -100,7 +103,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .acceptedTerms(true)
                 .acceptedAt(LocalDateTime.now())
-                .termsVersion("1.0")
+                .termsVersion(TERMS_VERSION)
                 .build();
 
         User saved = userRepository.save(user);
@@ -220,8 +223,8 @@ public class AuthService {
             accessLogRepository.save(accessLog);
         } catch (Exception e) {
             // [REF-07] Logger SLF4J em vez de System.err.println
-            log.warn("[ACCESS-LOG] Falha ao registrar access log para usuário {}: {}",
-                user.getEmail(), e.getMessage());
+            log.warn("[ACCESS-LOG] Falha ao registrar access log para usuário ID {}: {}",
+                user.getId(), e.getMessage());
         }
     }
 
@@ -292,6 +295,10 @@ public class AuthService {
                     .password(passwordEncoder.encode(randomPassword()))
                     .role(com.taskmanager.entity.UserRole.ROLE_USER)
                     .emailVerified(true)
+                    // O botão do Google exibe o aviso de aceite dos Termos e da Política
+                    .acceptedTerms(true)
+                    .acceptedAt(LocalDateTime.now())
+                    .termsVersion(TERMS_VERSION)
                     .build();
 
             user = userRepository.save(user);

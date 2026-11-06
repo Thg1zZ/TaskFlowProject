@@ -10,6 +10,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n/I18nProvider';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getApiErrorMessage } from '@/lib/apiError';
+import GoogleConsentNotice from '@/components/legal/GoogleConsentNotice';
 
 // Gera um nonce aleatório e o armazena para validação
 function generateNonce(): string {
@@ -194,6 +195,7 @@ function LoginContent({ clientId }: { clientId: string }) {
             />
           )}
         </div>
+        <GoogleConsentNotice />
       </div>
     </div>
     </GoogleOAuthProvider>

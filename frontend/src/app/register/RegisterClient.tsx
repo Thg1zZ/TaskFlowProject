@@ -10,6 +10,8 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n/I18nProvider';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getApiErrorMessage } from '@/lib/apiError';
+import LegalSections from '@/components/legal/LegalSections';
+import GoogleConsentNotice from '@/components/legal/GoogleConsentNotice';
 
 // Gera um nonce aleatório e o armazena para validação
 function generateNonce(): string {
@@ -112,12 +114,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm text-[var(--text-2)] leading-relaxed">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="space-y-1">
-              <p className="font-semibold text-[var(--text)]">{t(`legal.terms${n}Title`)}</p>
-              <p>{t(`legal.terms${n}Body`)}</p>
-            </div>
-          ))}
+          <LegalSections kind="terms" />
         </div>
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex justify-end">
           <button onClick={() => setIsTermsModalOpen(false)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium">
@@ -138,12 +135,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm text-[var(--text-2)] leading-relaxed">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <div key={n} className="space-y-1">
-              <p className="font-semibold text-[var(--text)]">{t(`legal.privacy${n}Title`)}</p>
-              <p>{t(`legal.privacy${n}Body`)}</p>
-            </div>
-          ))}
+          <LegalSections kind="privacy" />
         </div>
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--bg-2)] flex justify-end">
           <button onClick={() => setIsPrivacyModalOpen(false)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-[var(--radius)] text-sm font-medium">
@@ -391,6 +383,7 @@ function RegisterContent({ clientId }: { clientId: string }) {
             />
           )}
         </div>
+        <GoogleConsentNotice />
       </div>
     </div>
     {/* eslint-disable-next-line react-hooks/static-components */}
