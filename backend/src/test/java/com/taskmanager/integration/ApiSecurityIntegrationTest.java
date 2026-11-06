@@ -293,4 +293,81 @@ class ApiSecurityIntegrationTest {
                 .andExpect(jsonPath("$[0].role").value("EDITOR"))
                 .andExpect(jsonPath("$[0].user.email").doesNotExist());
     }
+
+    @Test
+    void googleAccountConfirmsDeletionWithOwnEmail() throws Exception {
+        User google = createUser(UserRole.ROLE_USER);
+        google.setEmailVerified(true);
+        users.save(google);
+        String token = tokenFor(google);
+
+        callJson(delete("/api/users/me"), token, "{\"confirmEmail\":\"outra@pessoa.com\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("O e-mail digitado não corresponde ao da sua conta."));
+        callJson(delete("/api/users/me"), token, "{\"confirmEmail\":\" " + google.getEmail().toUpperCase() + " \"}")
+                .andExpect(status().isOk());
+        assertThat(users.findById(google.getId())).isEmpty();
+    }
+
+    @Test
+    void passwordAccountCannotDeleteWithEmailOnly() throws Exception {
+        User user = createUser(UserRole.ROLE_USER);
+
+        callJson(delete("/api/users/me"), tokenFor(user), "{\"confirmEmail\":\"" + user.getEmail() + "\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Senha atual incorreta"));
+        assertThat(users.findById(user.getId())).isPresent();
+    }
+
+    @Test
+    void accountDeletionAnonymizesAuditLog() throws Exception {
+        User user = createUser(UserRole.ROLE_USER);
+        String auditInsert = "insert into admin_audit_logs (admin_id, admin_email, admin_role, target_user_id, "
+                + "target_user_email, action, details, result, performed_at) values (?, ?, 'ROLE_ADMIN', ?, ?, ?, ?, 'SUCCESS', now())";
+        jdbc.update(auditInsert, 999_001L, "admin@taskflow.test", user.getId(), user.getEmail(),
+                "CHANGE_EMAIL", "E-mail alterado: [antigo@x.com] → [" + user.getEmail() + "]");
+        jdbc.update(auditInsert, 999_001L, "admin@taskflow.test", user.getId(), user.getEmail(), "CHANGE_ROLE", "Role alterada");
+
+        callJson(delete("/api/users/me"), tokenFor(user), "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isOk());
+
+        assertThat(jdbc.queryForList("select target_user_email from admin_audit_logs where target_user_id = ?", String.class, user.getId()))
+                .hasSize(2).containsOnly("[conta excluída]");
+        assertThat(jdbc.queryForObject("select details from admin_audit_logs where target_user_id = ? and action = 'CHANGE_EMAIL'",
+                String.class, user.getId())).isNull();
+        assertThat(jdbc.queryForObject("select details from admin_audit_logs where target_user_id = ? and action = 'CHANGE_ROLE'",
+                String.class, user.getId())).isEqualTo("Role alterada");
+    }
+
+    @Test
+    void retentionJobPurgesOldAuditLogsAndBlacklistHashes() {
+        String auditInsert = "insert into admin_audit_logs (admin_id, admin_email, admin_role, action, result, performed_at) "
+                + "values (999002, 'retencao@taskflow.test', 'ROLE_ADMIN', 'GET_STATS', 'SUCCESS', now() - make_interval(days => ?))";
+        jdbc.update(auditInsert, 800);
+        jdbc.update(auditInsert, 10);
+        String blacklistInsert = "insert into blacklisted_emails (email_hash, deleted_at) values (?, now() - make_interval(days => ?))";
+        jdbc.update(blacklistInsert, HashUtils.emailHash("antigo-" + UUID.randomUUID() + "@x.com"), 800);
+        String recentHash = HashUtils.emailHash("recente-" + UUID.randomUUID() + "@x.com");
+        jdbc.update(blacklistInsert, recentHash, 10);
+
+        retentionJob.purgeExpiredData();
+
+        assertThat(jdbc.queryForObject("select count(*) from admin_audit_logs where admin_id = 999002", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from blacklisted_emails where deleted_at < now() - interval '730 days'",
+                Integer.class)).isZero();
+        assertThat(blacklist.existsByEmailHash(recentHash)).isTrue();
+    }
+
+    @Test
+    void dataExportIncludesTasksSharedWithUser() throws Exception {
+        User owner = createUser(UserRole.ROLE_USER);
+        User member = createUser(UserRole.ROLE_USER);
+        Task task = createTask(owner);
+        participants.save(TaskParticipant.builder().task(task).user(member).role(ParticipantRole.EDITOR).build());
+
+        call(get("/api/users/me/export"), tokenFor(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sharedWithMe[0].taskId").value(task.getId()))
+                .andExpect(jsonPath("$.sharedWithMe[0].role").value("EDITOR"))
+                .andExpect(jsonPath("$.shareLinks").isArray());
+    }
 }
