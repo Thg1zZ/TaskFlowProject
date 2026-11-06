@@ -143,6 +143,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 // Rota interna de erro: sem isso um 403 de URL vira 401 no reencaminhamento
                 .requestMatchers("/error").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .anyRequest().authenticated()
             )

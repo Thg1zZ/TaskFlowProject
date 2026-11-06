@@ -4,6 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
+    healthCheckPath: /actuator/health
     envVars:
       - key: JWT_SECRET
         sync: false
