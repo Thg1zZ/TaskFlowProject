@@ -9,18 +9,21 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.Formula;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "tasks")
 @Data
-@EqualsAndHashCode(exclude = {"user", "category", "comments", "participants"})
-@ToString(exclude = {"user", "category", "comments", "participants"})
+@EqualsAndHashCode(exclude = {"user", "category", "comments", "participants", "tags", "subtasks"})
+@ToString(exclude = {"user", "category", "comments", "participants", "tags", "subtasks"})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -94,6 +97,24 @@ public class Task {
     @Builder.Default
     private List<TaskParticipant> participants = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private TaskRecurrence recurrence;
+
+    /** BatchSize evita uma consulta por tarefa ao carregar a lista. */
+    @ElementCollection
+    @CollectionTable(name = "task_tags", joinColumns = @JoinColumn(name = "task_id"))
+    @Column(name = "tag", length = 30, nullable = false)
+    @BatchSize(size = 100)
+    @Builder.Default
+    private Set<String> tags = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position")
+    @BatchSize(size = 100)
+    @Builder.Default
+    private List<Subtask> subtasks = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -118,5 +139,17 @@ public class Task {
 
     public enum TaskPrivacy {
         PRIVATE, PUBLIC
+    }
+
+    public enum TaskRecurrence {
+        DAILY, WEEKLY, MONTHLY;
+
+        public LocalDate next(LocalDate date) {
+            return switch (this) {
+                case DAILY -> date.plusDays(1);
+                case WEEKLY -> date.plusWeeks(1);
+                case MONTHLY -> date.plusMonths(1);
+            };
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.taskmanager.service;
 import com.taskmanager.dto.TaskRequest;
 import com.taskmanager.dto.TaskResponse;
 import com.taskmanager.entity.Category;
+import com.taskmanager.entity.Subtask;
 import com.taskmanager.entity.Task;
 import com.taskmanager.entity.Task.TaskStatus;
 import com.taskmanager.entity.User;
@@ -16,9 +17,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -84,7 +88,10 @@ public class TaskService {
                 .timeSpentMinutes(request.getTimeSpentMinutes() != null ? request.getTimeSpentMinutes() : 0)
                 .category(category)
                 .user(user)
+                .recurrence(request.getRecurrence())
                 .build();
+        applyTags(task, request.getTags());
+        applySubtasks(task, request.getSubtasks());
 
         return TaskResponse.fromEntity(taskRepository.save(task));
     }
@@ -100,6 +107,7 @@ public class TaskService {
         LocalDate endDate = resolveEndDate(request);
         validateDateRange(request.getStartDate(), endDate);
 
+        TaskStatus previousStatus = task.getStatus();
         task.setTitle(request.getTitle().trim());
         task.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         if (request.getStatus() != null)   task.setStatus(request.getStatus());
@@ -110,10 +118,14 @@ public class TaskService {
         task.setEstimatedMinutes(request.getEstimatedMinutes());
         if (request.getTimeSpentMinutes() != null) task.setTimeSpentMinutes(request.getTimeSpentMinutes());
         task.setCategory(category);
+        task.setRecurrence(request.getRecurrence());
+        applyTags(task, request.getTags());
+        applySubtasks(task, request.getSubtasks());
+        scheduleNextOccurrence(task, previousStatus);
 
         Task updated = taskRepository.save(task);
         sseService.broadcastToTask(task.getId(), "TASK_UPDATED", TaskResponse.fromEntity(updated));
-        
+
         return TaskResponse.fromEntity(updated);
     }
 
@@ -121,28 +133,119 @@ public class TaskService {
     public TaskResponse updateTaskStatus(Long id, TaskStatus status) {
         User user = securityService.getCurrentUser();
         Task task = findOwnedTaskOrThrow(id, user.getId()); // [REF-02]
+        TaskStatus previousStatus = task.getStatus();
         task.setStatus(status);
+        scheduleNextOccurrence(task, previousStatus);
         Task updated = taskRepository.save(task);
         sseService.broadcastToTask(task.getId(), "TASK_UPDATED", TaskResponse.fromEntity(updated));
-        
+
         return TaskResponse.fromEntity(updated);
+    }
+
+    @Transactional(readOnly = false)
+    public TaskResponse toggleSubtask(Long taskId, Long subtaskId, boolean done) {
+        User user = securityService.getCurrentUser();
+        Task task = findOwnedTaskOrThrow(taskId, user.getId());
+        task.getSubtasks().stream()
+                .filter(s -> s.getId().equals(subtaskId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("error.subtask.notFound"))
+                .setDone(done);
+
+        Task updated = taskRepository.save(task);
+        sseService.broadcastToTask(task.getId(), "TASK_UPDATED", TaskResponse.fromEntity(updated));
+        return TaskResponse.fromEntity(updated);
+    }
+
+    /**
+     * Ao concluir uma tarefa recorrente, cria a próxima ocorrência e tira a recorrência da atual,
+     * para que marcar e desmarcar "concluída" não gere duplicatas.
+     */
+    private void scheduleNextOccurrence(Task task, TaskStatus previousStatus) {
+        if (task.getRecurrence() == null || task.getStatus() != TaskStatus.DONE || previousStatus == TaskStatus.DONE) {
+            return;
+        }
+        Task.TaskRecurrence recurrence = task.getRecurrence();
+        LocalDate today = LocalDate.now();
+        LocalDate base = task.getEndDate() != null ? task.getEndDate() : today;
+        LocalDate nextEnd = recurrence.next(base);
+        // Concluída com atraso: avança até a próxima data que ainda não passou
+        while (nextEnd.isBefore(today)) {
+            nextEnd = recurrence.next(nextEnd);
+        }
+        LocalDate nextStart = task.getStartDate() == null ? null
+                : task.getStartDate().plusDays(ChronoUnit.DAYS.between(base, nextEnd));
+
+        Task next = Task.builder()
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .priority(task.getPriority())
+                .status(TaskStatus.TODO)
+                .startDate(nextStart)
+                .endDate(nextEnd)
+                .dueDate(nextEnd)
+                .estimatedMinutes(task.getEstimatedMinutes())
+                .timeSpentMinutes(0)
+                .category(task.getCategory())
+                .user(task.getUser())
+                .privacyMode(task.getPrivacyMode())
+                .recurrence(recurrence)
+                .build();
+        next.getTags().addAll(task.getTags());
+        applySubtasks(next, task.getSubtasks().stream()
+                .map(s -> new TaskRequest.SubtaskInput(null, s.getTitle(), false))
+                .toList());
+
+        task.setRecurrence(null);
+        taskRepository.save(next);
+    }
+
+    /** Tags em minúsculas, sem espaços extras e sem "#" inicial, para que "#Frontend" e "frontend" sejam a mesma. */
+    private void applyTags(Task task, Set<String> tags) {
+        if (tags == null) return;
+        task.getTags().clear();
+        tags.stream()
+                .map(t -> t.trim().replaceFirst("^#+", "").trim().toLowerCase())
+                .filter(t -> !t.isEmpty())
+                .forEach(task.getTags()::add);
+    }
+
+    private void applySubtasks(Task task, List<TaskRequest.SubtaskInput> inputs) {
+        if (inputs == null) return;
+        Map<Long, Subtask> existing = task.getSubtasks().stream()
+                .filter(s -> s.getId() != null)
+                .collect(Collectors.toMap(Subtask::getId, s -> s));
+
+        List<Subtask> updated = new ArrayList<>();
+        for (int i = 0; i < inputs.size(); i++) {
+            TaskRequest.SubtaskInput input = inputs.get(i);
+            Subtask subtask = input.id() != null && existing.containsKey(input.id())
+                    ? existing.get(input.id())
+                    : Subtask.builder().task(task).build();
+            subtask.setTitle(input.title().trim());
+            subtask.setDone(input.done());
+            subtask.setPosition(i);
+            updated.add(subtask);
+        }
+        task.getSubtasks().clear();
+        task.getSubtasks().addAll(updated);
     }
 
     @Transactional(readOnly = false)
     public TaskResponse incrementTaskTime(Long id, Integer minutes) {
         User user = securityService.getCurrentUser();
         Task task = taskRepository.findByIdAndUserIdForUpdate(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         if (minutes == null || minutes < 1) {
-            throw new IllegalArgumentException("Os minutos incrementados devem ser de no mínimo 1");
+            throw new IllegalArgumentException("error.time.minIncrement");
         }
 
         int currentSpent = task.getTimeSpentMinutes() != null ? task.getTimeSpentMinutes() : 0;
         int newSpent = currentSpent + minutes;
 
         if (newSpent > 43200) {
-            throw new IllegalArgumentException("Tempo total gasto não pode exceder 30 dias (43200 minutos)");
+            throw new IllegalArgumentException("error.time.maxTotal");
         }
 
         task.setTimeSpentMinutes(newSpent);
@@ -202,13 +305,13 @@ public class TaskService {
      */
     private Task findOwnedTaskOrThrow(Long id, Long userId) {
         return taskRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
     }
 
     private Category resolveCategory(Long categoryId, Long userId) {
         if (categoryId == null) return null;
         return categoryRepository.findByIdAndUserId(categoryId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.category.notFound"));
     }
 
     private LocalDate resolveEndDate(TaskRequest request) {
@@ -219,7 +322,7 @@ public class TaskService {
         if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
             // [A05 CORREÇÃO] Encoding correto: caractere "ã" em UTF-8 nativo (não ISO corrompido)
             // O arquivo deve ser salvo como UTF-8 e o build configurado com -encoding UTF-8
-            throw new IllegalArgumentException("Data inicial não pode ser depois da data final");
+            throw new IllegalArgumentException("error.task.dateRange");
         }
     }
 }

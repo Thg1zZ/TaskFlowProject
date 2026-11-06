@@ -71,6 +71,14 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateTaskStatus(id, request.getStatus()));
     }
 
+    @PatchMapping("/{id}/subtasks/{subtaskId}")
+    @PreAuthorize("@taskSecurity.canEdit(#id)")
+    public ResponseEntity<TaskResponse> toggleSubtask(@PathVariable Long id,
+                                                      @PathVariable Long subtaskId,
+                                                      @RequestBody Map<String, Boolean> body) {
+        return ResponseEntity.ok(taskService.toggleSubtask(id, subtaskId, Boolean.TRUE.equals(body.get("done"))));
+    }
+
     @PatchMapping("/{id}/track-time")
     @PreAuthorize("@taskSecurity.canEdit(#id)")
     public ResponseEntity<TaskResponse> trackTime(@PathVariable Long id,

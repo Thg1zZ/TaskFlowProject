@@ -1,5 +1,32 @@
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
+import { toast } from "react-hot-toast";
 import { tasksApi, Task, TaskStatus } from "@/lib/api/tasks";
+import { useI18n } from "@/i18n/I18nProvider";
+import { getApiErrorMessage } from "@/lib/apiError";
+
+/** Marca/desmarca uma subtarefa com atualização otimista da lista em cache. */
+export function useSubtaskToggle() {
+  const { mutate } = useSWRConfig();
+  const { t } = useI18n();
+
+  return async (taskId: number, subtaskId: number, done: boolean) => {
+    mutate<Task[]>(
+      "/tasks",
+      (tasks) => tasks?.map((t) => t.id !== taskId ? t : {
+        ...t,
+        subtasks: t.subtasks.map((s) => (s.id === subtaskId ? { ...s, done } : s)),
+      }),
+      { revalidate: false }
+    );
+    try {
+      await tasksApi.toggleSubtask(taskId, subtaskId, done);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t("subtasks.toggleError")));
+    } finally {
+      mutate("/tasks");
+    }
+  };
+}
 
 export function useTasks(filter: "ALL" | TaskStatus = "ALL") {
   const { data: tasks, error, isLoading, mutate } = useSWR<Task[]>("/tasks", tasksApi.getAll);

@@ -2,6 +2,20 @@ import api from "@/lib/axios";
 
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH";
+export type TaskRecurrence = "DAILY" | "WEEKLY" | "MONTHLY";
+
+export interface Subtask {
+  id: number;
+  title: string;
+  done: boolean;
+}
+
+/** Na edição, itens sem id são novos; itens ausentes da lista são removidos. */
+export interface SubtaskInput {
+  id?: number;
+  title: string;
+  done: boolean;
+}
 
 export interface Task {
   id: number;
@@ -30,6 +44,9 @@ export interface Task {
     userName: string;
     role: 'ADMIN' | 'EDITOR' | 'VIEWER';
   }[];
+  recurrence: TaskRecurrence | null;
+  tags: string[];
+  subtasks: Subtask[];
 }
 
 export interface TaskInput {
@@ -42,6 +59,9 @@ export interface TaskInput {
   dueDate?: string | null;
   categoryId?: number | null;
   estimatedMinutes?: number | null;
+  recurrence?: TaskRecurrence | null;
+  tags?: string[];
+  subtasks?: SubtaskInput[];
 }
 
 export const tasksApi = {
@@ -63,6 +83,11 @@ export const tasksApi = {
 
   updateStatus: async (id: number, status: TaskStatus) => {
     const res = await api.patch<Task>(`/tasks/${id}/status`, { status });
+    return res.data;
+  },
+
+  toggleSubtask: async (taskId: number, subtaskId: number, done: boolean) => {
+    const res = await api.patch<Task>(`/tasks/${taskId}/subtasks/${subtaskId}`, { done });
     return res.data;
   },
 

@@ -10,7 +10,10 @@ import clsx from "clsx";
 import { useTasks } from "@/hooks/useTasks";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import useSWR from "swr";
+import { categoriesApi, Category } from "@/lib/api/categories";
+import TaskFiltersBar, { applyTaskFilters, EMPTY_FILTERS, TaskFilters } from "@/components/tasks/TaskFilters";
+import { useI18n } from "@/i18n/I18nProvider";
 
 
 type ViewMode = "grid" | "list" | "kanban";
@@ -21,6 +24,9 @@ export default function TasksPage() {
   const [filter, setFilter] = useState<FilterStatus>("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
+  const { t, dateLocale } = useI18n();
+  const { data: categories } = useSWR<Category[]>("/categories", categoriesApi.getAll);
 
   // Lógica delegada para o custom hook (Clean Code)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -53,12 +59,12 @@ export default function TasksPage() {
         const day = parseInt(parts[2], 10);
         const dateObj = new Date(year, month, day);
 
-        // Gera representações em múltiplos formatos de data usados no Brasil
+        // Gera representações da data em vários formatos, no idioma da interface
         const formattedSlashLong = format(dateObj, "dd/MM/yyyy");
         const formattedSlashShort = format(dateObj, "dd/MM");
         const formattedHyphen = format(dateObj, "yyyy-MM-dd");
-        const formattedText = format(dateObj, "d 'de' MMMM", { locale: ptBR }).toLowerCase();
-        const formattedTextShort = format(dateObj, "dd MMM", { locale: ptBR }).toLowerCase();
+        const formattedText = format(dateObj, "PPP", { locale: dateLocale }).toLowerCase();
+        const formattedTextShort = format(dateObj, "dd MMM", { locale: dateLocale }).toLowerCase();
 
         return (
           formattedSlashLong.includes(query) ||
@@ -75,8 +81,13 @@ export default function TasksPage() {
     return false;
   });
 
-  // 2. Filtra de acordo com a aba de status selecionada (só para Grid e List)
-  const displayedTasks = searchFilteredTasks.filter(
+  // 2. Filtros combinados (prioridade, categoria, etiqueta e prazo) valem para todas as visualizações
+  const combinedFilteredTasks = applyTaskFilters(searchFilteredTasks, filters);
+  const hasFilters = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
+  const allTags = Array.from(new Set((tasks ?? []).flatMap((t) => t.tags ?? []))).sort();
+
+  // 3. Filtra de acordo com a aba de status selecionada (só para Grid e List)
+  const displayedTasks = combinedFilteredTasks.filter(
     (t) => filter === "ALL" || t.status === filter
   );
 
@@ -102,7 +113,7 @@ export default function TasksPage() {
               filter === "ALL" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
-            Todas
+            {t("tasksPage.all")}
           </button>
           <button
             onClick={() => setFilter("TODO")}
@@ -111,7 +122,7 @@ export default function TasksPage() {
               filter === "TODO" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
-            A Fazer
+            {t("status.TODO")}
           </button>
           <button
             onClick={() => setFilter("IN_PROGRESS")}
@@ -120,7 +131,7 @@ export default function TasksPage() {
               filter === "IN_PROGRESS" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
-            Em Progresso
+            {t("status.IN_PROGRESS")}
           </button>
           <button
             onClick={() => setFilter("DONE")}
@@ -129,7 +140,7 @@ export default function TasksPage() {
               filter === "DONE" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
             )}
           >
-            Concluídas
+            {t("dashboard.doneCount")}
           </button>
         </div>
  
@@ -137,6 +148,8 @@ export default function TasksPage() {
           <div className="flex items-center bg-[var(--bg-2)] rounded-lg border border-[var(--color-border)] p-1">
             <button
               onClick={() => setViewMode("grid")}
+              aria-label={t("tasksPage.gridView")}
+              title={t("tasksPage.gridView")}
               className={clsx(
                 "p-1.5 rounded-md transition-all",
                 viewMode === "grid" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--color-muted-foreground)]"
@@ -146,6 +159,8 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => setViewMode("list")}
+              aria-label={t("tasksPage.listView")}
+              title={t("tasksPage.listView")}
               className={clsx(
                 "p-1.5 rounded-md transition-all",
                 viewMode === "list" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--color-muted-foreground)]"
@@ -155,6 +170,8 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => setViewMode("kanban")}
+              aria-label={t("tasksPage.kanbanView")}
+              title={t("tasksPage.kanbanView")}
               className={clsx(
                 "p-1.5 rounded-md transition-all",
                 viewMode === "kanban" ? "bg-[var(--bg)] shadow-sm text-[var(--text)]" : "text-[var(--color-muted-foreground)]"
@@ -169,9 +186,13 @@ export default function TasksPage() {
             className="flex items-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            Nova Tarefa
+            {t("taskModal.newTask")}
           </button>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <TaskFiltersBar value={filters} onChange={setFilters} categories={categories ?? []} tags={allTags} />
       </div>
 
       {/* Main Content Area */}
@@ -179,7 +200,7 @@ export default function TasksPage() {
         {error ? (
           <div className="p-4 bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/20 rounded-[var(--radius-lg)] flex items-center justify-center gap-2 h-32">
             <AlertCircle className="w-5 h-5" />
-            <span>Erro ao carregar as tarefas. Tente novamente.</span>
+            <span>{t("tasksPage.loadError")}</span>
           </div>
         ) : isLoading ? (
           <div className="flex-1 flex items-center justify-center">
@@ -191,22 +212,24 @@ export default function TasksPage() {
               <LayoutGrid className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-medium">
-              {search ? "Nenhuma tarefa correspondente" : "Nenhuma tarefa encontrada"}
+              {search || hasFilters ? t("tasksPage.noMatchTitle") : t("tasksPage.emptyTitle")}
             </h3>
             <p className="text-[var(--text-2)] text-sm mb-4 max-w-sm">
-              {search 
-                ? `Não encontramos tarefas que correspondam a "${search}". Tente buscar por outro termo.` 
-                : "Crie sua primeira tarefa para começar."}
+              {search
+                ? t("tasksPage.noSearchMatch", { search })
+                : hasFilters
+                  ? t("tasksPage.noFilterMatch")
+                  : t("tasksPage.emptyHint")}
             </p>
-            {!search && (
+            {!search && !hasFilters && (
               <button onClick={handleCreateNew} className="text-[var(--accent)] hover:underline text-sm font-medium">
-                + Criar Tarefa
+                {t("tasksPage.createTask")}
               </button>
             )}
           </div>
         ) : viewMode === "kanban" ? (
-          <KanbanBoard 
-            tasks={searchFilteredTasks} 
+          <KanbanBoard
+            tasks={combinedFilteredTasks}
             onTaskMove={updateTaskStatus} 
             onTaskClick={handleEdit} 
             isLoading={isLoading} 

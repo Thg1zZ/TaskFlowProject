@@ -42,6 +42,11 @@ public class TaskResponse {
     private Long ownerId;
     private Task.TaskPrivacy privacyMode;
     private List<ParticipantDto> participants;
+    private Task.TaskRecurrence recurrence;
+    private List<String> tags;
+    private List<SubtaskDto> subtasks;
+
+    public record SubtaskDto(Long id, String title, boolean done) {}
 
     @Data
     @Builder
@@ -81,6 +86,11 @@ public class TaskResponse {
         
         r.setOwnerId(task.getUser().getId());
         r.setPrivacyMode(task.getPrivacyMode());
+        r.setRecurrence(task.getRecurrence());
+        r.setTags(task.getTags().stream().sorted().toList());
+        r.setSubtasks(task.getSubtasks().stream()
+                .map(s -> new SubtaskDto(s.getId(), s.getTitle(), s.isDone()))
+                .toList());
         
         if (task.getParticipants() != null) {
             r.setParticipants(task.getParticipants().stream()
