@@ -76,8 +76,8 @@ public class RealTimeSseService {
             for (SseEmitter emitter : userEmitters) {
                 try {
                     emitter.send(SseEmitter.event().name(eventName).data(data));
-                } catch (IOException e) {
-                    emitter.completeWithError(e);
+                } catch (IOException | IllegalStateException e) {
+                    // Conexão morta (aba fechada): descarta sem derrubar a operação que gerou o evento
                     removeEmitter(userId, emitter);
                 }
             }
