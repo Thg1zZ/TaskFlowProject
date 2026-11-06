@@ -198,7 +198,7 @@ public class TaskService {
     /**
      * [REF-02] Helper centralizado que substitui o padrão findByIdAndUserId + orElseThrow
      * que estava repetido em 5 métodos diferentes (getTaskById, updateTask,
-     * updateTaskStatus, deleteTask — incrementTaskTime usa findForUpdate por precisar de lock).
+     * updateTaskStatus, deleteTask; incrementTaskTime usa findForUpdate por precisar de lock).
      */
     private Task findOwnedTaskOrThrow(Long id, Long userId) {
         return taskRepository.findByIdAndUserId(id, userId)

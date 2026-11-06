@@ -80,7 +80,7 @@ public class Task {
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaskComment> comments;
 
-    /** Contagem derivada no SELECT — evita lazy load de {@code comments} com open-in-view desligado */
+    /** Contagem derivada no SELECT, que evita lazy load de {@code comments} com open-in-view desligado */
     @Formula("(select count(*) from task_comments c where c.task_id = id)")
     private long commentCount;
 

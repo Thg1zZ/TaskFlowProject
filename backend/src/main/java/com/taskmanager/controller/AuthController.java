@@ -109,7 +109,7 @@ public class AuthController {
 
     @GetMapping("/keep-alive")
     public ResponseEntity<Map<String, String>> keepAlive() {
-        // [REF-08] Map.of() imutável e conciso — substituiu new HashMap<>() + 2x put()
+        // [REF-08] Map.of() imutável e conciso; substituiu new HashMap<>() + 2x put()
         return ResponseEntity.ok(Map.of(
             "status",  "UP",
             "message", "Backend is awake and operational"

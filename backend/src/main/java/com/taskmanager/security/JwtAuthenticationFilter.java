@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Filtro JWT — extrai e valida o token em cada requisição.
+ * Filtro JWT: extrai e valida o token em cada requisição.
  *
  * [DUP-01 FIX] A extração do token (cookie → header) foi centralizada em
  * JwtTokenProvider.extractTokenFromRequest(), eliminando a duplicação que existia
@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            // [DUP-01] Extração centralizada em JwtTokenProvider — single source of truth
+            // [DUP-01] Extração centralizada em JwtTokenProvider (single source of truth)
             String jwt = tokenProvider.extractTokenFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {

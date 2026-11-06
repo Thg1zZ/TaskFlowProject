@@ -95,7 +95,7 @@ export default function StatisticsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Estatísticas</h1>
-          <p className="text-[var(--text-2)] text-sm mt-1">Distribuição das suas tarefas por status — personalize o tipo de gráfico e as cores.</p>
+          <p className="text-[var(--text-2)] text-sm mt-1">Distribuição das suas tarefas por status. Personalize o tipo de gráfico e as cores.</p>
         </div>
       </div>
 

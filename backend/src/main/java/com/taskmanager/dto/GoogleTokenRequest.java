@@ -5,7 +5,7 @@ import lombok.Data;
 
 /**
  * DTO para receber o ID Token gerado pelo Google e o Nonce de sessão.
- * ASVS 3.5 — Verificação de assinaturas criptográficas e proteção contra CSRF.
+ * ASVS 3.5: verificação de assinaturas criptográficas e proteção contra CSRF.
  */
 @Data
 public class GoogleTokenRequest {

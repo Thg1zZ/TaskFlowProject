@@ -22,7 +22,7 @@ export interface AdminStats {
   accessesLast30Days: number;
 }
 
-/** Registro individual de auditoria — reflete AdminAuditLog.java */
+/** Registro individual de auditoria, espelho de AdminAuditLog.java */
 export interface AuditLog {
   id: number;
   adminId: number;
@@ -76,7 +76,7 @@ export const adminApi = {
 
   /**
    * Retorna o log de auditoria paginado (50 entradas por página).
-   * Apenas ADMIN e SUPER_ADMIN têm acesso — validado no backend.
+   * Apenas ADMIN e SUPER_ADMIN têm acesso, validado no backend.
    */
   getAuditLogs: async (page = 0): Promise<AuditLogPage> => {
     const res = await api.get<AuditLogPage>("/admin/audit-logs", { params: { page } });

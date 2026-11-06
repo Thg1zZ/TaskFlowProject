@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Rate limiting por IP para endpoints de autenticação.
  *
  * OWASP: A01 (Broken Access Control), A07 (Identification and Authentication Failures)
- * ASVS: 2.2.1 — Verifica que controles anti-automação estejam presentes.
+ * ASVS: 2.2.1. Verifica que controles anti-automação estejam presentes.
  *
  * Endpoints cobertos:
  *  - /api/auth/login          → máx 10 tentativas / 15 minutos por IP
@@ -156,7 +156,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         BucketEntry entry = buckets.compute(ip, (k, existing) -> {
             if (existing == null || (now - existing.windowStart()) >= windowMs) {
                 // [VULN-02-PARTIAL] Ao resetar janela, remove entrada expirada
-                // (limpeza lazy — evita acúmulo de entradas mortas na memória)
+                // (limpeza lazy, que evita acúmulo de entradas mortas na memória)
                 return new BucketEntry(new AtomicInteger(1), now);
             }
             existing.count().incrementAndGet();
@@ -178,7 +178,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         );
     }
 
-    /** Mascara o IP para logs — LGPD / ASVS 7.1.1 */
+    /** Mascara o IP para logs (LGPD / ASVS 7.1.1) */
     private String maskIp(String ip) {
         if (ip == null) return "unknown";
         int lastDot = ip.lastIndexOf('.');

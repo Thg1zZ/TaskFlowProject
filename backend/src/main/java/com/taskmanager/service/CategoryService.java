@@ -27,7 +27,7 @@ public class CategoryService {
         return categoryRepository.findByUserIdOrderByNameAsc(user.getId())
                 .stream()
                 .map(c -> {
-                    // COUNT via query dedicada — sem carregar a coleção LAZY inteira
+                    // COUNT via query dedicada, sem carregar a coleção LAZY inteira
                     long count = categoryRepository.countTasksByCategoryId(c.getId());
                     return CategoryResponse.fromEntity(c, count);
                 })

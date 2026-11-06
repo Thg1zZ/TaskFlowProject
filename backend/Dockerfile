@@ -19,7 +19,7 @@ RUN mvn dependency:go-offline -B
 
 COPY backend/src ./src
 
-# [A05] Garante encoding UTF-8 consistente no build — previne corrupção de strings
+# [A05] Garante encoding UTF-8 consistente no build: previne corrupção de strings
 RUN mvn clean package -DskipTests -B -Dfile.encoding=UTF-8
 
 # ─── Runtime stage ──────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-# [A05] Usuário não-root — princípio do mínimo privilégio
+# [A05] Usuário não-root, seguindo o princípio do mínimo privilégio
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # [A08] Copiar apenas o artefato final, não o código-fonte

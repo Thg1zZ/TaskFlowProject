@@ -43,7 +43,7 @@ import java.util.Collections;
  * CORREÇÕES APLICADAS:
  *  [REF-04] Importações do Google movidas para o topo (sem FQNs dentro dos métodos).
  *  [REF-07] System.err.println substituído por Logger SLF4J em recordAccessLog().
- *  [DUP-02] hashToken() removido — substituído por HashUtils.sha256Hex() (utilitário centralizado).
+ *  [DUP-02] hashToken() removido, substituído por HashUtils.sha256Hex() (utilitário centralizado).
  *  [SEC-01] recordAccessLog() corrigido para usar HashUtils.hashClientIp() com validação de proxy,
  *           eliminando o risco de IP spoofing via X-Forwarded-For não validado.
  */
@@ -123,7 +123,7 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        // [LGPD] Registra acesso com hash do IP — IP real nunca é persistido
+        // [LGPD] Registra acesso com hash do IP; o IP real nunca é persistido
         recordAccessLog(user);
 
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getHasCompletedOnboarding(), user.getReceiveNotifications(), user.getThemePreferences());
@@ -198,7 +198,7 @@ public class AuthService {
     /**
      * [LGPD / SEC-01 FIX] Registra log de acesso com hash do IP validado.
      *
-     * ANTES: lia X-Forwarded-For diretamente sem verificar proxy — qualquer cliente
+     * ANTES: lia X-Forwarded-For diretamente sem verificar proxy, e qualquer cliente
      * poderia injetar um IP falso e corromper o audit log (CWE-348).
      *
      * AGORA: usa HashUtils.hashClientIp() que valida o proxy antes de aceitar o header.
@@ -235,7 +235,7 @@ public class AuthService {
                 throw new IllegalArgumentException("Email do Google não verificado");
             }
 
-            // 2. Proteção contra CSRF e Replays — Validação estrita de Nonce
+            // 2. Proteção contra CSRF e replays: validação estrita de nonce
             String tokenNonce = (String) payload.get("nonce");
             if (tokenNonce == null || tokenNonce.isBlank() || !tokenNonce.equals(suppliedNonce)) {
                 throw new IllegalArgumentException("Token de estado (Nonce/CSRF) inválido ou expirado");
@@ -257,7 +257,7 @@ public class AuthService {
         }
     }
 
-    // [REF-04] FQNs do Google movidos para imports no topo — método agora legível
+    // [REF-04] FQNs do Google movidos para imports no topo; método agora legível
     private GoogleIdToken.Payload verifyGoogleToken(String idTokenString) throws Exception {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                 new NetHttpTransport(),

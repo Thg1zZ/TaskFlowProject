@@ -8,7 +8,7 @@ package com.taskmanager.exception;
  * sem vazar detalhes internos da aplica\u00e7\u00e3o.
  *
  * IMPORTANTE: N\u00e3o diferencie "n\u00e3o encontrado" de "sem permiss\u00e3o" na mensagem
- * ao cliente — isso evita IDOR oracle (o atacante n\u00e3o sabe se o recurso existe).
+ * ao cliente; isso evita IDOR oracle (o atacante n\u00e3o sabe se o recurso existe).
  */
 public class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {

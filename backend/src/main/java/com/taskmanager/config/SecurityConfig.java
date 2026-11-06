@@ -33,7 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Configuração de segurança — OWASP ASVS v4.0 Level 2
+ * Configuração de segurança (OWASP ASVS v4.0 Level 2)
  *
  * Correções aplicadas:
  *  - [A05] contentTypeOptions NÃO é mais desabilitado (MIME sniff protection ativa)
@@ -66,7 +66,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // BCrypt strength 12 — custo adequado para produção (ASVS 2.4.1)
+        // BCrypt strength 12: custo adequado para produção (ASVS 2.4.1)
         return new BCryptPasswordEncoder(12);
     }
 
@@ -87,7 +87,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // [ASVS 14.4.1] Origens explícitas — nunca wildcard quando allowCredentials=true
+        // [ASVS 14.4.1] Origens explícitas, nunca wildcard quando allowCredentials=true
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(o -> !o.isBlank())
@@ -98,7 +98,7 @@ public class SecurityConfig {
                 "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"
         ));
         // Credenciais permitidas apenas porque usamos JWT no header Authorization,
-        // não em cookies — origens são explícitas (acima), nunca wildcard.
+        // não em cookies; as origens são explícitas (acima), nunca wildcard.
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -117,7 +117,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // [A05] Security headers — ASVS 14.4
+            // [A05] Security headers (ASVS 14.4)
             .headers(headers -> headers
                 .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
                 // [CORREÇÃO CRÍTICA] contentTypeOptions NÃO deve ser desabilitado.
@@ -137,7 +137,7 @@ public class SecurityConfig {
                         "form-action 'self'"
                     ))
             )
-            // 401 (e não 403) para requisição sem sessão válida — o frontend usa isso para voltar ao login
+            // 401 (e não 403) para requisição sem sessão válida: o frontend usa isso para voltar ao login
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()

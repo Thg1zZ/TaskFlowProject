@@ -29,7 +29,7 @@ public class UserAccessLog {
     @JoinColumn(name = "user_id")
     private User user;
 
-    /** Hash SHA-256 do IP — nunca o IP real (LGPD art. 12) */
+    /** Hash SHA-256 do IP, nunca o IP real (LGPD art. 12) */
     @Column(name = "ip_hash", length = 64)
     private String ipHash;
 

@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
- * [ASVS 4.1 / OWASP A01] AdminService — serviço central de administração.
+ * [ASVS 4.1 / OWASP A01] AdminService: serviço central de administração.
  *
  * CORREÇÕES APLICADAS NESTA VERSÃO:
  *
@@ -46,16 +46,16 @@ import java.util.stream.Collectors;
  *          que também corrige SEC-01 (proxy validation antes de ler X-Forwarded-For).
  *
  * [REF-05] changeUserRole(): validação de input (guard clauses) movida para
- *          ANTES da auto-proteção — inputs inválidos são rejeitados primeiro.
+ *          ANTES da auto-proteção; inputs inválidos são rejeitados primeiro.
  *
  * [SEC-03] auditFailCount: contador de falhas consecutivas de auditoria.
  *          Após 3 falhas seguidas, um alerta de nível ERROR é emitido para o
- *          sistema de monitoramento (ASVS 7.2.1 — ações admin devem ser sempre auditadas).
+ *          sistema de monitoramento (ASVS 7.2.1: ações admin devem ser sempre auditadas).
  *
  * PRINCÍPIOS MANTIDOS:
  *  - Zero Trust: validações independem do frontend
  *  - Defense in Depth: camada de serviço valida mesmo após @PreAuthorize
- *  - Auditoria imutável: toda ação — bem-sucedida ou bloqueada — é persistida
+ *  - Auditoria imutável: toda ação, bem-sucedida ou bloqueada, é persistida
  *  - Fail-Secure: erros bloqueiam, nunca "falham abertos"
  */
 @Service
@@ -65,7 +65,7 @@ public class AdminService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminService.class);
 
-    // [REF-01] Injeção por construtor — @RequiredArgsConstructor gera o construtor
+    // [REF-01] Injeção por construtor: @RequiredArgsConstructor gera o construtor
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final UserAccessLogRepository accessLogRepository;
@@ -113,7 +113,7 @@ public class AdminService {
     /**
      * [SEC-03 / ASVS 7.2.1] Persiste um registro imutável de auditoria.
      *
-     * Nunca lança exceção — a falha de auditoria NÃO impede a operação principal
+     * Nunca lança exceção: a falha de auditoria NÃO impede a operação principal
      * (princípio de disponibilidade). Porém, falhas consecutivas ativam alerta de ERROR
      * para que o sistema de monitoramento possa detectar degradação do banco de auditoria.
      */
@@ -136,7 +136,7 @@ public class AdminService {
         } catch (Exception e) {
             int fails = auditFailCount.incrementAndGet();
             if (fails >= AUDIT_FAIL_ALERT_THRESHOLD) {
-                // [SEC-03] Alerta crítico — audit log está degradado
+                // [SEC-03] Alerta crítico: audit log está degradado
                 log.error("[SECURITY ALERT] Audit log falhou {} vezes consecutivas. " +
                     "Ações admin podem não estar sendo auditadas! Action={}, Admin={}: {}",
                     fails, action, admin.getEmail(), e.getMessage());
@@ -209,7 +209,7 @@ public class AdminService {
     public AdminUserResponse changeUserEmail(Long id, String newEmail) {
         User admin = securityService.getCurrentUser();
 
-        // [INPUT VALIDATION — guard clause primeiro] Normalização e sanitização do e-mail
+        // [INPUT VALIDATION: guard clause primeiro] Normalização e sanitização do e-mail
         if (newEmail == null || newEmail.isBlank()) {
             throw new IllegalArgumentException("E-mail não pode ser vazio");
         }
@@ -267,7 +267,7 @@ public class AdminService {
     public AdminUserResponse changeUserRole(Long id, String roleName) {
         User admin = securityService.getCurrentUser();
 
-        // [REF-05 FIX] Input validation PRIMEIRO (guard clause) — antes de qualquer lógica de negócio
+        // [REF-05 FIX] Input validation PRIMEIRO (guard clause), antes de qualquer lógica de negócio
         if (roleName == null || roleName.isBlank()) {
             throw new IllegalArgumentException("Role não pode ser vazia");
         }
@@ -289,7 +289,7 @@ public class AdminService {
         User target = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        // [SUPER_ADMIN SHIELD] — bloqueio de rebaixamento
+        // [SUPER_ADMIN SHIELD] Bloqueio de rebaixamento
         assertCanManage(target, admin, AdminAuditLog.ACTION_CHANGE_ROLE);
 
         // Apenas SUPER_ADMIN pode promover outros a SUPER_ADMIN
@@ -338,7 +338,7 @@ public class AdminService {
 
     /**
      * Retorna logs de auditoria paginados (máx 50 por página).
-     * Apenas ADMIN e SUPER_ADMIN podem ver — validado pelo @PreAuthorize no Controller.
+     * Apenas ADMIN e SUPER_ADMIN podem ver; validado pelo @PreAuthorize no Controller.
      */
     public Page<AdminAuditLog> getAuditLogs(int page) {
         User admin = securityService.getCurrentUser();

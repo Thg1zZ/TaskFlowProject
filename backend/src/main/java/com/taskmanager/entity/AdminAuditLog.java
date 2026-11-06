@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * [ASVS 7.2.1 / OWASP A09] Log de auditoria de ações administrativas.
  *
  * IMUTABILIDADE: Registros de auditoria NUNCA são atualizados nem excluídos
- * através da API — apenas INSERT é permitido. Qualquer tentativa de DELETE
+ * através da API; apenas INSERT é permitido. Qualquer tentativa de DELETE
  * ou UPDATE via API deve ser recusada pelo service layer.
  *
  * Armazena: quem fez, o quê, sobre quem, quando, de onde (hash de IP).
@@ -52,7 +52,7 @@ public class AdminAuditLog {
     private String targetUserEmail;
 
     /**
-     * Ação executada — valores controlados pelo sistema (não pelo usuário).
+     * Ação executada: valores controlados pelo sistema (não pelo usuário).
      * Ex: GET_USERS, DELETE_USER, CHANGE_EMAIL, CHANGE_ROLE, GET_STATS, GET_AUDIT_LOGS
      */
     @Column(name = "action", nullable = false, length = 50)
@@ -64,9 +64,9 @@ public class AdminAuditLog {
 
     /**
      * Resultado da operação.
-     * SUCCESS — ação completada com sucesso.
-     * BLOCKED — ação bloqueada por regra de segurança (ex: tentativa de modificar SUPER_ADMIN).
-     * FAILED  — erro inesperado ou validação de negócio falhou.
+     * SUCCESS: ação completada com sucesso.
+     * BLOCKED: ação bloqueada por regra de segurança (ex: tentativa de modificar SUPER_ADMIN).
+     * FAILED: erro inesperado ou validação de negócio falhou.
      */
     @Column(name = "result", nullable = false, length = 20)
     private String result;
@@ -75,7 +75,7 @@ public class AdminAuditLog {
     @Column(name = "ip_hash", length = 64)
     private String ipHash;
 
-    /** Timestamp UTC imutável — definido pelo @PrePersist */
+    /** Timestamp UTC imutável, definido pelo @PrePersist */
     @Column(name = "performed_at", nullable = false, updatable = false)
     private LocalDateTime performedAt;
 

@@ -19,7 +19,7 @@ import java.util.List;
  *
  * ANTES: a lógica de SHA-256 estava duplicada em AuthService.hashToken() e
  * AdminService.hashCurrentIp(). Além disso, AuthService lia X-Forwarded-For sem
- * validar se o remetente era um proxy confiável (SEC-01 — IP spoofing no audit log).
+ * validar se o remetente era um proxy confiável (SEC-01: IP spoofing no audit log).
  *
  * AGORA:
  *  - sha256Hex()     → método estático, substituiu hashToken() e o bloco de hash do AdminService
@@ -60,7 +60,7 @@ public class HashUtils {
      * Gera o hash SHA-256 hexadecimal de qualquer String.
      *
      * USOS: tokens de reset de senha, IPs para LGPD.
-     * Método estático — não requer Spring para ser chamado.
+     * Método estático: não requer Spring para ser chamado.
      *
      * @param input String a ser hasheada (não pode ser null)
      * @return String hexadecimal de 64 chars (SHA-256)
@@ -76,7 +76,7 @@ public class HashUtils {
             }
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {
-            // SHA-256 é garantido pela JVM spec — jamais deve ocorrer
+            // SHA-256 é garantido pela JVM spec; jamais deve ocorrer
             throw new IllegalStateException("SHA-256 não disponível na JVM", e);
         }
     }
@@ -90,7 +90,7 @@ public class HashUtils {
      *
      * PROBLEMA ANTERIOR: AuthService e AdminService liam X-Forwarded-For diretamente,
      * permitindo que qualquer cliente injetasse um IP falso no header e corrompesse
-     * o audit log (CWE-348 — Use of Less Trusted Source).
+     * o audit log (CWE-348: Use of Less Trusted Source).
      *
      * REGRA: X-Forwarded-For só é aceito se o remoteAddr da conexão TCP pertence
      * à lista de proxies confiáveis configurados em app.security.trusted-proxies.
@@ -113,7 +113,7 @@ public class HashUtils {
 
     /**
      * Extrai o IP do cliente e retorna o hash SHA-256 para persistência segura (LGPD art. 12).
-     * O IP real NUNCA é armazenado — apenas o hash, que é irreversível.
+     * O IP real NUNCA é armazenado, apenas o hash, que é irreversível.
      *
      * @return hash SHA-256 do IP, ou null se não for possível extrair
      */

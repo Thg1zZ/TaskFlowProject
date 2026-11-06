@@ -30,7 +30,7 @@ import java.util.UUID;
  * Provedor JWT com melhorias de segurança.
  *
  * OWASP A02 / ASVS 3.5:
- *  - JTI (JWT ID) em cada token — permite revogação individual
+ *  - JTI (JWT ID) em cada token, que permite revogação individual
  *  - Blacklist em memória para tokens revogados (troca de senha, etc.)
  *  - Validação de tamanho mínimo da chave (256 bits / 32 bytes para HMAC-SHA256)
  *  - Algoritmo explícito no builder (não inferido)
@@ -83,7 +83,7 @@ public class JwtTokenProvider {
     public String generateToken(String email) {
         Date now        = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
-        // [ASVS 3.5.3] JTI único por token — permite revogação individual
+        // [ASVS 3.5.3] JTI único por token, que permite revogação individual
         String jti = UUID.randomUUID().toString();
 
         return Jwts.builder()
@@ -98,7 +98,7 @@ public class JwtTokenProvider {
     /**
      * Revoga um token pelo seu JTI, persistindo no banco de dados.
      *
-     * ASVS 3.3.1 — Tokens de sessão devem ser invalidados no logout/troca de senha.
+     * ASVS 3.3.1: tokens de sessão devem ser invalidados no logout/troca de senha.
      */
     @Transactional
     public void revokeToken(String token) {
@@ -134,8 +134,8 @@ public class JwtTokenProvider {
      * copiada em JwtAuthenticationFilter.getJwtFromRequest() e UserService.revokeCurrentToken().
      *
      * ORDEM DE PRIORIDADE:
-     *  1. Cookie HttpOnly "token" — mais seguro (inacessível ao JavaScript/XSS)
-     *  2. Header Authorization "Bearer <token>" — retrocompatibilidade
+     *  1. Cookie HttpOnly "token": mais seguro (inacessível ao JavaScript/XSS)
+     *  2. Header Authorization "Bearer <token>": retrocompatibilidade
      *
      * [SEC-02] Quando ambos estão presentes, o cookie tem prioridade.
      * Isso é logado em debug para auditoria de comportamento.
@@ -160,9 +160,9 @@ public class JwtTokenProvider {
             headerToken = bearerToken.substring(7);
         }
 
-        // [SEC-02] Log quando ambos estão presentes — cookie tem prioridade
+        // [SEC-02] Log quando ambos estão presentes; o cookie tem prioridade
         if (cookieToken != null && headerToken != null) {
-            logger.debug("[JWT] Cookie e header Authorization presentes — usando cookie (prioridade).");
+            logger.debug("[JWT] Cookie e header Authorization presentes; usando cookie (prioridade).");
         }
 
         if (cookieToken != null) return cookieToken;

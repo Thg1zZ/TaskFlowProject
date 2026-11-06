@@ -18,7 +18,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Senha é obrigatória")
     /**
-     * [VULN-06 FIX] ASVS 2.1.1 — Política de senha mínima:
+     * [VULN-06 FIX] ASVS 2.1.1: política de senha mínima:
      * - Mínimo 10 caracteres
      * - Ao menos 1 maiúscula, 1 minúscula, 1 dígito e 1 especial
      */

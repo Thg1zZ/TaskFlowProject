@@ -16,22 +16,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * [ASVS 4.1 / OWASP A01] AdminController — Controlador de administração.
+ * [ASVS 4.1 / OWASP A01] AdminController: controlador de administração.
  *
  * CAMADAS DE SEGURANÇA APLICADAS NESTE CONTROLLER:
  *
- * CAMADA 1 — JWT Filter: Requisições sem token JWT válido são bloqueadas antes
+ * CAMADA 1 (JWT Filter): Requisições sem token JWT válido são bloqueadas antes
  *            de chegar aqui (401 Unauthorized).
  *
- * CAMADA 2 — SecurityConfig: hasAnyRole(ADMIN, SUPER_ADMIN) bloqueia qualquer
+ * CAMADA 2 (SecurityConfig): hasAnyRole(ADMIN, SUPER_ADMIN) bloqueia qualquer
  *            usuário com ROLE_USER no filtro HTTP (403 Forbidden).
  *
- * CAMADA 3 — @PreAuthorize (ESTA CLASSE): Defense in depth. Mesmo que as camadas
+ * CAMADA 3 (@PreAuthorize, ESTA CLASSE): Defense in depth. Mesmo que as camadas
  *            1 e 2 sejam contornadas (ex: misconfiguration futura), cada método
  *            verifica individualmente a role antes de executar.
  *            NOTA: hasAnyRole() usa o prefixo ROLE_ automaticamente do Spring Security.
  *
- * CAMADA 4 — AdminService: Validações de negócio (SUPER_ADMIN shield, IDOR,
+ * CAMADA 4 (AdminService): Validações de negócio (SUPER_ADMIN shield, IDOR,
  *            auto-proteção) + auditoria persistente de TODA ação.
  *
  * REGRA ZERO: O frontend NUNCA é fonte de verdade sobre permissões.
@@ -39,7 +39,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")  // Proteção de classe — todos os métodos herdam
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")  // Proteção de classe: todos os métodos herdam
 public class AdminController {
 
     @Autowired
@@ -104,7 +104,7 @@ public class AdminController {
 
     /**
      * Retorna o log de auditoria paginado (50 entradas por página).
-     * Todas as ações administrativas — incluindo as bloqueadas — são registradas aqui.
+     * Todas as ações administrativas, incluindo as bloqueadas, são registradas aqui.
      * [ASVS 7.2.1] Rastreabilidade completa de ações privilegiadas.
      */
     @GetMapping("/audit-logs")

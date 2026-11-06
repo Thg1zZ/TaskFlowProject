@@ -212,7 +212,7 @@ function AuditTab() {
           )}
         </div>
         <p className="text-xs text-[var(--text-3)]">
-          Todas as ações administrativas — incluindo tentativas bloqueadas — são registradas de forma imutável.
+          Todas as ações administrativas, incluindo tentativas bloqueadas, são registradas de forma imutável.
         </p>
       </div>
 
@@ -272,7 +272,7 @@ function AuditTab() {
                           {log.targetUserEmail}
                         </span>
                       ) : (
-                        <span className="text-xs text-[var(--text-3)] italic">—</span>
+                        <span className="text-xs text-[var(--text-3)] italic">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 max-w-[200px]">
@@ -281,7 +281,7 @@ function AuditTab() {
                           {log.details}
                         </span>
                       ) : (
-                        <span className="text-xs text-[var(--text-3)] italic">—</span>
+                        <span className="text-xs text-[var(--text-3)] italic">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -619,7 +619,7 @@ export default function AdminPage() {
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("users");
 
-  // [FRONTEND] Proteção visual — a real acontece no backend com JWT + RBAC
+  // [FRONTEND] Proteção visual; a real acontece no backend com JWT + RBAC
   if (currentUser?.role !== "ROLE_ADMIN" && currentUser?.role !== "ROLE_SUPER_ADMIN") {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh]">

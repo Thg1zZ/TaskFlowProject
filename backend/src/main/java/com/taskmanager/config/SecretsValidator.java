@@ -63,7 +63,7 @@ public class SecretsValidator implements ApplicationListener<ApplicationReadyEve
         if (!missing.isEmpty()) {
             log.error("[❌ STARTUP FAILED] Segredos obrigatórios ausentes ou inseguros: {}", missing);
             throw new IllegalStateException(
-                "STARTUP FAILED — Missing or insecure required secrets: " + missing
+                "STARTUP FAILED: Missing or insecure required secrets: " + missing
             );
         }
 

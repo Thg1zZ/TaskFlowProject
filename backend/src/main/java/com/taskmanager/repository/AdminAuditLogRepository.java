@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 /**
  * [ASVS 7.2.1 / REF-09] Repositório de auditoria com imutabilidade total.
  *
- * REGRA: Registros de auditoria são write-once — apenas INSERT via save().
+ * REGRA: Registros de auditoria são write-once: apenas INSERT via save().
  * Nenhum método de UPDATE ou DELETE está exposto através da API.
  *
  * [REF-09 FIX] Antes, apenas deleteById() era sobrescrito.
@@ -32,7 +32,7 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
 
     // ── QUERIES DE LEITURA ────────────────────────────────────────────────────
 
-    /** Todos os logs, do mais recente ao mais antigo — paginado */
+    /** Todos os logs, do mais recente ao mais antigo, paginado */
     Page<AdminAuditLog> findAllByOrderByPerformedAtDesc(Pageable pageable);
 
     /** Logs de um admin específico */
@@ -46,7 +46,7 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
 
     // ── BLOQUEIOS DE EXCLUSÃO (IMUTABILIDADE) ────────────────────────────────
     // Todos herdam de JpaRepository e precisam ser explicitamente bloqueados.
-    // @Query("SELECT 1") é inofensivo — o método lança exceção antes de executar.
+    // @Query("SELECT 1") é inofensivo: o método lança exceção antes de executar.
 
     /** Bloqueio: deleteById(ID) */
     @Override

@@ -20,7 +20,7 @@ public class UserProfileRequest {
 
     /**
      * [VULN-03 FIX] Limite reduzido de 1.4 MB para ~50 KB de Base64
-     * (equivale a ~37 KB de imagem real — suficiente para avatar 200x200px).
+     * (equivale a ~37 KB de imagem real, suficiente para avatar 200x200px).
      * O @Pattern garante que o campo seja um Data URL de imagem válida,
      * impedindo que HTML/JS sejam armazenados neste campo (XSS stored).
      */
