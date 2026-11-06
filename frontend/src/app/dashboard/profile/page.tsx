@@ -7,6 +7,7 @@ import { User, Mail, Lock, ShieldCheck, Loader2, Camera, Eye, EyeOff, Trash2, X,
 import { toast } from "react-hot-toast";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Image from "next/image";
+import Link from "next/link";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import api from "@/lib/axios";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -152,6 +153,14 @@ export default function ProfilePage() {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [deleteError, setDeleteError] = useState("");
     const [showDeletePassword, setShowDeletePassword] = useState(false);
+    // Contas que passaram pelo Google não têm senha conhecida: confirmam com o próprio e-mail
+    const [confirmByEmail, setConfirmByEmail] = useState<boolean | null>(null);
+
+    useEffect(() => {
+      usersApi.getProfile()
+        .then((profile) => setConfirmByEmail(Boolean(profile.emailVerified)))
+        .catch(() => setConfirmByEmail(false));
+    }, []);
 
     const handleConfirmDelete = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -159,7 +168,8 @@ export default function ProfilePage() {
       setDeleteError("");
 
       try {
-        await api.delete("/users/me", { data: { password: confirmPassword } });
+        const confirmation = confirmByEmail ? { confirmEmail: confirmPassword } : { password: confirmPassword };
+        await api.delete("/users/me", { data: confirmation });
         logout();
         window.location.href = "/login";
       } catch (err) {
@@ -183,7 +193,7 @@ export default function ProfilePage() {
           
           <form onSubmit={handleConfirmDelete} className="p-6 space-y-4 text-left">
             <p className="text-sm text-[var(--text-2)] leading-relaxed">
-              {t("profile.deleteWarning")}
+              {t(confirmByEmail ? "profile.deleteWarningEmail" : "profile.deleteWarning")}
             </p>
 
             {deleteError && (
@@ -192,29 +202,49 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">{t("profile.yourCurrentPassword")}</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
-                <input
-                  type={showDeletePassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  aria-label={t("profile.yourCurrentPassword")}
-                  className="w-full pl-9 pr-10 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--red)] focus:border-transparent"
-                  required
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowDeletePassword(!showDeletePassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors focus:outline-none"
-                  aria-label={showDeletePassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                >
-                  {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+            {confirmByEmail === null ? (
+              <div className="flex justify-center py-2"><Loader2 className="w-5 h-5 animate-spin text-[var(--color-muted-foreground)]" /></div>
+            ) : confirmByEmail ? (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">{t("profile.accountEmail")}</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+                  <input
+                    type="email"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    aria-label={t("profile.accountEmail")}
+                    className="w-full pl-9 pr-3 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--red)] focus:border-transparent"
+                    required
+                    placeholder={t("auth.emailPlaceholder")}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">{t("profile.yourCurrentPassword")}</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+                  <input
+                    type={showDeletePassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    aria-label={t("profile.yourCurrentPassword")}
+                    className="w-full pl-9 pr-10 py-2 bg-[var(--bg)] border border-[var(--color-border)] rounded-[var(--radius)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--red)] focus:border-transparent"
+                    required
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeletePassword(!showDeletePassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)] hover:text-[var(--text)] transition-colors focus:outline-none"
+                    aria-label={showDeletePassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                  >
+                    {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
               <button
@@ -226,7 +256,7 @@ export default function ProfilePage() {
               </button>
               <button
                 type="submit"
-                disabled={deleteLoading}
+                disabled={deleteLoading || confirmByEmail === null}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--red)] text-white hover:opacity-90 disabled:opacity-50 rounded-[var(--radius)] transition-opacity shadow-sm"
               >
                 {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("profile.confirmDelete")}
@@ -427,6 +457,9 @@ export default function ProfilePage() {
           {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
           {t("profile.downloadData")}
         </button>
+        <Link href="/privacidade" className="inline-block mt-4 text-sm text-[var(--text-2)] underline hover:text-[var(--accent)]">
+          {t("profile.privacyLink")}
+        </Link>
       </div>
 
       {/* Danger Zone (Exclusão de Conta) */}

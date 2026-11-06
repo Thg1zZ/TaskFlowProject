@@ -1,10 +1,10 @@
 package com.taskmanager.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+/** Contas com senha confirmam com ela; contas criadas pelo Google confirmam digitando o próprio e-mail. */
 @Data
 public class DeleteAccountRequest {
-    @NotBlank(message = "{validation.deleteAccount.password}")
     private String password;
+    private String confirmEmail;
 }

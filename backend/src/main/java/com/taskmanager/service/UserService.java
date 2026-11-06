@@ -46,6 +46,7 @@ public class UserService {
     @Autowired private HttpServletRequest httpServletRequest;
     @Autowired private SecurityService securityService;
     @Autowired private BlacklistedEmailRepository blacklistedEmailRepository;
+    @Autowired private AdminAuditService adminAuditService;
 
     public UserProfileResponse getProfile() {
         User u = securityService.getCurrentUser();
@@ -68,6 +69,7 @@ public class UserService {
         profile.setCreatedAt(u.getCreatedAt());
         profile.setRole(u.getRole().name());
         profile.setHasCompletedOnboarding(u.getHasCompletedOnboarding());
+        profile.setEmailVerified(u.getEmailVerified());
         profile.setReceiveNotifications(u.getReceiveNotifications());
         profile.setThemePreferences(u.getThemePreferences());
         profile.setStats(stats);
@@ -206,10 +208,12 @@ public class UserService {
             throw new IllegalArgumentException("error.account.superAdminCannotDelete");
         }
 
-        // 1. Validar a senha fornecida
-        if (!passwordEncoder.matches(req.getPassword(), u.getPassword())) {
-            logger.warn("Tentativa de exclusão de conta falhou para o usuário ID {}: senha incorreta", u.getId());
-            throw new IllegalArgumentException("error.password.currentIncorrect");
+        // 1. Confirmar a intenção: senha ou, para contas vindas do Google, o próprio e-mail
+        if (!isDeletionConfirmed(u, req)) {
+            logger.warn("Tentativa de exclusão de conta falhou para o usuário ID {}: confirmação inválida", u.getId());
+            throw new IllegalArgumentException(Boolean.TRUE.equals(u.getEmailVerified())
+                    ? "error.account.confirmEmailMismatch"
+                    : "error.password.currentIncorrect");
         }
 
         // [LGPD] Logs só com o ID: o e-mail não deve sobreviver à exclusão da conta
@@ -226,13 +230,27 @@ public class UserService {
         // 3. Revogar o token atual
         revokeCurrentToken();
 
-        // 4. Excluir o usuário e cascade limpar dados relacionados
+        // 4. Excluir o usuário (o cascade do banco limpa os dados relacionados) e anonimizar a auditoria
         userRepo.delete(u);
+        adminAuditService.anonymizeUser(u.getId());
 
         // 5. Invalidar o contexto de segurança local
         SecurityContextHolder.clearContext();
 
         logger.info("Conta do usuário ID {} excluída com sucesso.", u.getId());
+    }
+
+    /**
+     * emailVerified só é true em contas que passaram pelo Google (criadas por ele ou vinculadas, quando a
+     * senha antiga é descartada). Como não têm senha conhecida, confirmam digitando o próprio e-mail.
+     */
+    private boolean isDeletionConfirmed(User u, DeleteAccountRequest req) {
+        if (req.getPassword() != null && passwordEncoder.matches(req.getPassword(), u.getPassword())) {
+            return true;
+        }
+        return Boolean.TRUE.equals(u.getEmailVerified())
+                && req.getConfirmEmail() != null
+                && u.getEmail().equalsIgnoreCase(req.getConfirmEmail().trim());
     }
 
     @Transactional

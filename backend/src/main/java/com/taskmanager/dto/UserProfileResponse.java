@@ -12,6 +12,8 @@ public class UserProfileResponse {
     private LocalDateTime createdAt;
     private String role;
     private Boolean hasCompletedOnboarding;
+    /** true em contas que passaram pelo Google: a exclusão é confirmada pelo e-mail. */
+    private Boolean emailVerified;
     private Boolean receiveNotifications;
     private String themePreferences;
     private UserStatsDTO stats;
@@ -65,6 +67,8 @@ public class UserProfileResponse {
     public void setRole(String role) { this.role = role; }
     public Boolean getHasCompletedOnboarding() { return hasCompletedOnboarding; }
     public void setHasCompletedOnboarding(Boolean hasCompletedOnboarding) { this.hasCompletedOnboarding = hasCompletedOnboarding; }
+    public Boolean getEmailVerified() { return emailVerified; }
+    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
     public Boolean getReceiveNotifications() { return receiveNotifications; }
     public void setReceiveNotifications(Boolean receiveNotifications) { this.receiveNotifications = receiveNotifications; }
     public UserStatsDTO getStats() { return stats; }
