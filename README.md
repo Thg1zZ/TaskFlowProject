@@ -1,6 +1,6 @@
 # ⬡ TaskFlow
 
-[![CI](https://github.com/Thg1zZ/TaskManegerProject/actions/workflows/ci.yml/badge.svg)](https://github.com/Thg1zZ/TaskManegerProject/actions/workflows/ci.yml)
+[![CI](https://github.com/Thg1zZ/TaskFlowProject/actions/workflows/ci.yml/badge.svg)](https://github.com/Thg1zZ/TaskFlowProject/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
@@ -19,11 +19,14 @@ Gerenciador de tarefas full stack com Kanban, colaboração em tempo real e foco
 ## Funcionalidades
 
 - **Kanban** com arrastar e soltar entre *A fazer*, *Em andamento* e *Concluído*
+- **Subtarefas** em checklist com barra de progresso, **etiquetas** e **filtros combinados** (prioridade, categoria, etiqueta e prazo)
+- **Tarefas recorrentes** (diária, semanal ou mensal): ao concluir, a próxima ocorrência é criada sozinha
+- **Interface em português e inglês**, inclusive as mensagens da API
 - **Calendário** e **estatísticas** com gráficos de produtividade
 - **Categorias** personalizadas com cor e ícone
 - **Colaboração em tempo real** (SSE): convite por link com papéis de leitor, editor e administrador
 - **Notificações**, **Pomodoro** integrado e **tutorial** de primeiro acesso
-- **Perfil** com recorte de avatar, troca de senha e exclusão de conta
+- **Perfil** com recorte de avatar, troca de senha, exclusão de conta e download dos próprios dados (LGPD)
 - **Painel administrativo** com auditoria de ações
 - **Tema claro e escuro** com cores personalizáveis
 - **Login com Google** e recuperação de senha por e-mail
@@ -57,8 +60,9 @@ O frontend chama a API pelo mesmo domínio (`/api/*`), reescrito pela Vercel par
 | Autorização | Regras por recurso (`@PreAuthorize`) para dono, editor e leitor; 404 sem revelar se o recurso existe |
 | Rate limiting | Por IP real atrás de Cloudflare e Vercel, em login, cadastro, recuperação de senha e rotas de admin |
 | Recuperação de senha | Token de 256 bits guardado só como hash SHA-256, validade de 30 min, uso único e 1 pedido por e-mail a cada 15 min |
-| Admin | Hierarquia `USER < ADMIN < SUPER_ADMIN` e auditoria imutável de todas as ações |
-| Dados | Migrations versionadas (Flyway), `ddl-auto=validate`, DTOs sem dados sensíveis e IP armazenado só como hash |
+| Admin | Hierarquia `USER < ADMIN < SUPER_ADMIN` e auditoria de todas as ações, sem edição pela API |
+| Dados | Migrations versionadas (Flyway), `ddl-auto=validate` e DTOs sem dados sensíveis |
+| LGPD | [Política pública](https://task-manager-with-login.vercel.app/privacidade) com bases legais e controlador, aceite registrado também no login com Google, IP guardado só como HMAC, registros de acesso apagados após 180 dias, auditoria anonimizada na exclusão da conta e apagada após 2 anos, hash do e-mail de contas excluídas por 2 anos e exportação completa dos dados em JSON |
 
 ## Stack
 
@@ -67,8 +71,8 @@ O frontend chama a API pelo mesmo domínio (`/api/*`), reescrito pela Vercel par
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, SWR, Recharts, @hello-pangea/dnd |
 | Backend | Java 17, Spring Boot 3.5, Spring Security 6.5, Spring Data JPA (Hibernate 6.6), Flyway 11, JJWT |
 | Banco | PostgreSQL (Neon) |
-| Testes | JUnit 5, Mockito, Testcontainers, MockMvc |
-| Infra | Docker, Render, Vercel, GitHub Actions |
+| Testes | JUnit 5, Mockito, Testcontainers, MockMvc, Playwright |
+| Infra | Docker, Render (health check via Spring Actuator), Vercel, GitHub Actions |
 
 ## Rodando localmente
 
@@ -105,15 +109,24 @@ mvn verify
 ```
 
 - **Unitários:** extração de IP atrás de proxy e vínculo seguro de contas Google
-- **Integração:** sobem a aplicação inteira contra um PostgreSQL em container (Testcontainers) e cobrem 401/403, IDOR, invalidação de sessões, recuperação de senha e exposição de dados. São pulados automaticamente se não houver Docker.
+- **Integração:** sobem a aplicação inteira contra um PostgreSQL em container (Testcontainers) e cobrem 401/403, IDOR, invalidação de sessões, recuperação de senha, exposição de dados, LGPD, subtarefas, recorrência e idioma das mensagens. São pulados automaticamente se não houver Docker.
 
-O [CI](.github/workflows/ci.yml) roda os testes do backend e o lint e o build do frontend a cada push.
+**Ponta a ponta (Playwright):** com o banco e o backend rodando (passos 1 e 2 acima), o Playwright gera o build do frontend e percorre o app no navegador: cadastro, tour, logout, senha errada, tarefas com etiquetas e subtarefas, filtros, recorrência, troca de idioma e exportação LGPD.
+```bash
+cd frontend
+npx playwright install chromium
+API_URL=http://localhost:8080/api npm run test:e2e
+```
+> Cada execução cria 2 contas e o cadastro aceita 5 por hora por IP. Para rodar mais vezes seguidas, reinicie o backend.
+
+O [CI](.github/workflows/ci.yml) roda os testes do backend, o lint e o build do frontend e, em seguida, a suíte E2E contra um PostgreSQL de serviço a cada push.
 
 ## Estrutura
 
 ```
 backend/   API Spring Boot (controller → service → repository) e migrations Flyway
-frontend/  Next.js App Router: páginas, componentes, hooks e clientes da API
+frontend/  Next.js App Router: páginas, componentes, hooks, clientes da API e traduções (src/i18n)
+frontend/e2e/  Testes ponta a ponta com Playwright
 ```
 
 ## Licença
