@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class UserProfileRequest {
 
-    @NotBlank(message = "Nome é obrigatório")
+    @NotBlank(message = "{validation.name.required}")
     @Size(min = 2, max = 100)
     private String name;
 
@@ -24,10 +24,10 @@ public class UserProfileRequest {
      * O @Pattern garante que o campo seja um Data URL de imagem válida,
      * impedindo que HTML/JS sejam armazenados neste campo (XSS stored).
      */
-    @Size(max = 50000, message = "Imagem muito grande. Use uma imagem menor (máx. ~37 KB).")
+    @Size(max = 50000, message = "{validation.profile.image.size}")
     @Pattern(
         regexp = "^(data:image/(jpeg|jpg);base64,[A-Za-z0-9+/=]+)?$",
-        message = "Formato de imagem inválido. Use apenas JPG ou JPEG em Base64."
+        message = "{validation.profile.image.format}"
     )
     private String profileImage;
 

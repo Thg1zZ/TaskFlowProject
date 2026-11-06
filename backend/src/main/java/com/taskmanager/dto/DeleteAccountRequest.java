@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class DeleteAccountRequest {
-    @NotBlank(message = "A senha é obrigatória para confirmar a exclusão")
+    @NotBlank(message = "{validation.deleteAccount.password}")
     private String password;
 }

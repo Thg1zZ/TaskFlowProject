@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TimeTrackingRequest {
 
-    @NotNull(message = "Os minutos são obrigatórios")
-    @Min(value = 1, message = "Os minutos a incrementar devem ser de no mínimo 1")
-    @Max(value = 1440, message = "Os minutos a incrementar não podem exceder 24 horas (1440 minutos)")
+    @NotNull(message = "{validation.time.required}")
+    @Min(value = 1, message = "{validation.time.min}")
+    @Max(value = 1440, message = "{validation.time.max}")
     private Integer minutes;
 }

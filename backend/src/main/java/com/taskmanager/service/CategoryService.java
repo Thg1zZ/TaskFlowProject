@@ -39,7 +39,7 @@ public class CategoryService {
         User user = securityService.getCurrentUser();
 
         if (categoryRepository.existsByNameAndUserId(req.getName().trim(), user.getId())) {
-            throw new IllegalArgumentException("Já existe uma categoria com esse nome");
+            throw new IllegalArgumentException("error.category.duplicate");
         }
 
         Category cat = Category.builder()
@@ -56,13 +56,13 @@ public class CategoryService {
     public CategoryResponse update(Long id, CategoryRequest req) {
         User user = securityService.getCurrentUser();
         Category cat = categoryRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.category.notFound"));
 
         // Se mudou o nome, verificar duplicata (excluindo a própria)
         String newName = req.getName().trim();
         if (!newName.equalsIgnoreCase(cat.getName()) &&
                 categoryRepository.existsByNameAndUserId(newName, user.getId())) {
-            throw new IllegalArgumentException("Já existe uma categoria com esse nome");
+            throw new IllegalArgumentException("error.category.duplicate");
         }
 
         cat.setName(newName);
@@ -77,7 +77,7 @@ public class CategoryService {
     public void delete(Long id) {
         User user = securityService.getCurrentUser();
         Category cat = categoryRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.category.notFound"));
         categoryRepository.delete(cat);
     }
 }

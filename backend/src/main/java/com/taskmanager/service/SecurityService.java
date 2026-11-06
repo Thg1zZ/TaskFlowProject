@@ -27,12 +27,12 @@ public class SecurityService {
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new UnauthorizedException("Usuário não autenticado");
+            throw new UnauthorizedException("error.auth.notAuthenticated");
         }
 
         String email = authentication.getName();
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.user.notFound"));
     }
 
     public Long getCurrentUserId() {

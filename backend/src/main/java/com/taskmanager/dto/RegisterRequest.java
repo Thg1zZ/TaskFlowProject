@@ -8,28 +8,28 @@ import lombok.Data;
 @Data
 public class RegisterRequest {
 
-    @NotBlank(message = "Nome é obrigatório")
-    @Size(min = 2, max = 100, message = "Nome deve ter entre 2 e 100 caracteres")
+    @NotBlank(message = "{validation.name.required}")
+    @Size(min = 2, max = 100, message = "{validation.register.name.size}")
     private String name;
 
-    @NotBlank(message = "Email é obrigatório")
-    @Email(message = "Email inválido")
+    @NotBlank(message = "{validation.email.required}")
+    @Email(message = "{validation.email.invalid}")
     private String email;
 
-    @NotBlank(message = "Senha é obrigatória")
+    @NotBlank(message = "{validation.password.required}")
     /**
      * [VULN-06 FIX] ASVS 2.1.1: política de senha mínima:
      * - Mínimo 10 caracteres
      * - Ao menos 1 maiúscula, 1 minúscula, 1 dígito e 1 especial
      */
-    @Size(min = 10, message = "Senha deve ter pelo menos 10 caracteres")
+    @Size(min = 10, message = "{validation.password.size}")
     @jakarta.validation.constraints.Pattern(
         regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).+$",
-        message = "Senha deve conter maiúsculas, minúsculas, números e um caractere especial"
+        message = "{validation.password.complexity}"
     )
     private String password;
 
-    @jakarta.validation.constraints.NotNull(message = "Você deve aceitar os termos de uso e a política de privacidade")
-    @jakarta.validation.constraints.AssertTrue(message = "Você deve aceitar os termos de uso e a política de privacidade")
+    @jakarta.validation.constraints.NotNull(message = "{validation.terms.required}")
+    @jakarta.validation.constraints.AssertTrue(message = "{validation.terms.required}")
     private Boolean acceptedTerms;
 }

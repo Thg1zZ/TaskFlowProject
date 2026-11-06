@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class CommentRequest {
 
-    @NotBlank(message = "Conteúdo é obrigatório")
-    @Size(min = 1, max = 1000)
+    @NotBlank(message = "{validation.comment.required}")
+    @Size(max = 1000)
     private String content;
 }

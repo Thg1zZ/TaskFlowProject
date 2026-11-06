@@ -26,7 +26,7 @@ public class CommentService {
         User user = securityService.getCurrentUser();
         // Verify task belongs to user
         taskRepo.findByIdAndUserId(taskId, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         return commentRepo.findByTaskIdOrderByCreatedAtAsc(taskId)
                 .stream().map(CommentResponse::fromEntity).collect(Collectors.toList());
@@ -36,7 +36,7 @@ public class CommentService {
     public CommentResponse add(Long taskId, CommentRequest req) {
         User user = securityService.getCurrentUser();
         Task task = taskRepo.findByIdAndUserId(taskId, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         TaskComment comment = TaskComment.builder()
                 .content(req.getContent())
@@ -51,10 +51,10 @@ public class CommentService {
     public void delete(Long taskId, Long commentId) {
         User user = securityService.getCurrentUser();
         taskRepo.findByIdAndUserId(taskId, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         TaskComment comment = commentRepo.findByIdAndUserId(commentId, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Comentário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.comment.notFound"));
 
         commentRepo.delete(comment);
     }

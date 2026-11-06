@@ -10,9 +10,9 @@ import lombok.Data;
 @Data
 public class GoogleTokenRequest {
 
-    @NotBlank(message = "ID Token do Google é obrigatório")
+    @NotBlank(message = "{validation.google.idToken}")
     private String idToken;
 
-    @NotBlank(message = "Nonce de segurança (CSRF) é obrigatório")
+    @NotBlank(message = "{validation.google.nonce}")
     private String nonce;
 }

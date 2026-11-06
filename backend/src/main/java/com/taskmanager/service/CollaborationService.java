@@ -29,7 +29,7 @@ public class CollaborationService {
     @Transactional
     public ShareLink generateShareLink(Long taskId, ParticipantRole role, Integer expireInHours) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         // Desativa links anteriores para mesma tarefa (opcional - no nosso caso
         // deixamos criar multiplos ou invalidamos o ativo)
@@ -54,21 +54,21 @@ public class CollaborationService {
     @Transactional
     public ParticipantResponse joinViaLink(UUID token) {
         ShareLink link = shareLinkRepository.findByToken(token)
-                .orElseThrow(() -> new ResourceNotFoundException("Link de convite inválido ou não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.invite.notFound"));
 
         if (!link.getIsActive()) {
-            throw new UnauthorizedException("Este link de convite foi revogado.");
+            throw new UnauthorizedException("error.invite.revoked");
         }
 
         if (link.getExpiresAt() != null && link.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new UnauthorizedException("Este link de convite expirou.");
+            throw new UnauthorizedException("error.invite.expired");
         }
 
         User currentUser = securityService.getCurrentUser();
 
         // Evita que owner entre como participante
         if (link.getTask().getUser().getId().equals(currentUser.getId())) {
-            throw new IllegalArgumentException("Você já é o proprietário desta tarefa.");
+            throw new IllegalArgumentException("error.invite.alreadyOwner");
         }
 
         // Verifica se já é participante
@@ -103,7 +103,7 @@ public class CollaborationService {
     public void removeParticipant(Long taskId, Long participantUserId) {
         User currentUser = securityService.getCurrentUser();
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         boolean isOwner = task.getUser().getId().equals(currentUser.getId());
         boolean isLeavingParticipant = currentUser.getId().equals(participantUserId)
@@ -111,7 +111,7 @@ public class CollaborationService {
 
         // 404 para quem não tem acesso: não revela se a tarefa existe
         if (!isOwner && !isLeavingParticipant) {
-            throw new ResourceNotFoundException("Tarefa não encontrada");
+            throw new ResourceNotFoundException("error.task.notFound");
         }
 
         if (participantRepository.deleteByTaskIdAndUserId(taskId, participantUserId) == 0) {
@@ -139,7 +139,7 @@ public class CollaborationService {
     @Transactional
     public Task updatePrivacy(Long taskId, Task.TaskPrivacy privacy) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.task.notFound"));
 
         task.setPrivacyMode(privacy);
         Task updated = taskRepository.save(task);
@@ -152,7 +152,7 @@ public class CollaborationService {
     @Transactional
     public void revokeShareLink(Long taskId, Long linkId) {
         ShareLink link = shareLinkRepository.findByIdAndTaskId(linkId, taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Link de convite não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.shareLink.notFound"));
 
         link.setIsActive(false);
         shareLinkRepository.save(link);

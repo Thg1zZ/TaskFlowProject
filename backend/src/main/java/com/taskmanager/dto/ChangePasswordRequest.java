@@ -7,15 +7,15 @@ import lombok.Data;
 @Data
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "Senha atual é obrigatória")
+    @NotBlank(message = "{validation.password.current.required}")
     private String currentPassword;
 
-    @NotBlank(message = "Nova senha é obrigatória")
+    @NotBlank(message = "{validation.password.new.required}")
     /** [VULN-06 FIX] Mesma política de complexidade do registro */
-    @Size(min = 10, message = "Nova senha deve ter pelo menos 10 caracteres")
+    @Size(min = 10, message = "{validation.password.new.size}")
     @jakarta.validation.constraints.Pattern(
         regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).+$",
-        message = "Senha deve conter maiúsculas, minúsculas, números e um caractere especial"
+        message = "{validation.password.complexity}"
     )
     private String newPassword;
 }

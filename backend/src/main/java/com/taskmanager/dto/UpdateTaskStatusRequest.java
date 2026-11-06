@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class UpdateTaskStatusRequest {
     
-    @NotNull(message = "O status é obrigatório")
+    @NotNull(message = "{validation.task.status.required}")
     private TaskStatus status;
 
     public UpdateTaskStatusRequest() {}

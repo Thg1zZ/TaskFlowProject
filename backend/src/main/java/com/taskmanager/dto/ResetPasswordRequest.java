@@ -9,11 +9,11 @@ public class ResetPasswordRequest {
     @NotBlank
     private String token;
 
-    @NotBlank(message = "Nova senha é obrigatória")
-    @Size(min = 10, message = "Nova senha deve ter pelo menos 10 caracteres")
+    @NotBlank(message = "{validation.password.new.required}")
+    @Size(min = 10, message = "{validation.password.new.size}")
     @jakarta.validation.constraints.Pattern(
         regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).+$",
-        message = "Senha deve conter maiúsculas, minúsculas, números e um caractere especial"
+        message = "{validation.password.complexity}"
     )
     private String newPassword;
 }

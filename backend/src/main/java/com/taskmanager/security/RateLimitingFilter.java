@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.taskmanager.util.HashUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -62,6 +63,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     @Autowired
     private HashUtils hashUtils;
 
+    @Autowired
+    private MessageSource messageSource;
+
     private record BucketEntry(AtomicInteger count, long windowStart) {}
 
     private final ConcurrentHashMap<String, BucketEntry> loginBuckets      = new ConcurrentHashMap<>();
@@ -102,7 +106,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (path.startsWith(ADMIN_PATH_PREFIX)) {
             if (isRateLimited(ip, adminBuckets, ADMIN_MAX_ATTEMPTS, ADMIN_WINDOW_MS)) {
                 log.warn("[SECURITY] Rate limit ADMIN atingido para IP={} em path={}", maskIp(ip), path);
-                sendTooManyRequests(response, ADMIN_WINDOW_MS);
+                sendTooManyRequests(request, response, ADMIN_WINDOW_MS);
                 return;
             }
             filterChain.doFilter(request, response);
@@ -130,7 +134,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         if (isRateLimited(ip, buckets, maxAttempts, windowMs)) {
             log.warn("Rate limit atingido para IP={} em path={}", maskIp(ip), path);
-            sendTooManyRequests(response, windowMs);
+            sendTooManyRequests(request, response, windowMs);
             return;
         }
 
@@ -166,16 +170,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         return entry.count().get() > maxAttempts;
     }
 
-    private void sendTooManyRequests(HttpServletResponse response, long windowMs) throws IOException {
+    /** Mesmo formato do GlobalExceptionHandler ("error"), no idioma do Accept-Language. */
+    private void sendTooManyRequests(HttpServletRequest request, HttpServletResponse response, long windowMs) throws IOException {
         response.setStatus(429);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         long retryAfterSeconds = windowMs / 1000;
         response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
-        response.getWriter().write(
-            "{\"status\":429,\"error\":\"Muitas tentativas. Tente novamente em " +
-            (retryAfterSeconds / 60) + " minuto(s).\"}"
-        );
+        String message = messageSource.getMessage("error.rateLimit", new Object[]{retryAfterSeconds / 60}, request.getLocale());
+        response.getWriter().write("{\"status\":429,\"error\":\"" + message + "\"}");
     }
 
     /** Mascara o IP para logs (LGPD / ASVS 7.1.1) */
